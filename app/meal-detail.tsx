@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { PressableScale } from '../components/ui/PressableScale';
 import { haptic } from '../lib/haptics';
@@ -196,7 +196,7 @@ export default function MealDetailScreen() {
       {/* ══ HEADER ══════════════════════════════════════════ */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>{mealName}</Text>
         <View style={{ width: 40 }} />
@@ -565,8 +565,13 @@ export default function MealDetailScreen() {
       </Modal>
 
       {/* ── Yeni Tarif Oluştur Modal ── */}
-      <Modal visible={isCreateRecipeOpen} transparent={false} animationType="slide">
-        <SafeAreaView style={styles.createRecipeSafe}>
+      <Modal 
+        visible={isCreateRecipeOpen} 
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsCreateRecipeOpen(false)}
+      >
+        <SafeAreaView style={styles.createRecipeSafe} edges={['top']}>
           {/* Header */}
           <View style={styles.createRecipeHeader}>
             <TouchableOpacity
@@ -574,7 +579,7 @@ export default function MealDetailScreen() {
               onPress={() => setIsCreateRecipeOpen(false)}
               activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+              <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
             <Text style={styles.createRecipeTitle}>Yeni Tarif Oluştur</Text>
             <View style={{ width: 40 }} />
@@ -745,7 +750,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1259,7 +1264,7 @@ const styles = StyleSheet.create({
   createRecipeBackBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',

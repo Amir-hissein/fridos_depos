@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
 import { RECIPES } from '../constants/recipes';
 import { RecipeCardB } from '../components/ui/RecipeCard';
@@ -102,7 +102,7 @@ export default function CalorieRecipesScreen() {
               router.back();
             }}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Kalori aralığına göre tarifler</Text>
         </View>
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
