@@ -46,7 +46,8 @@
       "loginLink": "Se connecter",
       "errName": "Saisis ton nom",
       "errMismatch": "Les mots de passe ne correspondent pas",
-      "confirm": "Compte créé ! Vérifie tes e-mails pour confirmer ton adresse."
+      "confirm": "Compte créé ! Vérifie tes e-mails pour confirmer ton adresse.",
+      "created": "Compte créé ! Connecte-toi pour continuer."
     },
     "forgot": {
       "title": "Mot de passe oublié ?",

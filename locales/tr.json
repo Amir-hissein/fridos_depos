@@ -46,7 +46,8 @@
       "loginLink": "Giriş Yap",
       "errName": "Adını gir",
       "errMismatch": "Şifreler eşleşmiyor",
-      "confirm": "Hesap oluşturuldu! Adresini doğrulamak için e-postanı kontrol et."
+      "confirm": "Hesap oluşturuldu! Adresini doğrulamak için e-postanı kontrol et.",
+      "created": "Hesap oluşturuldu! Devam etmek için giriş yap."
     },
     "forgot": {
       "title": "Şifreni mi Unuttun?",

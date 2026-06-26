@@ -18,7 +18,7 @@ import { Button } from '../../components/ui/Button';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useApp } from '../../context/AppContext';
 import { useFeedback } from '../../context/FeedbackContext';
-import { signUp } from '../../lib/api/auth';
+import { signUp, signOut } from '../../lib/api/auth';
 import { useTranslation } from 'react-i18next';
 import { haptic } from '../../lib/haptics';
 
@@ -64,12 +64,16 @@ export default function SignupScreen() {
     setUserName(name.trim());
     haptic.success();
     if (res.needsConfirm) {
-      // Email confirmation required — no session yet, send them back to login.
+      // Email confirmation required — no session yet.
       toast(t('auth.signup.confirm'), { variant: 'info', duration: 4000 });
-      router.replace('/(auth)/login');
     } else {
-      router.replace('/(onboarding)');
+      // Supabase auto-signs-in on sign-up; sign out so the user logs in
+      // explicitly before entering the app.
+      await signOut();
+      toast(t('auth.signup.created'), { variant: 'success', duration: 3500 });
     }
+    // Always go through the login screen after creating an account.
+    router.replace('/(auth)/login');
   };
 
   return (
