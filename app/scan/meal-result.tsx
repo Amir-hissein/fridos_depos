@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Dimensions, Image, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,14 +50,36 @@ export default function MealResultScreen() {
   const { t } = useTranslation();
   const [meal, setMeal] = useState<DetectedMeal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [slot, setSlot] = useState<MealSlot>((slotParam as MealSlot) || 'lunch');
   const [portion, setPortion] = useState(1);
 
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      setMeal(await detectMeal(uri));
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [uri]);
+
   useEffect(() => {
     let active = true;
-    detectMeal(uri)
-      .then(m => active && setMeal(m))
-      .finally(() => active && setLoading(false));
+    (async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const m = await detectMeal(uri);
+        if (active) setMeal(m);
+      } catch {
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
     return () => { active = false; };
   }, [uri]);
 
@@ -109,10 +131,20 @@ export default function MealResultScreen() {
       <View style={styles.sheet}>
         <View style={styles.sheetHandle} />
 
-        {loading || !meal || !scaled || !split ? (
+        {loading ? (
           <View style={styles.stateWrap}>
             <ActivityIndicator size="large" color={colors.orange} />
             <Text style={styles.stateText}>{t('scan.mealResult.loadingText')}</Text>
+          </View>
+        ) : error || !meal || !scaled || !split ? (
+          <View style={styles.stateWrap}>
+            <Ionicons name="cloud-offline-outline" size={42} color={colors.textMuted} />
+            <Text style={styles.errorTitle}>{t('scan.mealResult.errorTitle')}</Text>
+            <Text style={styles.stateText}>{t('scan.mealResult.errorText')}</Text>
+            <PressableScale haptic="light" style={styles.retryBtn} onPress={load}>
+              <Ionicons name="refresh" size={16} color={colors.green} />
+              <Text style={styles.retryText}>{t('scan.mealResult.retry')}</Text>
+            </PressableScale>
           </View>
         ) : (
           <>
@@ -275,8 +307,15 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sheetHandle: { width: 36, height: 5, borderRadius: 3, backgroundColor: colors.separator, alignSelf: 'center', marginBottom: 16 },
   scrollContent: { paddingBottom: 12 },
-  stateWrap: { alignItems: 'center', justifyContent: 'center', gap: 14, paddingVertical: 60 },
-  stateText: { fontFamily: 'Inter_500Medium', fontSize: 14, color: colors.textMuted },
+  stateWrap: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 60, paddingHorizontal: 32 },
+  stateText: { fontFamily: 'Inter_500Medium', fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+  errorTitle: { fontFamily: 'Poppins_700Bold', fontSize: 18, color: colors.textPrimary, marginTop: 4 },
+  retryBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.greenLight, paddingHorizontal: 18, paddingVertical: 10,
+    borderRadius: 100, marginTop: 8,
+  },
+  retryText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: colors.green },
 
   mealHead: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   mealEmojiWrap: {

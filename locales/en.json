@@ -682,7 +682,8 @@
         "desc": "Fridos needs access to your camera to scan the food in your fridge and suggest recipes.",
         "allow": "Allow camera access",
         "settings": "Open settings",
-        "later": "Maybe later"
+        "later": "Maybe later",
+        "galleryDenied": "Photo access denied. Enable it in settings."
       },
       "hints": {
         "meal": "Frame your plate in the viewfinder",
@@ -721,7 +722,9 @@
       "mealIdeas": {
         "title": "Meal ideas",
         "subtitle": "From your fridge · {{diet}} profile"
-      }
+      },
+      "errorText": "Analysis failed. Check your connection and try again.",
+      "retry": "Try again"
     },
     "mealResult": {
       "loadingText": "Estimating calories…",
@@ -750,7 +753,10 @@
         "C": "Decent — watch the portion size.",
         "D": "A bit heavy — pair it with something lighter today.",
         "E": "Indulgent — best kept occasional."
-      }
+      },
+      "errorTitle": "Analysis failed",
+      "errorText": "Couldn’t analyze this plate. Try again.",
+      "retry": "Try again"
     }
   },
   "mealDetail": {

@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeColors } from '../../constants/colors';
 import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { haptic } from '../../lib/haptics';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -32,6 +33,7 @@ export default function CameraScreen() {
   const { mode, slot } = useLocalSearchParams<{ mode?: string; slot?: string }>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { toast } = useFeedback();
   const isMeal = mode === 'meal';
   const resultPath = isMeal ? '/scan/meal-result' : '/scan/result';
   const [permission, requestPermission] = useCameraPermissions();
@@ -95,7 +97,10 @@ export default function CameraScreen() {
     if (analyzing) return;
     haptic.light();
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
+    if (!perm.granted) {
+      toast(t('scan.camera.permission.galleryDenied'), { variant: 'error' });
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.6,

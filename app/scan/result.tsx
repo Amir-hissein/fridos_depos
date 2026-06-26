@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -42,17 +42,39 @@ export default function ScanResultScreen() {
   const { t } = useTranslation();
   const [detected, setDetected] = useState<DetectedIngredient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [checked, setChecked] = useState<Set<string>>(new Set());
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const items = await detectIngredients(uri);
+      setDetected(items);
+      setChecked(new Set(items.filter(d => d.default).map(d => d.id)));
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [uri]);
 
   useEffect(() => {
     let active = true;
-    detectIngredients(uri)
-      .then(items => {
+    (async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const items = await detectIngredients(uri);
         if (!active) return;
         setDetected(items);
         setChecked(new Set(items.filter(d => d.default).map(d => d.id)));
-      })
-      .finally(() => active && setLoading(false));
+      } catch {
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
     return () => {
       active = false;
     };
@@ -135,6 +157,15 @@ export default function ScanResultScreen() {
           <View style={styles.stateWrap}>
             <ActivityIndicator size="large" color={colors.green} />
             <Text style={styles.stateText}>{t('scan.results.loadingText')}</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.stateWrap}>
+            <Ionicons name="cloud-offline-outline" size={40} color={colors.textLight} />
+            <Text style={styles.stateText}>{t('scan.results.errorText')}</Text>
+            <PressableScale haptic="light" style={styles.retryBtn} onPress={load}>
+              <Ionicons name="refresh" size={16} color={colors.green} />
+              <Text style={styles.retryText}>{t('scan.results.retry')}</Text>
+            </PressableScale>
           </View>
         ) : detected.length === 0 ? (
           <View style={styles.stateWrap}>
@@ -322,6 +353,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.greenLight,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 100,
+    marginTop: 4,
+  },
+  retryText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: colors.green,
   },
 
   /* ── Meal ideas ── */

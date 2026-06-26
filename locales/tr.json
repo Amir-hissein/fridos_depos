@@ -682,7 +682,8 @@
         "desc": "Fridos, buzdolabındaki yiyecekleri taramak ve yemek tarifleri önermek için kameranıza erişmelidir.",
         "allow": "Kamera erişimine izin ver",
         "settings": "Ayarları aç",
-        "later": "Belki daha sonra"
+        "later": "Belki daha sonra",
+        "galleryDenied": "Fotoğraf erişimi reddedildi. Ayarlardan etkinleştir."
       },
       "hints": {
         "meal": "Tabağınızı vizörün içine yerleştirin",
@@ -721,7 +722,9 @@
       "mealIdeas": {
         "title": "Yemek fikirleri",
         "subtitle": "Buzdolabından · {{diet}} profili"
-      }
+      },
+      "errorText": "Analiz başarısız. Bağlantını kontrol edip tekrar dene.",
+      "retry": "Tekrar dene"
     },
     "mealResult": {
       "loadingText": "Kalori tahmin ediliyor…",
@@ -750,7 +753,10 @@
         "C": "İdare eder — porsiyona dikkat et.",
         "D": "Biraz ağır — bugün hafif bir şeyle dengele.",
         "E": "Keyiflik — ara sıra tercih et."
-      }
+      },
+      "errorTitle": "Analiz başarısız",
+      "errorText": "Bu tabak analiz edilemedi. Tekrar dene.",
+      "retry": "Tekrar dene"
     }
   },
   "mealDetail": {

@@ -682,7 +682,8 @@
         "desc": "Fridos a besoin d'accéder à votre caméra pour scanner les aliments de votre frigo et vous suggérer des recettes.",
         "allow": "Autoriser l'accès à la caméra",
         "settings": "Ouvrir les réglages",
-        "later": "Plus tard"
+        "later": "Plus tard",
+        "galleryDenied": "Accès aux photos refusé. Active-le dans les réglages."
       },
       "hints": {
         "meal": "Cadrez votre assiette dans le viseur",
@@ -721,7 +722,9 @@
       "mealIdeas": {
         "title": "Idées de repas",
         "subtitle": "À partir de ton frigo · profil {{diet}}"
-      }
+      },
+      "errorText": "L’analyse a échoué. Vérifie ta connexion et réessaie.",
+      "retry": "Réessayer"
     },
     "mealResult": {
       "loadingText": "Estimation des calories…",
@@ -750,7 +753,10 @@
         "C": "Correct — surveille la taille de la portion.",
         "D": "Un peu lourd — associe-le à plus léger aujourd'hui.",
         "E": "Plaisir — à garder occasionnel."
-      }
+      },
+      "errorTitle": "Analyse impossible",
+      "errorText": "Impossible d’analyser ce plat. Réessaie.",
+      "retry": "Réessayer"
     }
   },
   "mealDetail": {
