@@ -1,8 +1,13 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Recipe } from '../constants/recipes';
 import { Colors } from '../constants/colors';
 import { animateLayout } from '../constants/animations';
-import { usePersistentState } from '../lib/usePersistentState';
+import { useAuth } from './AuthContext';
+import {
+  listCustomRecipes,
+  createCustomRecipe,
+  deleteCustomRecipe,
+} from '../lib/api/customRecipes';
 
 export interface NewRecipeInput {
   name: string;
@@ -55,20 +60,28 @@ function buildRecipe(input: NewRecipeInput): Recipe {
 }
 
 export function CustomRecipesProvider({ children }: { children: ReactNode }) {
-  const [customRecipes, setCustomRecipes] = usePersistentState<Recipe[]>('customRecipes.list', [
-    buildRecipe({
-      name: 'Ev Yapımı Granola',
-      kcal: 320,
-      image: 'https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&w=400&q=80',
-      ingredients: [],
-      steps: [],
-    }),
-  ]);
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? '';
+  const [customRecipes, setCustomRecipes] = useState<Recipe[]>([]);
+
+  // Load the user's custom recipes on sign-in; clear on sign-out.
+  useEffect(() => {
+    if (!userId) {
+      setCustomRecipes([]);
+      return;
+    }
+    let active = true;
+    listCustomRecipes().then(rows => active && setCustomRecipes(rows));
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   const addCustomRecipe = (input: NewRecipeInput): Recipe => {
     const recipe = buildRecipe(input);
     animateLayout();
     setCustomRecipes(prev => [recipe, ...prev]);
+    createCustomRecipe(recipe);
     return recipe;
   };
 
@@ -77,6 +90,7 @@ export function CustomRecipesProvider({ children }: { children: ReactNode }) {
   const removeCustomRecipe = (id: string) => {
     animateLayout();
     setCustomRecipes(prev => prev.filter(r => r.id !== id));
+    deleteCustomRecipe(id);
   };
 
   return (

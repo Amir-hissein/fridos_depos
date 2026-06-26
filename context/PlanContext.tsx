@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   UserProfile,
   PlanTargets,
   computeTargets,
 } from '../services/plan';
 import { MacroSet, EMPTY_MACROS, addMacros } from '../services/nutrition';
+import { useAuth } from './AuthContext';
+import { getMyProfile, updateMyProfile, ProfileRow } from '../lib/api/profile';
+import { weekDates, getWeek, upsertDayLog, syncSlot, Slot } from '../lib/api/tracking';
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -36,10 +38,6 @@ interface PlanContextType {
   targets: PlanTargets;
   intake: DailyIntake;
   consumedKcal: number;
-  /**
-   * Macros consumed today. Meals logged with measured macros (e.g. an AI plate
-   * scan) count for real; any remaining kcal is estimated from the diet split.
-   */
   consumedMacros: MacroSet;
   onboardingComplete: boolean;
   selectedDayIndex: number;
@@ -47,15 +45,10 @@ interface PlanContextType {
   weeklyIntake: Record<number, DailyIntake>;
   completeOnboarding: (profile: UserProfile) => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
-  /** Log a meal's calories to a slot. Pass `macros` (e.g. from an AI scan) to
-   *  track its real protein/carbs/fat instead of the diet-split estimate. */
   logMeal: (slot: MealSlot, kcal: number, macros?: MacroSet) => void;
-  /** Add a one-off custom amount of kcal to a meal slot. */
   addCustomKcal: (slot: MealSlot, kcal: number) => void;
-  /** Add/remove a specific recipe from a meal slot (additive, tracked by id). */
   toggleMealRecipe: (slot: MealSlot, id: string, kcal: number) => void;
   isRecipeLogged: (slot: MealSlot, id: string) => boolean;
-  /** Ids de toutes les recettes ajoutées aux repas de la semaine (dédupliqués). */
   loggedRecipeIds: string[];
   addWater: (ml: number) => void;
   updateSteps: (steps: number) => void;
@@ -64,9 +57,6 @@ interface PlanContextType {
 
 const PlanContext = createContext<PlanContextType | undefined>(undefined);
 
-/** AsyncStorage key for the persisted tracking state (bump suffix to migrate). */
-const STORAGE_KEY = 'plan.state.v1';
-
 const EMPTY_INTAKE: DailyIntake = {
   breakfast: 0,
   lunch: 0,
@@ -74,66 +64,127 @@ const EMPTY_INTAKE: DailyIntake = {
   snack: 0,
   waterMl: 0,
   steps: 0,
-  weight: 75.0,
+  weight: 0,
 };
 
-const INITIAL_WEEKLY_INTAKE: Record<number, DailyIntake> = {
-  0: { breakfast: 350, lunch: 0, dinner: 0, snack: 0, waterMl: 1200, steps: 4320, weight: 75.0 }, // Mon
-  1: { breakfast: 0, lunch: 0, dinner: 0, snack: 0, waterMl: 0, steps: 0, weight: 74.8 },        // Tue
-  2: { breakfast: 480, lunch: 520, dinner: 600, snack: 150, waterMl: 2100, steps: 9800, weight: 74.6 }, // Wed
-  3: { breakfast: 0, lunch: 0, dinner: 0, snack: 0, waterMl: 0, steps: 0, weight: 74.6 },        // Thu
-  4: { breakfast: 0, lunch: 0, dinner: 0, snack: 0, waterMl: 0, steps: 0, weight: 74.5 },        // Fri
-  5: { breakfast: 0, lunch: 0, dinner: 0, snack: 0, waterMl: 0, steps: 0, weight: 74.3 },        // Sat
-  6: { breakfast: 0, lunch: 0, dinner: 0, snack: 0, waterMl: 0, steps: 0, weight: 74.2 },        // Sun
+const SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+const emptyWeek = (weight: number): Record<number, DailyIntake> => {
+  const w: Record<number, DailyIntake> = {};
+  for (let i = 0; i < 7; i++) w[i] = { ...EMPTY_INTAKE, weight };
+  return w;
 };
+
+/* ── profiles row ↔ UserProfile mapping ─────────────────────────── */
+function profileFromRow(row: ProfileRow | null, fallback: UserProfile): UserProfile {
+  if (!row) return fallback;
+  return {
+    sex: (row.sex as UserProfile['sex']) ?? fallback.sex,
+    height: row.height_cm ?? fallback.height,
+    age: row.age ?? fallback.age,
+    weight: row.current_weight_kg ?? fallback.weight,
+    targetWeight: row.target_weight_kg ?? fallback.targetWeight,
+    activity: (row.activity as UserProfile['activity']) ?? fallback.activity,
+    goalPace: (row.goal_pace as UserProfile['goalPace']) ?? fallback.goalPace,
+    dailySteps: row.daily_steps_goal ?? fallback.dailySteps,
+    diet: (row.diet as UserProfile['diet']) ?? fallback.diet,
+  };
+}
+function profileToRow(p: Partial<UserProfile>): Partial<ProfileRow> {
+  const r: Partial<ProfileRow> = {};
+  if (p.sex !== undefined) r.sex = p.sex;
+  if (p.height !== undefined) r.height_cm = p.height;
+  if (p.age !== undefined) r.age = p.age;
+  if (p.weight !== undefined) r.current_weight_kg = p.weight;
+  if (p.targetWeight !== undefined) r.target_weight_kg = p.targetWeight;
+  if (p.activity !== undefined) r.activity = p.activity;
+  if (p.goalPace !== undefined) r.goal_pace = p.goalPace;
+  if (p.dailySteps !== undefined) r.daily_steps_goal = p.dailySteps;
+  if (p.diet !== undefined) r.diet = p.diet;
+  return r;
+}
 
 export function PlanProvider({ children }: { children: ReactNode }) {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? '';
+
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
-  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => {
-    // Default to today's index: 0 = Mon, ..., 6 = Sun
-    return (new Date().getDay() + 6) % 7;
-  });
-  const [weeklyIntake, setWeeklyIntake] = useState<Record<number, DailyIntake>>(INITIAL_WEEKLY_INTAKE);
-  // Recipes explicitly added to a meal: day → slot → { recipeId: kcal }.
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(() => (new Date().getDay() + 6) % 7);
+  const [weeklyIntake, setWeeklyIntake] = useState<Record<number, DailyIntake>>(() =>
+    emptyWeek(DEFAULT_PROFILE.weight),
+  );
+  // day → slot → { recipeId: kcal }
   const [loggedRecipes, setLoggedRecipes] =
     useState<Record<number, Partial<Record<MealSlot, Record<string, number>>>>>({});
-  // Measured macros for meals logged with real data (AI scans): day → slot → macros.
+  // day → slot → measured macros
   const [mealMacros, setMealMacros] =
     useState<Record<number, Partial<Record<MealSlot, MacroSet>>>>({});
 
-  // True once persisted state has loaded — gates saving so we never overwrite
-  // storage with defaults before the first read completes.
-  const [hydrated, setHydrated] = useState(false);
+  // ISO dates (Mon..Sun) for the current week — stable for the session.
+  const weekISO = useMemo(() => weekDates(), []);
+  const dateFor = (index: number) => weekISO[index];
 
-  // Load persisted tracking state on first mount.
+  /* ── Hydrate from Supabase on sign-in ─────────────────────────── */
   useEffect(() => {
+    if (!userId) {
+      setProfile(DEFAULT_PROFILE);
+      setOnboardingComplete(false);
+      setWeeklyIntake(emptyWeek(DEFAULT_PROFILE.weight));
+      setLoggedRecipes({});
+      setMealMacros({});
+      return;
+    }
     let active = true;
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then(raw => {
-        if (!active || !raw) return;
-        const saved = JSON.parse(raw);
-        if (saved.profile) setProfile(saved.profile);
-        if (typeof saved.onboardingComplete === 'boolean') setOnboardingComplete(saved.onboardingComplete);
-        if (saved.weeklyIntake) setWeeklyIntake(saved.weeklyIntake);
-        if (saved.loggedRecipes) setLoggedRecipes(saved.loggedRecipes);
-        if (saved.mealMacros) setMealMacros(saved.mealMacros);
-      })
-      .catch(() => {})
-      .finally(() => { if (active) setHydrated(true); });
-    return () => { active = false; };
-  }, []);
+    (async () => {
+      const [profileRow, week] = await Promise.all([getMyProfile(), getWeek(weekISO)]);
+      if (!active) return;
 
-  // Persist whenever any tracking slice changes (after hydration).
-  useEffect(() => {
-    if (!hydrated) return;
-    const payload = JSON.stringify({ profile, onboardingComplete, weeklyIntake, loggedRecipes, mealMacros });
-    AsyncStorage.setItem(STORAGE_KEY, payload).catch(() => {});
-  }, [hydrated, profile, onboardingComplete, weeklyIntake, loggedRecipes, mealMacros]);
+      const nextProfile = profileFromRow(profileRow, DEFAULT_PROFILE);
+      setProfile(nextProfile);
+      setOnboardingComplete(!!profileRow?.onboarding_done);
+
+      const intake = emptyWeek(nextProfile.weight);
+      const recipes: Record<number, Partial<Record<MealSlot, Record<string, number>>>> = {};
+      const macros: Record<number, Partial<Record<MealSlot, MacroSet>>> = {};
+
+      for (const log of week.logs) {
+        const i = weekISO.indexOf(log.log_date);
+        if (i < 0) continue;
+        intake[i].waterMl = log.water_ml ?? 0;
+        intake[i].steps = log.steps ?? 0;
+        if (log.weight_kg != null) intake[i].weight = log.weight_kg;
+      }
+      for (const e of week.entries) {
+        const i = weekISO.indexOf(e.log_date);
+        if (i < 0) continue;
+        const slot = e.slot as MealSlot;
+        intake[i][slot] = (intake[i][slot] ?? 0) + (e.kcal ?? 0);
+        if (e.source === 'recipe' && e.recipe_id) {
+          recipes[i] = recipes[i] ?? {};
+          recipes[i]![slot] = { ...(recipes[i]![slot] ?? {}), [e.recipe_id]: e.kcal };
+        }
+        if ((e.protein_g ?? 0) + (e.carbs_g ?? 0) + (e.fat_g ?? 0) > 0) {
+          macros[i] = macros[i] ?? {};
+          macros[i]![slot] = addMacros(macros[i]![slot] ?? { ...EMPTY_MACROS }, {
+            kcal: e.kcal,
+            protein: e.protein_g,
+            carbs: e.carbs_g,
+            fat: e.fat_g,
+          });
+        }
+      }
+      setWeeklyIntake(intake);
+      setLoggedRecipes(recipes);
+      setMealMacros(macros);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [userId, weekISO]);
 
   const targets = useMemo(() => computeTargets(profile), [profile]);
 
-  // Tous les ids de recettes ajoutées aux repas (toute la semaine), dédupliqués.
   const loggedRecipeIds = useMemo(() => {
     const ids = new Set<string>();
     for (const day of Object.values(loggedRecipes)) {
@@ -152,8 +203,6 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     return intake.breakfast + intake.lunch + intake.dinner + intake.snack;
   }, [intake]);
 
-  // Real macros from measured meals, plus a diet-split estimate for the rest of
-  // the day's calories (legacy/custom entries that carry no macro breakdown).
   const consumedMacros = useMemo<MacroSet>(() => {
     const dayMacros = mealMacros[selectedDayIndex] ?? {};
     let tracked: MacroSet = { ...EMPTY_MACROS };
@@ -170,75 +219,90 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     });
   }, [mealMacros, selectedDayIndex, consumedKcal, targets]);
 
+  /* ── Persist one meal slot as normalized entries ──────────────── */
+  const persistSlot = (
+    dayIndex: number,
+    slot: MealSlot,
+    slotKcal: number,
+    recipeMap: Record<string, number>,
+    macros?: MacroSet,
+  ) => {
+    const date = dateFor(dayIndex);
+    if (!date) return;
+    const entries = Object.entries(recipeMap).map(([recipe_id, kcal]) => ({
+      source: 'recipe',
+      recipe_id,
+      kcal,
+    }));
+    const recipeSum = Object.values(recipeMap).reduce((s, k) => s + k, 0);
+    const remainder = Math.max(0, slotKcal - recipeSum);
+    if (remainder > 0) {
+      entries.push({
+        source: macros ? 'scan' : 'quick',
+        recipe_id: null as any,
+        kcal: remainder,
+        ...(macros ? { macros: { protein: macros.protein, carbs: macros.carbs, fat: macros.fat } } : {}),
+      } as any);
+    }
+    syncSlot(date, slot as Slot, entries as any);
+  };
+
   const completeOnboarding = (next: UserProfile) => {
     setProfile(next);
     setOnboardingComplete(true);
-    // Seed weight to empty days
     setWeeklyIntake(prev => {
       const updated = { ...prev };
       for (let i = 0; i < 7; i++) {
-        if (!updated[i]) {
-          updated[i] = { ...EMPTY_INTAKE, weight: next.weight };
-        } else {
-          updated[i].weight = next.weight;
-        }
+        updated[i] = updated[i] ? { ...updated[i], weight: next.weight } : { ...EMPTY_INTAKE, weight: next.weight };
       }
       return updated;
     });
+    updateMyProfile({ ...profileToRow(next), onboarding_done: true }).catch(() => {});
   };
 
   const updateProfile = (patch: Partial<UserProfile>) => {
-    setProfile(prev => {
-      const next = { ...prev, ...patch };
-      if (patch.weight !== undefined) {
-        // Also update empty slot weight
-        setWeeklyIntake(w => {
-          const updated = { ...w };
-          for (let i = 0; i < 7; i++) {
-            if (updated[i]) updated[i].weight = patch.weight!;
-          }
-          return updated;
-        });
-      }
-      return next;
-    });
+    setProfile(prev => ({ ...prev, ...patch }));
+    if (patch.weight !== undefined) {
+      setWeeklyIntake(w => {
+        const updated = { ...w };
+        for (let i = 0; i < 7; i++) {
+          if (updated[i]) updated[i] = { ...updated[i], weight: patch.weight! };
+        }
+        return updated;
+      });
+      upsertDayLog(dateFor(selectedDayIndex), { weight_kg: patch.weight });
+    }
+    updateMyProfile(profileToRow(patch)).catch(() => {});
   };
 
   const logMeal = (slot: MealSlot, kcal: number, macros?: MacroSet) => {
-    // Same value already in the slot → tapping again clears it (toggle).
     const toggleOff = kcal !== 0 && (weeklyIntake[selectedDayIndex]?.[slot] ?? 0) === kcal;
+    const nextKcal = toggleOff ? 0 : kcal;
+    const nextMacros = toggleOff || !macros ? undefined : macros;
+    const recipeMap = loggedRecipes[selectedDayIndex]?.[slot] ?? {};
 
     setWeeklyIntake(prev => {
       const currentDay = prev[selectedDayIndex] || { ...EMPTY_INTAKE, weight: profile.weight };
-      return {
-        ...prev,
-        [selectedDayIndex]: {
-          ...currentDay,
-          [slot]: toggleOff ? 0 : kcal,
-        },
-      };
+      return { ...prev, [selectedDayIndex]: { ...currentDay, [slot]: nextKcal } };
     });
-
-    // Keep measured macros in sync with the slot's value.
     setMealMacros(prev => {
       const day = { ...(prev[selectedDayIndex] ?? {}) };
-      if (toggleOff || !macros) delete day[slot];
-      else day[slot] = macros;
+      if (!nextMacros) delete day[slot];
+      else day[slot] = nextMacros;
       return { ...prev, [selectedDayIndex]: day };
     });
+    persistSlot(selectedDayIndex, slot, nextKcal, recipeMap, nextMacros);
   };
 
   const addCustomKcal = (slot: MealSlot, kcal: number) => {
+    const nextKcal = Math.max(0, (weeklyIntake[selectedDayIndex]?.[slot] ?? 0) + kcal);
+    const recipeMap = loggedRecipes[selectedDayIndex]?.[slot] ?? {};
+    const macros = mealMacros[selectedDayIndex]?.[slot];
     setWeeklyIntake(prev => {
       const currentDay = prev[selectedDayIndex] || { ...EMPTY_INTAKE, weight: profile.weight };
-      return {
-        ...prev,
-        [selectedDayIndex]: {
-          ...currentDay,
-          [slot]: Math.max(0, currentDay[slot] + kcal),
-        },
-      };
+      return { ...prev, [selectedDayIndex]: { ...currentDay, [slot]: nextKcal } };
     });
+    persistSlot(selectedDayIndex, slot, nextKcal, recipeMap, macros);
   };
 
   const isRecipeLogged = (slot: MealSlot, id: string): boolean =>
@@ -248,52 +312,40 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     const slotMap = loggedRecipes[selectedDayIndex]?.[slot] ?? {};
     const already = slotMap[id] != null;
     const delta = already ? -slotMap[id] : kcal;
+    const nextMap = { ...slotMap };
+    if (already) delete nextMap[id];
+    else nextMap[id] = kcal;
+    const nextKcal = Math.max(0, (weeklyIntake[selectedDayIndex]?.[slot] ?? 0) + delta);
+    const macros = mealMacros[selectedDayIndex]?.[slot];
 
     setLoggedRecipes(prev => {
       const day = { ...(prev[selectedDayIndex] ?? {}) };
-      const sMap = { ...(day[slot] ?? {}) };
-      if (already) delete sMap[id];
-      else sMap[id] = kcal;
-      day[slot] = sMap;
+      day[slot] = nextMap;
       return { ...prev, [selectedDayIndex]: day };
     });
-
     setWeeklyIntake(prev => {
       const currentDay = prev[selectedDayIndex] || { ...EMPTY_INTAKE, weight: profile.weight };
-      return {
-        ...prev,
-        [selectedDayIndex]: {
-          ...currentDay,
-          [slot]: Math.max(0, currentDay[slot] + delta),
-        },
-      };
+      return { ...prev, [selectedDayIndex]: { ...currentDay, [slot]: nextKcal } };
     });
+    persistSlot(selectedDayIndex, slot, nextKcal, nextMap, macros);
   };
 
   const addWater = (ml: number) => {
+    const next = Math.max(0, (weeklyIntake[selectedDayIndex]?.waterMl ?? 0) + ml);
     setWeeklyIntake(prev => {
       const currentDay = prev[selectedDayIndex] || { ...EMPTY_INTAKE, weight: profile.weight };
-      return {
-        ...prev,
-        [selectedDayIndex]: {
-          ...currentDay,
-          waterMl: Math.max(0, currentDay.waterMl + ml),
-        },
-      };
+      return { ...prev, [selectedDayIndex]: { ...currentDay, waterMl: next } };
     });
+    upsertDayLog(dateFor(selectedDayIndex), { water_ml: next });
   };
 
   const updateSteps = (steps: number) => {
+    const next = Math.max(0, steps);
     setWeeklyIntake(prev => {
       const currentDay = prev[selectedDayIndex] || { ...EMPTY_INTAKE, weight: profile.weight };
-      return {
-        ...prev,
-        [selectedDayIndex]: {
-          ...currentDay,
-          steps: Math.max(0, steps),
-        },
-      };
+      return { ...prev, [selectedDayIndex]: { ...currentDay, steps: next } };
     });
+    upsertDayLog(dateFor(selectedDayIndex), { steps: next });
   };
 
   const resetDay = () => {
@@ -302,6 +354,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       [selectedDayIndex]: { ...EMPTY_INTAKE, weight: profile.weight },
     }));
     setMealMacros(prev => ({ ...prev, [selectedDayIndex]: {} }));
+    setLoggedRecipes(prev => ({ ...prev, [selectedDayIndex]: {} }));
+    const date = dateFor(selectedDayIndex);
+    upsertDayLog(date, { water_ml: 0, steps: 0 });
+    SLOTS.forEach(slot => syncSlot(date, slot as Slot, []));
   };
 
   return (
