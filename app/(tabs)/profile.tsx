@@ -40,7 +40,7 @@ interface SettingItem { icon: IconName; labelKey: string; route?: string }
 
 const SETTINGS_TOP: SettingItem[] = [
   { icon: 'account',  labelKey: 'profile.settings.personalInfo', route: '/personal-info' },
-  { icon: 'target',   labelKey: 'profile.settings.goalUpdate',   route: '/(onboarding)/setup' },
+  { icon: 'target',   labelKey: 'profile.settings.goalUpdate',   route: '/(onboarding)/setup?edit=1' },
   { icon: 'history',  labelKey: 'profile.settings.weightHistory', route: '/weight-history' },
   { icon: 'bell-outline', labelKey: 'profile.settings.notifications', route: '/notifications' },
   { icon: 'translate', labelKey: 'profile.settings.language' },

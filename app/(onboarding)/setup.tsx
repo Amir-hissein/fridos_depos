@@ -12,7 +12,7 @@ import {
   NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, RadialGradient, Stop } from 'react-native-svg';
@@ -23,6 +23,7 @@ import { PressableScale } from '../../components/ui/PressableScale';
 import { haptic } from '../../lib/haptics';
 import { usePlan } from '../../context/PlanContext';
 import { useAllergens } from '../../context/AllergenContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTranslation } from 'react-i18next';
 import {
   Sex,
@@ -403,24 +404,34 @@ function PlanLoading({ onDone }: { onDone: () => void }) {
 }
 
 export default function SetupScreen() {
-  const { completeOnboarding } = usePlan();
+  const { completeOnboarding, updateProfile, profile } = usePlan();
   const { userAllergens, toggleAllergen, setAllergens } = useAllergens();
+  const { toast } = useFeedback();
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  // `edit=1` → opened from the profile to change goals (not first onboarding).
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const isEdit = edit === '1';
   const [step, setStep] = useState(0);
 
-  // Démarrer l'onboarding avec une sélection d'allergènes vierge.
+  // First onboarding starts with a blank allergen selection; editing keeps the
+  // user's current allergens so they can adjust them.
   useEffect(() => {
-    setAllergens([]);
-  }, []);
+    if (!isEdit) setAllergens([]);
+  }, [isEdit]);
   const [loading, setLoading] = useState(false);
   const [paceUnit, setPaceUnit] = useState<'gun' | 'hafta'>('hafta');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
-  const [form, setForm] = useState<UserProfile>({
-    sex: 'male', height: 170, age: 33, weight: 75, targetWeight: 70,
-    activity: 'active', goalPace: 'medium', dailySteps: 5000, diet: 'healthy',
-  });
+  // When editing, prefill from the saved profile; otherwise sensible defaults.
+  const [form, setForm] = useState<UserProfile>(() =>
+    isEdit
+      ? { ...profile }
+      : {
+          sex: 'male', height: 170, age: 33, weight: 75, targetWeight: 70,
+          activity: 'active', goalPace: 'medium', dailySteps: 5000, diet: 'healthy',
+        },
+  );
 
   const patch = (p: Partial<UserProfile>) => setForm(prev => ({ ...prev, ...p }));
   const targets = computeTargets(form);
@@ -443,8 +454,16 @@ export default function SetupScreen() {
   };
   const finish = () => {
     haptic.success();
-    completeOnboarding(form);
-    router.replace('/(tabs)/plan');
+    if (isEdit) {
+      // Editing from the profile: save and return, don't re-route to the app.
+      updateProfile(form);
+      toast(t('profile.saved', { defaultValue: 'Profil mis à jour' }));
+      if (router.canGoBack()) router.back();
+      else router.replace('/(tabs)/profile');
+    } else {
+      completeOnboarding(form);
+      router.replace('/(tabs)/plan');
+    }
   };
 
   if (loading) {

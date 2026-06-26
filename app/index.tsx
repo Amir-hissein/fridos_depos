@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { ThemeColors } from '../constants/colors';
 import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { getMyProfile } from '../lib/api/profile';
 
 export default function SplashScreen() {
   const { colors } = useTheme();
@@ -21,20 +22,27 @@ export default function SplashScreen() {
     ]).start();
   }, []);
 
-  // Route once the auth session is known: logged in → app, otherwise → login.
+  // Route once auth is known:
+  //  - no session            → login
+  //  - first login           → onboarding (profiles.onboarding_done = false)
+  //  - returning / onboarded → app
   useEffect(() => {
     if (loading || navigated.current) return;
     navigated.current = true;
-    const timer = setTimeout(() => {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        router.replace(session ? '/(tabs)/plan' : '/(auth)/login');
-      });
-    }, 1400);
-    return () => clearTimeout(timer);
+    (async () => {
+      let dest = '/(auth)/login';
+      if (session) {
+        const profile = await getMyProfile();
+        dest = profile?.onboarding_done ? '/(tabs)/plan' : '/(onboarding)';
+      }
+      setTimeout(() => {
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => router.replace(dest as never));
+      }, 1100);
+    })();
   }, [loading, session]);
 
   return (

@@ -19,6 +19,7 @@ import { Button } from '../../components/ui/Button';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useFeedback } from '../../context/FeedbackContext';
 import { signIn } from '../../lib/api/auth';
+import { getMyProfile } from '../../lib/api/profile';
 import { useTranslation } from 'react-i18next';
 import { haptic } from '../../lib/haptics';
 
@@ -51,7 +52,9 @@ export default function LoginScreen() {
       return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
     }
     haptic.success();
-    router.replace('/(tabs)/plan');
+    // First login → onboarding; returning/onboarded user → app.
+    const profile = await getMyProfile();
+    router.replace(profile?.onboarding_done ? '/(tabs)/plan' : '/(onboarding)');
   };
 
   const soon = () => toast(t('common.soon'), { variant: 'info' });
