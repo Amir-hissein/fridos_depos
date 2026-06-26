@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { INGREDIENTS_DEFAULT } from '../constants/recipes';
+import { animateLayout } from '../constants/animations';
+import { usePersistentState } from '../lib/usePersistentState';
 
 interface FridgeContextType {
   ingredients: string[];
@@ -11,20 +13,23 @@ interface FridgeContextType {
 const FridgeContext = createContext<FridgeContextType | undefined>(undefined);
 
 export function FridgeProvider({ children }: { children: ReactNode }) {
-  const [ingredients, setIngredients] = useState<string[]>(INGREDIENTS_DEFAULT);
+  const [ingredients, setIngredients] = usePersistentState<string[]>('fridge.ingredients', INGREDIENTS_DEFAULT);
 
   const addIngredient = (item: string) => {
     const trimmed = item.trim();
     if (trimmed && !ingredients.includes(trimmed)) {
+      animateLayout();
       setIngredients(prev => [...prev, trimmed]);
     }
   };
 
   const removeIngredient = (item: string) => {
+    animateLayout();
     setIngredients(prev => prev.filter(i => i !== item));
   };
 
   const addBulkIngredients = (items: string[]) => {
+    animateLayout();
     setIngredients(prev => {
       const merged = [...prev];
       items.forEach(i => {

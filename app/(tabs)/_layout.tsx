@@ -5,8 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { haptic } from '../../lib/haptics';
+import { useTranslation } from 'react-i18next';
 
 type IName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -20,6 +22,7 @@ const TAB_CONFIG: Record<string, { active: IName; inactive: IName; label: string
 const FAB_WIDTH = 56;
 const FAB_HEIGHT = 58;
 const FAB_RADIUS = 18;
+const FAB_BORDER = 2; // thickness of the gradient border
 const BAR_HEIGHT = 64;
 
 /* Aliments qui défilent derrière l'icône de scan */
@@ -37,7 +40,10 @@ function TabItem({
   focused: boolean;
   onPress: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const cfg = TAB_CONFIG[routeName];
+  const { t } = useTranslation();
   const anim = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   useEffect(() => {
@@ -61,17 +67,19 @@ function TabItem({
           <Ionicons
             name={focused ? cfg.active : cfg.inactive}
             size={23}
-            color={focused ? Colors.green : Colors.textMuted}
+            color={focused ? colors.green : colors.textMuted}
           />
         </Animated.View>
       </View>
-      <Text style={[styles.label, focused && styles.labelActive]}>{cfg.label}</Text>
+      <Text style={[styles.label, focused && styles.labelActive]}>{t(`tabs.${routeName}`)}</Text>
     </Pressable>
   );
 }
 
 /* ── Center Scan FAB (floating) ── */
 function ScanFab() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const scale = useRef(new Animated.Value(1)).current;
   const foodAnim = useRef(new Animated.Value(0)).current;
   const beamAnim = useRef(new Animated.Value(0)).current;
@@ -129,37 +137,49 @@ function ScanFab() {
       onPress={() => router.push('/scan/choose')}
     >
       <Animated.View style={[styles.fab, { transform: [{ scale }] }]}>
+        {/* Bordure en dégradé (orange → gold → green → blue) — même dégradé que
+            l'anneau / la barre de remplissage des calories. */}
         <LinearGradient
-          colors={[Colors.green, Colors.greenDark]}
+          colors={[colors.orange, colors.gold, colors.green, colors.blue]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
 
-        {/* Aliments qui passent derrière */}
-        <Animated.View
-          style={[styles.foodStrip, { transform: [{ translateY: foodTranslate }] }]}
-          pointerEvents="none"
-        >
-          {FOOD_LOOP.map((name, i) => (
-            <View key={`${name}-${i}`} style={styles.foodSlot}>
-              <Ionicons name={name} size={18} color="rgba(255,255,255,0.45)" />
-            </View>
-          ))}
-        </Animated.View>
+        {/* Contenu du bouton, inséré pour laisser apparaître la bordure dégradée */}
+        <View style={styles.fabInner}>
+          <LinearGradient
+            colors={[colors.green, colors.greenDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
 
-        {/* Faisceau de scan vert clair */}
-        <Animated.View
-          style={[styles.fabBeam, { transform: [{ translateY: beamTranslate }] }]}
-          pointerEvents="none"
-        />
+          {/* Aliments qui passent derrière */}
+          <Animated.View
+            style={[styles.foodStrip, { transform: [{ translateY: foodTranslate }] }]}
+            pointerEvents="none"
+          >
+            {FOOD_LOOP.map((name, i) => (
+              <View key={`${name}-${i}`} style={styles.foodSlot}>
+                <Ionicons name={name} size={18} color="rgba(255,255,255,0.26)" />
+              </View>
+            ))}
+          </Animated.View>
 
-        {/* Cadre de scan rectangulaire (suit la forme du bouton) */}
-        <View style={styles.scanFrame} pointerEvents="none">
-          <View style={[styles.scanFrameCorner, styles.sfTl]} />
-          <View style={[styles.scanFrameCorner, styles.sfTr]} />
-          <View style={[styles.scanFrameCorner, styles.sfBl]} />
-          <View style={[styles.scanFrameCorner, styles.sfBr]} />
+          {/* Faisceau de scan vert clair */}
+          <Animated.View
+            style={[styles.fabBeam, { transform: [{ translateY: beamTranslate }] }]}
+            pointerEvents="none"
+          />
+
+          {/* Cadre de scan rectangulaire (suit la forme du bouton) */}
+          <View style={styles.scanFrame} pointerEvents="none">
+            <View style={[styles.scanFrameCorner, styles.sfTl]} />
+            <View style={[styles.scanFrameCorner, styles.sfTr]} />
+            <View style={[styles.scanFrameCorner, styles.sfBl]} />
+            <View style={[styles.scanFrameCorner, styles.sfBr]} />
+          </View>
         </View>
       </Animated.View>
     </Pressable>
@@ -167,6 +187,8 @@ function ScanFab() {
 }
 
 function CustomTabBar({ state, navigation, descriptors }: BottomTabBarProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Platform.OS === 'ios' ? 14 : 10);
   
@@ -223,7 +245,6 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />}>
       <Tabs.Screen name="plan"     options={{ headerShown: false }} />
-      <Tabs.Screen name="home"     options={{ headerShown: false }} />
       <Tabs.Screen name="recipes"  options={{ headerShown: false }} />
       <Tabs.Screen name="scan-tab" options={{ headerShown: false }} />
       <Tabs.Screen name="profile"  options={{ headerShown: false }} />
@@ -233,16 +254,16 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   wrapper: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.border,
-    shadowColor: '#000',
+    borderTopColor: colors.border,
+    shadowColor: colors.shadowBlack,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.06,
     shadowRadius: 16,
@@ -276,12 +297,12 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_500Medium',
     fontSize: 10,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     letterSpacing: 0.2,
   },
   labelActive: {
     fontFamily: 'Inter_600SemiBold',
-    color: Colors.green,
+    color: colors.green,
   },
 
   /* ── Center column (reserves space for the FAB) ── */
@@ -304,14 +325,24 @@ const styles = StyleSheet.create({
     borderRadius: FAB_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: Colors.white,
     overflow: 'hidden',
-    shadowColor: Colors.shadowGreen,
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
-    elevation: 14,
+    shadowColor: colors.shadowGreen,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.32,
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  // Inner content, inset by the border width so the gradient shows as an outline.
+  fabInner: {
+    position: 'absolute',
+    top: FAB_BORDER,
+    left: FAB_BORDER,
+    right: FAB_BORDER,
+    bottom: FAB_BORDER,
+    borderRadius: FAB_RADIUS - FAB_BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   foodStrip: {
     position: 'absolute',
@@ -330,13 +361,13 @@ const styles = StyleSheet.create({
     top: 0,
     left: 9,
     right: 9,
-    height: 2,
+    height: 1.5,
     borderRadius: 2,
-    backgroundColor: Colors.white,
-    shadowColor: Colors.white,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    shadowColor: colors.white,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 5,
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
   },
   scanFrame: {
     width: 24,
@@ -344,14 +375,14 @@ const styles = StyleSheet.create({
   },
   scanFrameCorner: {
     position: 'absolute',
-    width: 9,
-    height: 9,
-    borderColor: Colors.white,
+    width: 8,
+    height: 8,
+    borderColor: colors.white,
   },
-  sfTl: { top: 0, left: 0, borderTopWidth: 2.5, borderLeftWidth: 2.5, borderTopLeftRadius: 4 },
-  sfTr: { top: 0, right: 0, borderTopWidth: 2.5, borderRightWidth: 2.5, borderTopRightRadius: 4 },
-  sfBl: { bottom: 0, left: 0, borderBottomWidth: 2.5, borderLeftWidth: 2.5, borderBottomLeftRadius: 4 },
-  sfBr: { bottom: 0, right: 0, borderBottomWidth: 2.5, borderRightWidth: 2.5, borderBottomRightRadius: 4 },
+  sfTl: { top: 0, left: 0, borderTopWidth: 1.75, borderLeftWidth: 1.75, borderTopLeftRadius: 3 },
+  sfTr: { top: 0, right: 0, borderTopWidth: 1.75, borderRightWidth: 1.75, borderTopRightRadius: 3 },
+  sfBl: { bottom: 0, left: 0, borderBottomWidth: 1.75, borderLeftWidth: 1.75, borderBottomLeftRadius: 3 },
+  sfBr: { bottom: 0, right: 0, borderBottomWidth: 1.75, borderRightWidth: 1.75, borderBottomRightRadius: 3 },
   fabLock: {
     position: 'absolute',
     top: -2,
@@ -359,10 +390,10 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.gold,
+    backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.white,
+    borderColor: colors.white,
   },
 });

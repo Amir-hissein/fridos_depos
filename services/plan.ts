@@ -5,6 +5,7 @@
 export type Sex = 'male' | 'female';
 export type Activity = 'sedentary' | 'active' | 'cardio';
 export type GoalPace = 'easy' | 'medium' | 'hard';
+export type DietPref = 'healthy' | 'keto' | 'vegan' | 'glutenfree' | 'vegetarian';
 
 export interface UserProfile {
   sex: Sex;
@@ -15,6 +16,7 @@ export interface UserProfile {
   activity: Activity;
   goalPace: GoalPace;
   dailySteps: number;
+  diet?: DietPref;
 }
 
 export interface PlanTargets {
@@ -40,6 +42,15 @@ const PACE_DEFICIT: Record<GoalPace, number> = {
   hard: 750,
 };
 
+/** Répartition des macros (protéine / glucides / lipides) selon la diète choisie. */
+const MACRO_SPLIT: Record<DietPref, { p: number; c: number; f: number }> = {
+  healthy:    { p: 0.25, c: 0.50, f: 0.25 },
+  keto:       { p: 0.25, c: 0.05, f: 0.70 },
+  vegan:      { p: 0.20, c: 0.55, f: 0.25 },
+  glutenfree: { p: 0.25, c: 0.45, f: 0.30 },
+  vegetarian: { p: 0.22, c: 0.53, f: 0.25 },
+};
+
 /** Mifflin-St Jeor basal metabolic rate. */
 export function computeBMR(profile: UserProfile): number {
   const base = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age;
@@ -60,9 +71,10 @@ export function computeTargets(profile: UserProfile): PlanTargets {
   // Never go below 1.1× BMR for safety.
   const kcal = Math.max(Math.round(tdee - deficit), Math.round(bmr * 1.1));
 
-  const protein = Math.round((kcal * 0.25) / 4);
-  const carbs = Math.round((kcal * 0.5) / 4);
-  const fat = Math.round((kcal * 0.25) / 9);
+  const split = MACRO_SPLIT[profile.diet ?? 'healthy'] ?? MACRO_SPLIT.healthy;
+  const protein = Math.round((kcal * split.p) / 4);
+  const carbs = Math.round((kcal * split.c) / 4);
+  const fat = Math.round((kcal * split.f) / 9);
   const waterMl = Math.round((profile.weight * 35) / 50) * 50; // ~35 ml/kg, rounded
 
   return {

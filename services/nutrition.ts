@@ -75,3 +75,60 @@ export function computeRecipeNutrition(recipe: Recipe): RecipeNutrition {
     totalCount: recipe.ingredients.length,
   };
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Macro arithmetic — shared helpers so screens never compute macros inline.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+export const EMPTY_MACROS: MacroSet = { kcal: 0, protein: 0, carbs: 0, fat: 0 };
+
+/** Energy (kcal) implied by macros using the Atwater factors 4/4/9. */
+export function kcalFromMacros(m: { protein: number; carbs: number; fat: number }): number {
+  return round(m.protein * 4 + m.carbs * 4 + m.fat * 9);
+}
+
+/** Scale a macro set by a factor (e.g. a number of portions). */
+export function scaleMacros(m: MacroSet, factor: number): MacroSet {
+  return {
+    kcal: round(m.kcal * factor),
+    protein: round1(m.protein * factor),
+    carbs: round1(m.carbs * factor),
+    fat: round1(m.fat * factor),
+  };
+}
+
+/** Add two macro sets together. */
+export function addMacros(a: MacroSet, b: MacroSet): MacroSet {
+  return {
+    kcal: round(a.kcal + b.kcal),
+    protein: round1(a.protein + b.protein),
+    carbs: round1(a.carbs + b.carbs),
+    fat: round1(a.fat + b.fat),
+  };
+}
+
+/** Sum a list of macro sets. */
+export function sumMacros(list: MacroSet[]): MacroSet {
+  return list.reduce(addMacros, { ...EMPTY_MACROS });
+}
+
+/** The curated macros stored on a recipe (authored per its `servings`). */
+export function getRecipeMacros(recipe: Recipe): MacroSet {
+  return { kcal: recipe.kcal, protein: recipe.protein, carbs: recipe.carbs, fat: recipe.fat };
+}
+
+/** Recipe macros scaled to the chosen number of portions. */
+export function getRecipeMacrosForPortions(recipe: Recipe, portions: number): MacroSet {
+  return scaleMacros(getRecipeMacros(recipe), portions);
+}
+
+/** Macro split (% of kcal) — defaults match the plan target ratio 25/50/25. */
+export function macroSplit(m: MacroSet): { protein: number; carbs: number; fat: number } {
+  const total = m.protein * 4 + m.carbs * 4 + m.fat * 9;
+  if (total <= 0) return { protein: 0, carbs: 0, fat: 0 };
+  return {
+    protein: Math.round(((m.protein * 4) / total) * 100),
+    carbs: Math.round(((m.carbs * 4) / total) * 100),
+    fat: Math.round(((m.fat * 9) / total) * 100),
+  };
+}

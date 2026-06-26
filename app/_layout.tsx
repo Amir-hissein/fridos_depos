@@ -8,8 +8,16 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
 import { FridgeProvider } from '../context/FridgeContext';
 import { AppProvider } from '../context/AppContext';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { Durations } from '../constants/animations';
 import { AllergenProvider } from '../context/AllergenContext';
 import { PlanProvider } from '../context/PlanContext';
+import { FavoritesProvider } from '../context/FavoritesContext';
+import { CustomRecipesProvider } from '../context/CustomRecipesContext';
+import { FeedbackProvider } from '../context/FeedbackContext';
+import { NotificationsProvider } from '../context/NotificationsContext';
+import { ErrorBoundary } from '../components/ErrorBoundary';
+import '../lib/i18n';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -34,17 +42,51 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <ErrorBoundary>
+      <ThemeProvider>
       <AppProvider>
         <FridgeProvider>
           <AllergenProvider>
            <PlanProvider>
-            <Stack screenOptions={{ headerShown: false }}>
+            <FavoritesProvider>
+            <CustomRecipesProvider>
+            <NotificationsProvider>
+            <FeedbackProvider>
+            <RootNav />
+            </FeedbackProvider>
+            </NotificationsProvider>
+            </CustomRecipesProvider>
+            </FavoritesProvider>
+           </PlanProvider>
+          </AllergenProvider>
+        </FridgeProvider>
+      </AppProvider>
+      </ThemeProvider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
+  );
+}
+
+function RootNav() {
+  const { colors, scheme } = useTheme();
+  return (
+    <>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'slide_from_right',
+                animationDuration: Durations.base,
+                gestureEnabled: true,
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            >
               <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
               <Stack.Screen name="(onboarding)" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen
                 name="scan/choose"
-                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+                options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
               />
               <Stack.Screen
                 name="scan/camera"
@@ -72,7 +114,7 @@ export default function RootLayout() {
               />
               <Stack.Screen
                 name="paywall"
-                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+                options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }}
               />
               <Stack.Screen
                 name="allergens"
@@ -94,13 +136,17 @@ export default function RootLayout() {
                 name="fridge"
                 options={{ animation: 'slide_from_right' }}
               />
+              <Stack.Screen
+                name="fridge-recipes"
+                options={{ animation: 'slide_from_right' }}
+              />
+              <Stack.Screen
+                name="notifications"
+                options={{ animation: 'slide_from_right' }}
+              />
             </Stack>
-            <StatusBar style="light" />
-           </PlanProvider>
-          </AllergenProvider>
-        </FridgeProvider>
-      </AppProvider>
-    </GestureHandlerRootView>
+      <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
+    </>
   );
 }
 

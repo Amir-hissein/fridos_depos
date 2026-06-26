@@ -7,35 +7,20 @@ import {
   TouchableOpacity,
   DimensionValue,
 } from 'react-native';
+import { PressableScale } from '../components/ui/PressableScale';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../constants/colors';
+import { ThemeColors } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
+import { Radii } from '../constants/layout';
+import { FadeInItem } from '../components/ui/FadeInItem';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { haptic } from '../lib/haptics';
 import { usePlan } from '../context/PlanContext';
 import { computeBMI } from '../services/plan';
-
-const BMI_CATEGORY_COLOR: Record<string, string> = {
-  Underweight: '#4A90D9',
-  Healthy: Colors.green,
-  Overweight: Colors.orange,
-  Obese: '#E53935',
-};
-
-const BMI_CATEGORY_LABEL: Record<string, string> = {
-  Underweight: 'Çok zayıf',
-  Healthy: 'Sağlıklı',
-  Overweight: 'Hafif kilolu',
-  Obese: 'Obez',
-};
-
-const BMI_LEGEND: { color: string; label: string }[] = [
-  { color: '#4A90D9', label: 'Çok Zayıf' },
-  { color: Colors.green, label: 'Sağlıklı' },
-  { color: Colors.orange, label: 'Hafif kilolu' },
-  { color: '#E53935', label: 'Obez' },
-];
+import { useTranslation } from 'react-i18next';
 
 /* ─── Stat Row ───────────────────────────────────────────────── */
 function StatRow({
@@ -51,38 +36,50 @@ function StatRow({
   valueAccent?: boolean;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const s = useThemedStyles(makeStyles);
   return (
-    <TouchableOpacity
+    <PressableScale haptic="light"
       style={s.statCard}
       onPress={onPress}
       activeOpacity={onPress ? 0.75 : 1}
     >
       <View style={s.iconWrap}>
-        <MaterialCommunityIcons name={icon} size={20} color={Colors.textSecondary} />
+        <MaterialCommunityIcons name={icon} size={20} color={colors.textSecondary} />
       </View>
       <Text style={s.cardLabel}>{label}</Text>
       <Text style={[s.cardValue, valueAccent && s.cardValueAccent]}>{value}</Text>
       {onPress && (
-        <MaterialCommunityIcons name="chevron-right" size={18} color={Colors.textMuted} />
+        <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textMuted} />
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
 export default function BMIScreen() {
+  const { colors } = useTheme();
+  const s = useThemedStyles(makeStyles);
   const { profile } = usePlan();
+  const { t } = useTranslation();
   const bmi = computeBMI(profile.weight, profile.height);
+
+  const bmiCategoryColors: Record<string, string> = {
+    Underweight: colors.bmiUnderweight,
+    Healthy: colors.green,
+    Overweight: colors.orange,
+    Obese: colors.bmiObese,
+  };
+
+  const bmiLegend = [
+    { color: colors.bmiUnderweight, key: 'underweight' },
+    { color: colors.green, key: 'healthy' },
+    { color: colors.orange, key: 'overweight' },
+    { color: colors.bmiObese, key: 'obese' },
+  ];
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>BMI</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="BMI" />
 
       <ScrollView
         style={s.scroll}
@@ -90,21 +87,21 @@ export default function BMIScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* BMI Card */}
-        <View style={s.bmiCard}>
-          <Text style={s.bmiCardTitle}>BMI (Vücut kitle endeksi)</Text>
+        <FadeInItem index={0} style={s.bmiCard}>
+          <Text style={s.bmiCardTitle}>{t('profile.bmiPage.title')}</Text>
 
           <View style={s.bmiValueRow}>
             <Text style={s.bmiValue}>{bmi.value}</Text>
-            <View style={[s.bmiPill, { backgroundColor: BMI_CATEGORY_COLOR[bmi.category] }]}>
+            <View style={[s.bmiPill, { backgroundColor: bmiCategoryColors[bmi.category] }]}>
               <Text style={s.bmiPillText}>
-                {(BMI_CATEGORY_LABEL[bmi.category] ?? bmi.category).toLowerCase()}
+                {t(`profile.bmi.categories.${bmi.category.toLowerCase()}`, { defaultValue: bmi.category })}
               </Text>
             </View>
           </View>
 
           <View style={s.bmiScale}>
             <LinearGradient
-              colors={['#4A90D9', Colors.green, '#F4D03F', Colors.orange, '#E53935']}
+              colors={[colors.bmiUnderweight, colors.green, colors.bmiOverweight, colors.orange, colors.bmiObese]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFill}
@@ -113,81 +110,59 @@ export default function BMIScreen() {
           </View>
 
           <View style={s.bmiLegend}>
-            {BMI_LEGEND.map(l => (
-              <View key={l.label} style={s.bmiLegendItem}>
+            {bmiLegend.map(l => (
+              <View key={l.key} style={s.bmiLegendItem}>
                 <View style={[s.bmiLegendDot, { backgroundColor: l.color }]} />
-                <Text style={s.bmiLegendTxt}>{l.label}</Text>
+                <Text style={s.bmiLegendTxt}>{t(`profile.bmi.categories.${l.key}`)}</Text>
               </View>
             ))}
           </View>
-        </View>
+        </FadeInItem>
 
         {/* BMI Explanation Section */}
-        <View style={s.infoSection}>
-          <Text style={s.sectionTitle}>BMI Nedir?</Text>
+        <FadeInItem index={1} style={s.infoSection}>
+          <Text style={s.sectionTitle}>{t('profile.bmiPage.whatIsBmi')}</Text>
           <Text style={s.paragraph}>
-            Vücut Kitle İndeksi, boy ve kilonuzun oranına göre vücut ağırlığınızın sağlıklı bir aralıkta olup olmadığını gösteren bir ölçümdür. Genel sağlık durumunu değerlendirmek için yaygın olarak kullanılır.
+            {t('profile.bmiPage.description')}
           </Text>
-        </View>
+        </FadeInItem>
 
         {/* BMI Value Ranges Section */}
-        <View style={s.infoSection}>
-          <Text style={s.sectionTitle}>Değer Aralıkları Nasıl Gruplanır?</Text>
+        <FadeInItem index={2} style={s.infoSection}>
+          <Text style={s.sectionTitle}>{t('profile.bmiPage.rangesTitle')}</Text>
           
           <View style={s.rangeList}>
-            <StatRow icon="information-variant" label="Çok Zayıf" value="0 – 18.4" />
-            <StatRow icon="check-circle-outline" label="Sağlıklı" value="18.5 – 24.9" valueAccent />
-            <StatRow icon="alert-outline" label="Hafif Kilolu" value="25.0 – 29.9" />
-            <StatRow icon="alert-circle-outline" label="Obez" value="30.0+" />
+            <StatRow icon="information-variant" label={t('profile.bmi.categories.underweight')} value="0 – 18.4" />
+            <StatRow icon="check-circle-outline" label={t('profile.bmi.categories.healthy')} value="18.5 – 24.9" valueAccent />
+            <StatRow icon="alert-outline" label={t('profile.bmi.categories.overweight')} value="25.0 – 29.9" />
+            <StatRow icon="alert-circle-outline" label={t('profile.bmi.categories.obese')} value="30.0+" />
           </View>
-        </View>
+        </FadeInItem>
 
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 60 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 18,
-    color: Colors.textPrimary,
-  },
 
   // BMI Card
   bmiCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: 16,
     marginVertical: 12,
   },
   bmiCardTitle: {
     fontFamily: 'Inter_500Medium',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   bmiValueRow: {
@@ -198,8 +173,8 @@ const s = StyleSheet.create({
   },
   bmiValue: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 48,
-    color: Colors.textPrimary,
+    fontSize: 38,
+    color: colors.textPrimary,
   },
   bmiPill: {
     paddingHorizontal: 14,
@@ -209,7 +184,7 @@ const s = StyleSheet.create({
   bmiPillText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 13,
-    color: Colors.white,
+    color: colors.white,
   },
   bmiScale: {
     height: 10,
@@ -224,7 +199,7 @@ const s = StyleSheet.create({
     width: 3,
     height: 14,
     borderRadius: 1.5,
-    backgroundColor: Colors.white,
+    backgroundColor: colors.white,
     marginLeft: -1.5,
   },
   bmiLegend: {
@@ -245,7 +220,7 @@ const s = StyleSheet.create({
   bmiLegendTxt: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   // Info sections
@@ -256,12 +231,12 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   paragraph: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 22,
   },
 
@@ -274,10 +249,10 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingVertical: 17,
     paddingHorizontal: 16,
   },
@@ -285,27 +260,27 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.backgroundAlt,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   cardValue: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     maxWidth: 160,
     textAlign: 'right',
   },
   cardValueAccent: {
-    color: Colors.green,
+    color: colors.green,
     fontFamily: 'Inter_600SemiBold',
   },
 });

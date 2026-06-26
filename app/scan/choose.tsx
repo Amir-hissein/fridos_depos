@@ -3,46 +3,29 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { PressableScale } from '../../components/ui/PressableScale';
+import { useTranslation } from 'react-i18next';
 
 type IName = React.ComponentProps<typeof Ionicons>['name'];
 
-const OPTIONS: {
-  mode: 'meal' | 'fridge';
-  icon: IName;
-  title: string;
-  desc: string;
-  color: string;
-  bg: string;
-}[] = [
-  {
-    mode: 'meal',
-    icon: 'restaurant',
-    title: 'Scan a meal',
-    desc: 'Snap your plate to log its calories & macros',
-    color: Colors.orange,
-    bg: Colors.orangeLight,
-  },
-  {
-    mode: 'fridge',
-    icon: 'snow',
-    title: 'Scan my fridge',
-    desc: 'Detect ingredients and add them to your fridge',
-    color: Colors.green,
-    bg: Colors.greenLight,
-  },
-];
-
 export default function ScanChooseScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { t } = useTranslation();
+  const OPTIONS: { mode: 'meal' | 'fridge'; icon: IName; color: string; bg: string }[] = [
+    { mode: 'meal', icon: 'restaurant', color: colors.orange, bg: colors.orangeLight },
+    { mode: 'fridge', icon: 'snow', color: colors.green, bg: colors.greenLight },
+  ];
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Text style={styles.title}>What do you want to scan?</Text>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            <Ionicons name="close" size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
+          <Text style={styles.title}>{t('scan.choose.title')}</Text>
+          <PressableScale haptic="light" style={styles.closeBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            <Ionicons name="close" size={22} color={colors.textPrimary} />
+          </PressableScale>
         </View>
 
         <View style={styles.options}>
@@ -57,8 +40,8 @@ export default function ScanChooseScreen() {
               <View style={[styles.iconWrap, { backgroundColor: o.bg }]}>
                 <Ionicons name={o.icon} size={30} color={o.color} />
               </View>
-              <Text style={styles.cardTitle}>{o.title}</Text>
-              <Text style={styles.cardDesc}>{o.desc}</Text>
+              <Text style={styles.cardTitle}>{t(`scan.choose.options.${o.mode}.title`)}</Text>
+              <Text style={styles.cardDesc}>{t(`scan.choose.options.${o.mode}.desc`)}</Text>
               <View style={styles.cardArrow}>
                 <Ionicons name="arrow-forward" size={18} color={o.color} />
               </View>
@@ -70,8 +53,8 @@ export default function ScanChooseScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   safe: { flex: 1 },
   header: {
     flexDirection: 'row',
@@ -84,7 +67,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 22,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
     paddingRight: 12,
   },
@@ -92,9 +75,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -106,10 +89,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 22,
   },
   iconWrap: {
@@ -123,13 +106,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 19,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   cardDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   cardArrow: {
@@ -139,7 +122,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },

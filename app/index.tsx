@@ -1,8 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, Text, Image, StyleSheet, Animated } from 'react-native';
 import { router } from 'expo-router';
+import { ThemeColors } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
 
 export default function SplashScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.88)).current;
 
@@ -27,7 +31,7 @@ export default function SplashScreen() {
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
-        router.replace('/(onboarding)/welcome');
+        router.replace('/(auth)/login');
       });
     }, 1800);
 
@@ -36,24 +40,41 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.Image
-        source={require('../assets/fridos.png')}
-        style={[styles.logo, { opacity, transform: [{ scale }] }]}
-        resizeMode="contain"
-      />
+      <Animated.View style={[styles.content, { opacity, transform: [{ scale }] }]}>
+        <Image
+          source={require('../assets/fridos.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.appName}>FRIDOS AI</Text>
+      </Animated.View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   logo: {
-    width: 280,
-    height: 280,
+    width: 160,
+    height: 160,
+    tintColor: colors.white,
+  },
+  appName: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 26,
+    color: colors.white,
+    marginTop: 2,
+    letterSpacing: 5,
+    paddingLeft: 5, // Perfect centering offset for letter spacing
+    textAlign: 'center',
   },
 });

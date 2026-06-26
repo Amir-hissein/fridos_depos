@@ -12,12 +12,16 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { ThemeColors } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { RECIPES } from '../constants/recipes';
+import { localizeRecipeName } from '../services/localizeRecipe';
 import { RecipeCardB } from '../components/ui/RecipeCard';
 import { haptic } from '../lib/haptics';
 import { PressableScale } from '../components/ui/PressableScale';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { useTranslation } from 'react-i18next';
 
 const { width } = Dimensions.get('window');
 
@@ -41,8 +45,11 @@ const getRangeMinMax = (rangeStr: string) => {
 };
 
 export default function CalorieRecipesScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { range: initialRange } = useLocalSearchParams<{ range: string }>();
   const [activeRange, setActiveRange] = useState(initialRange || '100-200kcal');
+  const { t } = useTranslation();
 
   // Filter recipes based on range
   const filteredRecipes = useMemo(() => {
@@ -74,9 +81,9 @@ export default function CalorieRecipesScreen() {
     );
 
     const list = [];
-    if (breakfast.length > 0) list.push({ title: 'Kahvaltı', data: breakfast });
-    if (snack.length > 0) list.push({ title: 'Ara Öğünler', data: snack });
-    if (main.length > 0) list.push({ title: 'Ana Yemekler', data: main });
+    if (breakfast.length > 0) list.push({ titleKey: 'breakfast', data: breakfast });
+    if (snack.length > 0) list.push({ titleKey: 'snack', data: snack });
+    if (main.length > 0) list.push({ titleKey: 'mainMeals', data: main });
     return list;
   }, [filteredRecipes]);
 
@@ -91,21 +98,8 @@ export default function CalorieRecipesScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.safe} edges={['top']}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => {
-              haptic.light();
-              router.back();
-            }}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Kalori aralığına göre tarifler</Text>
-        </View>
+        <ScreenHeader title={t('recipes.calorieRangeSection')} />
 
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
           {/* Calorie Range Selector Tabs */}
@@ -118,7 +112,7 @@ export default function CalorieRecipesScreen() {
             {CALORIE_RANGES.map((item, idx) => {
               const isActive = activeRange === item.label;
               return (
-                <TouchableOpacity
+                <PressableScale haptic="light"
                   key={idx}
                   style={[
                     styles.tabCard,
@@ -128,23 +122,25 @@ export default function CalorieRecipesScreen() {
                   activeOpacity={0.8}
                 >
                   <Image source={item.img} style={styles.tabImage} resizeMode="contain" />
-                  <Text style={styles.tabLabel}>{item.label}</Text>
-                </TouchableOpacity>
+                  <Text style={[styles.tabLabel, isActive ? styles.tabLabelActive : styles.tabLabelInactive]}>
+                    {item.label}
+                  </Text>
+                </PressableScale>
               );
             })}
           </ScrollView>
 
           {filteredRecipes.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="nutrition" size={48} color={Colors.textMuted} />
-              <Text style={styles.emptyText}>Bu kalori aralığında henüz tarif bulunmuyor.</Text>
+              <Ionicons name="nutrition" size={48} color={colors.textMuted} />
+              <Text style={styles.emptyText}>{t('recipes.noRecipesInRange')}</Text>
             </View>
           ) : (
             <>
               {/* Featured Recipe (Günün Tarifi) */}
               {featuredRecipe && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Günün Tarifi</Text>
+                  <Text style={styles.sectionTitle}>{t('recipes.featuredRecipe')}</Text>
                   <PressableScale
                     style={styles.featuredCard}
                     onPress={() => openRecipe(featuredRecipe.id)}
@@ -160,18 +156,18 @@ export default function CalorieRecipesScreen() {
                       )}
                       <View style={styles.featuredBadges}>
                         <View style={styles.featuredBadge}>
-                          <Ionicons name="flame" size={14} color={Colors.white} />
+                          <Ionicons name="flame" size={14} color={colors.white} />
                           <Text style={styles.featuredBadgeText}>{featuredRecipe.kcal}</Text>
                         </View>
                         <View style={styles.featuredBadge}>
-                          <Ionicons name="time" size={14} color={Colors.white} />
-                          <Text style={styles.featuredBadgeText}>{featuredRecipe.time} dk</Text>
+                          <Ionicons name="time" size={14} color={colors.white} />
+                          <Text style={styles.featuredBadgeText}>{featuredRecipe.time} {t('plan.min')}</Text>
                         </View>
                       </View>
                     </View>
                     <View style={styles.featuredInfo}>
-                      <Text style={styles.featuredTitle}>{featuredRecipe.name}</Text>
-                      <Text style={styles.featuredSubtitle}>Hedefiniz için uygun</Text>
+                      <Text style={styles.featuredTitle}>{localizeRecipeName(featuredRecipe, t)}</Text>
+                      <Text style={styles.featuredSubtitle}>{t('recipes.suitableForGoal')}</Text>
                     </View>
                   </PressableScale>
                 </View>
@@ -181,8 +177,8 @@ export default function CalorieRecipesScreen() {
               {sections.map((sect, sIdx) => (
                 <View key={sIdx} style={styles.section}>
                   <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>{sect.title}</Text>
-                    <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} style={{ marginRight: 20 }} />
+                    <Text style={styles.sectionTitle}>{t('recipes.meals.' + sect.titleKey)}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} style={{ marginRight: 20 }} />
                   </View>
                   <FlatList
                     horizontal
@@ -207,35 +203,12 @@ export default function CalorieRecipesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   safe: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  headerTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 20,
-    color: Colors.textPrimary,
     flex: 1,
   },
   scroll: {
@@ -253,9 +226,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   tabCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
     borderRadius: 16,
     width: 100,
     height: 100,
@@ -266,9 +239,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   tabCardActive: {
-    borderColor: Colors.goldDark,
+    borderColor: colors.gold,
     borderWidth: 2,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   tabImage: {
     width: 54,
@@ -280,12 +253,14 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: Colors.textWhite,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
     marginBottom: 10,
+  },
+  tabLabelActive: {
+    color: colors.textPrimary,
+  },
+  tabLabelInactive: {
+    color: colors.textSecondary,
   },
   section: {
     marginBottom: 24,
@@ -299,7 +274,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginLeft: 20,
   },
   emptyContainer: {
@@ -311,22 +286,22 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     marginTop: 12,
   },
   featuredCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   featuredImgArea: {
     height: 180,
     position: 'relative',
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -344,14 +319,14 @@ const styles = StyleSheet.create({
   featuredBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.overlayStrong,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
     gap: 4,
   },
   featuredBadgeText: {
-    color: '#FFF',
+    color: colors.textWhite,
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
   },
@@ -361,13 +336,13 @@ const styles = StyleSheet.create({
   featuredTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   featuredSubtitle: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   recipeListContent: {
     paddingHorizontal: 20,

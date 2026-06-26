@@ -9,16 +9,43 @@ import {
   Modal,
   FlatList,
   Animated,
+  TextInput,
+  Keyboard,
+  useWindowDimensions,
+  Easing,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
+import { Radii } from '../../constants/layout';
+import { animateLayout } from '../../constants/animations';
 import { RECIPES, isRecipeLockedForFree } from '../../constants/recipes';
-import { RecipeCardB, RecipeCardC, RecipeCardD } from '../../components/ui/RecipeCard';
+import { RecipeCardA, RecipeCardB, RecipeCardC, RecipeCardD } from '../../components/ui/RecipeCard';
+import { FadeInItem } from '../../components/ui/FadeInItem';
 import { useApp, FREE_RECIPE_LIMIT } from '../../context/AppContext';
+import { usePlan } from '../../context/PlanContext';
+import { useAllergens } from '../../context/AllergenContext';
+import { useCustomRecipes } from '../../context/CustomRecipesContext';
+import { parseCalorieRange, recipeInCalorieRange, recommendRecipes, DIET_CATEGORY } from '../../services/recipeFilters';
+import { recipeHasUserAllergen } from '../../services/allergens';
 import { haptic } from '../../lib/haptics';
 import { PressableScale } from '../../components/ui/PressableScale';
+import { useTranslation } from 'react-i18next';
+
+/** Mapping label de filtre repas → valeurs `mealType` des recettes (généreux : un plat
+ *  principal compte pour midi ET soir). */
+const MEAL_MATCH: Record<string, string[]> = {
+  breakfast: ['Kahvaltı'],
+  lunch: ['Öğle Yemeği', 'Ana Yemek', 'Ana Öğün'],
+  dinner: ['Akşam Yemeği', 'Ana Yemek', 'Ana Öğün'],
+  snack: ['Ara Öğün', 'Tatlı', 'İçecek'],
+};
+
+/** Normalise pour une recherche insensible à la casse / aux accents. */
+const norm = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 
 const CALORIE_RANGES = [
   { label: '50-100kcal', img: require('../../assets/images/calorie/50-100.png') },
@@ -56,32 +83,141 @@ const CATEGORY_LISTS_AFTER_CAL = [
 
 
 export default function RecipesScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const { isPremium } = useApp();
-  
+  const { profile } = usePlan();
+  const { userAllergens, mode } = useAllergens();
+  const { t, i18n } = useTranslation();
+  const hideAllergens = mode === 'hide' && userAllergens.length > 0;
+  const { customRecipes } = useCustomRecipes();
+  // Recettes perso + cataloguées : base commune pour la recherche/les filtres.
+  const allRecipes = React.useMemo(() => [...customRecipes, ...RECIPES], [customRecipes]);
+
   const [filterVisible, setFilterVisible] = React.useState(false);
-  const [selectedMealFilter, setSelectedMealFilter] = React.useState('Tüm Tarifler');
+  const [selectedMealFilter, setSelectedMealFilter] = React.useState('all');
   const [selectedCalorieFilter, setSelectedCalorieFilter] = React.useState<string | null>(null);
+  // Filtre diète pré-sélectionné depuis le profil (« healthy » = aucun filtre).
+  const [selectedDietFilter, setSelectedDietFilter] = React.useState<string | null>(
+    profile.diet && profile.diet !== 'healthy' ? profile.diet : null,
+  );
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const searchRef = React.useRef<TextInput>(null);
+
+  const mealActive = selectedMealFilter !== 'all';
+  const calorieActive = selectedCalorieFilter !== null;
+  const dietActive = selectedDietFilter !== null;
+  const anyFilterActive = mealActive || calorieActive || dietActive;
+  const query = searchQuery.trim();
+  const isResultsMode = query.length > 0 || anyFilterActive;
+
+  /* Liste filtrée — repas + plage calorique + diète + recherche par nom. */
+  const results = React.useMemo(() => {
+    const q = norm(query);
+    const range = selectedCalorieFilter ? parseCalorieRange(selectedCalorieFilter) : null;
+    const mealTypes = mealActive ? MEAL_MATCH[selectedMealFilter] ?? [selectedMealFilter] : null;
+    const dietCat = selectedDietFilter ? DIET_CATEGORY[selectedDietFilter] : null;
+    return allRecipes.filter(r => {
+      if (mealTypes && !mealTypes.includes(r.mealType)) return false;
+      if (range && !recipeInCalorieRange(r, range)) return false;
+      if (dietCat && !r.categories?.includes(dietCat as any)) return false;
+      if (hideAllergens && recipeHasUserAllergen(r, userAllergens)) return false;
+      if (q && !norm(r.name).includes(q)) return false;
+      return true;
+    });
+  }, [query, selectedMealFilter, selectedCalorieFilter, selectedDietFilter, mealActive, allRecipes, hideAllergens, userAllergens]);
+
+  // Window size for dynamic width calculations
+  const { width: windowWidth } = useWindowDimensions();
+  const contentWidth = windowWidth - 40; // 20px padding left & right
+
+  // Animation values (only opacity uses Animated.Value natively)
+  const opacityAnim = React.useRef(new Animated.Value(0)).current;
+
+  // React to searchOpen to manage focus
+  React.useEffect(() => {
+    if (searchOpen) {
+      const timer = setTimeout(() => {
+        searchRef.current?.focus();
+      }, 30);
+      return () => clearTimeout(timer);
+    }
+  }, [searchOpen]);
+
+  const openSearch = () => {
+    haptic.light();
+    animateLayout();
+    setSearchOpen(true);
+    Animated.timing(opacityAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeSearch = () => {
+    haptic.light();
+    Keyboard.dismiss();
+    animateLayout();
+    setSearchOpen(false);
+    setSearchQuery('');
+    Animated.timing(opacityAnim, {
+      toValue: 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Interpolations (running natively)
+  const titleOpacity = opacityAnim.interpolate({
+    inputRange: [0, 0.45],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const cancelOpacity = opacityAnim.interpolate({
+    inputRange: [0.55, 1],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const clearAllFilters = () => {
+    haptic.light();
+    animateLayout();
+    setSelectedMealFilter('all');
+    setSelectedCalorieFilter(null);
+    setSelectedDietFilter(null);
+  };
 
 
 
   const MEAL_FILTERS = [
-    { label: 'Tüm Tarifler', iconName: 'room-service-outline', iconColor: '#E8E8E8' },
-    { label: 'Kahvaltı', iconName: 'egg-fried', iconColor: '#F4B740' },
-    { label: 'Öğle Yemeği', iconName: 'silverware-fork-knife', iconColor: '#5C9DFF' },
-    { label: 'Akşam Yemeği', iconName: 'food-turkey', iconColor: '#A0A0A0' },
-    { label: 'Ara Öğün', iconName: 'peanut', iconColor: '#FF8A5C' },
-  ];
+    { key: 'all', iconName: 'room-service-outline', iconColor: colors.textPrimary },
+    { key: 'breakfast', iconName: 'egg-fried', iconColor: colors.gold },
+    { key: 'lunch', iconName: 'silverware-fork-knife', iconColor: colors.blue },
+    { key: 'dinner', iconName: 'food-turkey', iconColor: colors.textMuted },
+    { key: 'snack', iconName: 'peanut', iconColor: colors.orange },
+  ] as const;
 
   const CALORIE_FILTERS = [
-    { label: '50-100 kcal', iconName: 'leaf', iconColor: '#3BA569' },
-    { label: '100-200 kcal', iconName: 'food-apple', iconColor: '#3BA569' },
-    { label: '200-300 kcal', iconName: 'egg', iconColor: '#F4B740' },
-    { label: '300-400 kcal', iconName: 'food-variant', iconColor: '#FF8A5C' },
-    { label: '400-500 kcal', iconName: 'bowl-mix', iconColor: '#5C9DFF' },
-    { label: '500-600 kcal', iconName: 'noodles', iconColor: '#E8E8E8' },
-    { label: '600-800 kcal', iconName: 'pasta', iconColor: '#F4B740' },
-    { label: '800-1000 kcal', iconName: 'hamburger', iconColor: '#FF8A5C' },
+    { label: '50-100 kcal', iconName: 'leaf', iconColor: colors.green },
+    { label: '100-200 kcal', iconName: 'food-apple', iconColor: colors.green },
+    { label: '200-300 kcal', iconName: 'egg', iconColor: colors.gold },
+    { label: '300-400 kcal', iconName: 'food-variant', iconColor: colors.orange },
+    { label: '400-500 kcal', iconName: 'bowl-mix', iconColor: colors.blue },
+    { label: '500-600 kcal', iconName: 'noodles', iconColor: colors.textPrimary },
+    { label: '600-800 kcal', iconName: 'pasta', iconColor: colors.gold },
+    { label: '800-1000 kcal', iconName: 'hamburger', iconColor: colors.orange },
   ];
+
+  const DIET_FILTERS = [
+    { key: 'keto',       iconName: 'food-drumstick', iconColor: colors.orange },
+    { key: 'vegan',      iconName: 'sprout',         iconColor: colors.green },
+    { key: 'vegetarian', iconName: 'leaf',           iconColor: colors.green },
+    { key: 'glutenfree', iconName: 'barley-off',     iconColor: colors.gold },
+  ] as const;
 
   const openRecipe = (id: string) => {
     if (!isPremium && isRecipeLockedForFree(id, FREE_RECIPE_LIMIT)) {
@@ -91,33 +227,149 @@ export default function RecipesScreen() {
     }
   };
 
+  // Recette à risque selon les allergènes du profil (badge d'avertissement).
+  const warnFor = (recipe: typeof RECIPES[number]) =>
+    userAllergens.length > 0 && recipeHasUserAllergen(recipe, userAllergens);
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tarifler</Text>
-          <View style={styles.headerIcons}>
+          {/* Title & Filter Container */}
+          <View style={[
+            styles.titleFilterContainer, 
+            searchOpen ? { width: 0, marginRight: 0 } : { width: contentWidth - 44 - 12, marginRight: 12 }
+          ]}>
+            <Animated.View style={{ opacity: titleOpacity, flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={styles.headerTitle} numberOfLines={1}>{t('recipes.title')}</Text>
+              
+              <PressableScale haptic="light"
+                style={styles.headerIconBtn}
+                onPress={() => { haptic.light(); setFilterVisible(true); }}
+              >
+                <Ionicons name="options-outline" size={22} color={colors.textPrimary} />
+                {anyFilterActive && <View style={styles.iconBadge} />}
+              </PressableScale>
+            </Animated.View>
+          </View>
+
+          {/* Search Bar Container */}
+          <View style={[
+            styles.searchBarContainer,
+            searchOpen ? { width: contentWidth - 75 - 12, marginRight: 12 } : { width: 44, marginRight: 0 }
+          ]}>
             <TouchableOpacity 
-              style={styles.headerIconBtn}
-              onPress={() => {
-                haptic.light();
-                setFilterVisible(true);
-              }}
+              activeOpacity={0.85}
+              style={styles.searchBarPressable}
+              onPress={openSearch}
+              disabled={searchOpen}
             >
-              <Ionicons name="options-outline" size={24} color={Colors.textPrimary} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerIconBtn}>
-              <Ionicons name="search-outline" size={24} color={Colors.textPrimary} />
+              <View style={[
+                styles.searchBarInner,
+                searchOpen ? { paddingLeft: 14, paddingRight: 14 } : { paddingLeft: 11, paddingRight: 11 }
+              ]}>
+                <Ionicons 
+                  name={searchOpen ? "search" : "search-outline"} 
+                  size={searchOpen ? 19 : 22} 
+                  color={searchOpen ? colors.textMuted : colors.textPrimary} 
+                  style={styles.searchIcon} 
+                />
+                <TextInput
+                  ref={searchRef}
+                  style={[
+                    styles.searchInput,
+                    !searchOpen && { width: 0, opacity: 0 }
+                  ]}
+                  placeholder={t('recipes.searchPlaceholder')}
+                  placeholderTextColor={colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                  selectionColor={colors.green}
+                  pointerEvents={searchOpen ? 'auto' : 'none'}
+                />
+                {searchOpen && searchQuery.length > 0 && (
+                  <PressableScale haptic="light" hitSlop={8} onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={18} color={colors.textMuted} style={styles.clearIcon} />
+                  </PressableScale>
+                )}
+              </View>
             </TouchableOpacity>
           </View>
+
+          {/* Cancel Button */}
+          <View style={[
+            styles.cancelBtnContainer,
+            searchOpen ? { width: 75 } : { width: 0 }
+          ]}>
+            <Animated.View style={{ opacity: cancelOpacity }}>
+              <PressableScale haptic="light" style={styles.cancelBtn} onPress={closeSearch}>
+                <Text style={styles.cancelText} numberOfLines={1}>{t('recipes.cancel')}</Text>
+              </PressableScale>
+            </Animated.View>
+          </View>
         </View>
+
+        {/* Chips de filtres actifs */}
+        {anyFilterActive && (
+          <View style={styles.activeFiltersRow}>
+            {mealActive && (
+              <PressableScale haptic="light" style={styles.activeChip} onPress={() => { haptic.light(); animateLayout(); setSelectedMealFilter('all'); }}>
+                <Text style={styles.activeChipText}>{t('recipes.meals.' + selectedMealFilter)}</Text>
+                <Ionicons name="close" size={14} color={colors.textSecondary} />
+              </PressableScale>
+            )}
+            {calorieActive && (
+              <PressableScale haptic="light" style={styles.activeChip} onPress={() => { haptic.light(); animateLayout(); setSelectedCalorieFilter(null); }}>
+                <Text style={styles.activeChipText}>{selectedCalorieFilter}</Text>
+                <Ionicons name="close" size={14} color={colors.textSecondary} />
+              </PressableScale>
+            )}
+            {dietActive && (
+              <PressableScale haptic="light" style={styles.activeChip} onPress={() => { haptic.light(); animateLayout(); setSelectedDietFilter(null); }}>
+                <Text style={styles.activeChipText}>{t('recipes.diets.' + selectedDietFilter)}</Text>
+                <Ionicons name="close" size={14} color={colors.textSecondary} />
+              </PressableScale>
+            )}
+            <PressableScale haptic="light" style={styles.clearAllBtn} onPress={clearAllFilters}>
+              <Text style={styles.clearAllText}>{t('recipes.clear')}</Text>
+            </PressableScale>
+          </View>
+        )}
 
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
+          {isResultsMode ? (
+            <View style={styles.resultsWrap}>
+              <Text style={styles.resultsCount}>
+                {results.length > 0 ? t('recipes.foundCount', { count: results.length }) : t('recipes.notFound')}
+              </Text>
+              {results.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="search-outline" size={44} color={colors.textMuted} />
+                  <Text style={styles.emptyTitle}>{t('recipes.emptyTitle')}</Text>
+                  <Text style={styles.emptyText}>{t('recipes.emptyText')}</Text>
+                </View>
+              ) : (
+                results.map((recipe, i) => (
+                  <FadeInItem key={recipe.id} index={i} style={styles.resultCardWrap}>
+                    <RecipeCardA
+                      recipe={recipe}
+                      warnAllergen={warnFor(recipe)}
+                      locked={!isPremium && isRecipeLockedForFree(recipe.id, FREE_RECIPE_LIMIT)}
+                      onPress={() => openRecipe(recipe.id)}
+                    />
+                  </FadeInItem>
+                ))
+              )}
+            </View>
+          ) : (
+          <>
           {/* Banner */}
           <PressableScale 
             style={styles.bannerContainer} 
@@ -126,68 +378,47 @@ export default function RecipesScreen() {
               router.push('/scan/camera');
             }}
           >
-            {/* Ambient glows */}
-            <View style={styles.bannerGlowLeft} />
-            <View style={styles.bannerGlowRight} />
-            
-            <View style={styles.bannerContent}>
-              {/* Left: Plate & Scanner */}
-              <View style={styles.bannerPlateContainer}>
-                <Image 
-                  source={require('../../assets/images/calorie/500-600.png')} 
-                  style={styles.bannerPlateImage} 
-                  resizeMode="contain"
-                />
-                
-                {/* Corner Scan Brackets */}
-                <View style={[styles.scanBracket, styles.bracketTopLeft]} />
-                <View style={[styles.scanBracket, styles.bracketTopRight]} />
-                <View style={[styles.scanBracket, styles.bracketBottomLeft]} />
-                <View style={[styles.scanBracket, styles.bracketBottomRight]} />
-                
-                {/* Laser scan line */}
-                <View style={styles.bannerScanLine} />
-                
-                {/* Floating calorie tags */}
-                <View style={[styles.bannerTag, styles.tagTopLeft]}>
-                  <Text style={styles.bannerTagText}>🍖 18g</Text>
-                </View>
-                <View style={[styles.bannerTag, styles.tagTopRight]}>
-                  <Text style={styles.bannerTagText}>🔥 610</Text>
-                </View>
-                <View style={[styles.bannerTag, styles.tagBottomLeft]}>
-                  <Text style={styles.bannerTagText}>🍞 75g</Text>
-                </View>
-                <View style={[styles.bannerTag, styles.tagBottomRight]}>
-                  <Text style={styles.bannerTagText}>💧 25g</Text>
-                </View>
-              </View>
-
-              {/* Middle: Info Text */}
-              <View style={styles.bannerTextContainer}>
-                <Text style={styles.bannerSubtitle}>Tabağını şimdi çek</Text>
-                <Text style={styles.bannerTitle}>anında kalorisini gör!</Text>
-              </View>
-
-              {/* Right: App Logo */}
-              <View style={styles.bannerLogoContainer}>
-                <Image 
-                  source={require('../../assets/fridos.png')} 
-                  style={styles.bannerLogoImage} 
-                  resizeMode="contain"
-                />
-              </View>
-            </View>
+            <Image 
+              source={
+                i18n.language === 'fr'
+                  ? require('../../assets/images/recipes/banner_fr.png')
+                  : i18n.language === 'tr'
+                  ? require('../../assets/images/recipes/banner_tr.png')
+                  : require('../../assets/images/recipes/banner_en.png')
+              } 
+              style={styles.bannerImage} 
+              resizeMode="cover"
+            />
           </PressableScale>
+
+          {/* Recettes perso de l'utilisateur */}
+          {customRecipes.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('recipes.myRecipes')}</Text>
+              <FlatList
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.recipeScrollContent}
+                data={customRecipes}
+                keyExtractor={item => item.id}
+                renderItem={({ item: recipe }) => (
+                  <RecipeCardB recipe={recipe} onPress={() => openRecipe(recipe.id)} />
+                )}
+              />
+            </View>
+          )}
 
           {/* Categories Before Calorie Section */}
           {CATEGORY_LISTS_BEFORE_CAL.map((cat, idx) => {
-            const recipesForCat = RECIPES.filter(r => r.categories?.includes(cat.key as any));
+            // « Sana Uygun » (« Pour toi ») → personnalisé selon diète + allergènes du profil.
+            const recipesForCat = cat.key === 'sana-uygun'
+              ? recommendRecipes(RECIPES, { diet: profile.diet, allergens: userAllergens, limit: 10 })
+              : RECIPES.filter(r => r.categories?.includes(cat.key as any) && (!hideAllergens || !recipeHasUserAllergen(r, userAllergens)));
             if (recipesForCat.length === 0) return null;
 
             return (
-              <View key={`before-${idx}`} style={styles.section}>
-                <Text style={styles.sectionTitle}>{cat.title}</Text>
+              <FadeInItem key={`before-${idx}`} index={idx} style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('recipes.categories.' + cat.key)}</Text>
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -202,23 +433,25 @@ export default function RecipesScreen() {
                     cat.type === 'C' ? (
                       <RecipeCardC
                         recipe={recipe}
+                        warnAllergen={warnFor(recipe)}
                         onPress={() => openRecipe(recipe.id)}
                       />
                     ) : (
                       <RecipeCardD
                         recipe={recipe}
+                        warnAllergen={warnFor(recipe)}
                         onPress={() => openRecipe(recipe.id)}
                       />
                     )
                   )}
                 />
-              </View>
+              </FadeInItem>
             );
           })}
 
           {/* Calorie Ranges Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Kalori aralığına göre tarifler</Text>
+            <Text style={styles.sectionTitle}>{t('recipes.calorieRangeSection')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -269,12 +502,12 @@ export default function RecipesScreen() {
 
           {/* Dynamic Category Sections After Calorie */}
           {CATEGORY_LISTS_AFTER_CAL.map((cat, idx) => {
-            const recipesForCat = RECIPES.filter(r => r.categories?.includes(cat.key as any));
+            const recipesForCat = RECIPES.filter(r => r.categories?.includes(cat.key as any) && (!hideAllergens || !recipeHasUserAllergen(r, userAllergens)));
             if (recipesForCat.length === 0) return null;
 
             return (
-              <View key={`after-${idx}`} style={styles.section}>
-                <Text style={styles.sectionTitle}>{cat.title}</Text>
+              <FadeInItem key={`after-${idx}`} index={idx} style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('recipes.categories.' + cat.key)}</Text>
                 <FlatList
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -288,13 +521,16 @@ export default function RecipesScreen() {
                   renderItem={({ item: recipe }) => (
                     <RecipeCardB
                       recipe={recipe}
+                      warnAllergen={warnFor(recipe)}
                       onPress={() => openRecipe(recipe.id)}
                     />
                   )}
                 />
-              </View>
+              </FadeInItem>
             );
           })}
+          </>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -305,10 +541,10 @@ export default function RecipesScreen() {
           <View style={styles.modalContent}>
             
             <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>Filtrele</Text>
-              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setFilterVisible(false)}>
-                <Ionicons name="close" size={20} color={Colors.textPrimary} />
-              </TouchableOpacity>
+              <Text style={styles.modalTitle}>{t('recipes.filterModal.title')}</Text>
+              <PressableScale haptic="light" style={styles.modalCloseBtn} onPress={() => setFilterVisible(false)}>
+                <Ionicons name="close" size={20} color={colors.textPrimary} />
+              </PressableScale>
             </View>
 
             <View style={styles.modalSeparator} />
@@ -317,23 +553,23 @@ export default function RecipesScreen() {
               
               {/* Meal Selection */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Öğün Seçimi</Text>
+                <Text style={styles.filterSectionTitle}>{t('recipes.filterModal.mealSelection')}</Text>
                 <View style={styles.filterPillsContainer}>
                   {MEAL_FILTERS.map((item, idx) => {
-                    const isActive = selectedMealFilter === item.label;
+                    const isActive = selectedMealFilter === item.key;
                     return (
-                      <TouchableOpacity
+                      <PressableScale haptic="light"
                         key={idx}
                         style={[styles.filterPill, isActive && styles.filterPillActive]}
                         onPress={() => {
                           haptic.light();
-                          setSelectedMealFilter(item.label);
+                          setSelectedMealFilter(item.key);
                         }}
                       >
                         <MaterialCommunityIcons name={item.iconName as any} size={18} color={item.iconColor} style={styles.filterPillIcon} />
-                        <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>{item.label}</Text>
-                        {isActive && <Ionicons name="checkmark-circle" size={18} color={Colors.textPrimary} style={{ marginLeft: 6 }} />}
-                      </TouchableOpacity>
+                        <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>{t('recipes.meals.' + item.key)}</Text>
+                        {isActive && <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} style={{ marginLeft: 6 }} />}
+                      </PressableScale>
                     );
                   })}
                 </View>
@@ -343,12 +579,12 @@ export default function RecipesScreen() {
 
               {/* Calorie Range */}
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Kalori Aralığı</Text>
+                <Text style={styles.filterSectionTitle}>{t('recipes.filterModal.calorieRange')}</Text>
                 <View style={styles.filterPillsContainer}>
                   {CALORIE_FILTERS.map((item, idx) => {
                     const isActive = selectedCalorieFilter === item.label;
                     return (
-                      <TouchableOpacity
+                      <PressableScale haptic="light"
                         key={idx}
                         style={[styles.filterPill, isActive && styles.filterPillActive]}
                         onPress={() => {
@@ -358,8 +594,34 @@ export default function RecipesScreen() {
                       >
                         <MaterialCommunityIcons name={item.iconName as any} size={18} color={item.iconColor} style={styles.filterPillIcon} />
                         <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>{item.label}</Text>
-                        {isActive && <Ionicons name="checkmark-circle" size={18} color={Colors.textPrimary} style={{ marginLeft: 6 }} />}
-                      </TouchableOpacity>
+                        {isActive && <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} style={{ marginLeft: 6 }} />}
+                      </PressableScale>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.modalSeparator} />
+
+              {/* Diyet */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>{t('recipes.filterModal.diet')}</Text>
+                <View style={styles.filterPillsContainer}>
+                  {DIET_FILTERS.map((item) => {
+                    const isActive = selectedDietFilter === item.key;
+                    return (
+                      <PressableScale haptic="light"
+                        key={item.key}
+                        style={[styles.filterPill, isActive && styles.filterPillActive]}
+                        onPress={() => {
+                          haptic.light();
+                          setSelectedDietFilter(isActive ? null : item.key);
+                        }}
+                      >
+                        <MaterialCommunityIcons name={item.iconName as any} size={18} color={item.iconColor} style={styles.filterPillIcon} />
+                        <Text style={[styles.filterPillText, isActive && styles.filterPillTextActive]}>{t('recipes.diets.' + item.key)}</Text>
+                        {isActive && <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} style={{ marginLeft: 6 }} />}
+                      </PressableScale>
                     );
                   })}
                 </View>
@@ -367,16 +629,18 @@ export default function RecipesScreen() {
 
             </ScrollView>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity 
+            <View style={[styles.modalFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+              <PressableScale haptic="light" 
                 style={styles.modalApplyBtn} 
                 onPress={() => {
                   haptic.success();
                   setFilterVisible(false);
                 }}
               >
-                <Text style={styles.modalApplyBtnText}>Tarifleri Göster</Text>
-              </TouchableOpacity>
+                <Text style={styles.modalApplyBtnText}>
+                  {anyFilterActive ? t('recipes.filterModal.showRecipesCount', { count: results.length }) : t('recipes.filterModal.showRecipes')}
+                </Text>
+              </PressableScale>
             </View>
 
           </View>
@@ -387,44 +651,189 @@ export default function RecipesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   safe: { flex: 1 },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
+    height: 68,
+  },
+  titleFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 44,
+    overflow: 'hidden',
   },
   headerTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 28,
-    color: Colors.textPrimary,
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 26,
+    color: colors.textPrimary,
   },
   headerIcons: {
     flexDirection: 'row',
+    gap: 12,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   headerIconBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  iconBadge: {
+    position: 'absolute',
+    top: 9,
+    right: 9,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.green,
+    borderWidth: 1.5,
+    borderColor: colors.background,
+  },
+  searchBarContainer: {
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  searchBarPressable: {
+    width: '100%',
+    height: '100%',
+  },
+  searchBarInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: '100%',
+  },
+  searchIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 15,
+    color: colors.textPrimary,
+    padding: 0,
+    marginLeft: 8,
+  },
+  clearIcon: {
+    padding: 4,
+  },
+  cancelBtnContainer: {
+    height: 44,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  cancelBtn: {
+    width: 75,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+  },
+  cancelText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 15,
+    color: colors.green,
+  },
+  activeFiltersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+  activeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+    borderRadius: 100,
+    paddingLeft: 14,
+    paddingRight: 10,
+    paddingVertical: 7,
+  },
+  activeChipText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  clearAllBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
+  clearAllText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  resultsWrap: {
+    paddingTop: 6,
+    alignItems: 'center',
+  },
+  resultsCount: {
+    alignSelf: 'flex-start',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: colors.textMuted,
+    marginLeft: 22,
+    marginBottom: 16,
+  },
+  resultCardWrap: {
+    marginBottom: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 80,
+    paddingHorizontal: 40,
+    gap: 10,
+  },
+  emptyTitle: {
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 18,
+    color: colors.textPrimary,
+    marginTop: 6,
+  },
+  emptyText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   bannerContainer: {
     marginHorizontal: 20,
-    height: 120,
+    height: 160,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 30,
-    backgroundColor: '#112217',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.surfaceGreen,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.separatorLight,
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
   },
   bannerGlowLeft: {
     position: 'absolute',
@@ -498,14 +907,14 @@ const styles = StyleSheet.create({
     left: 2,
     right: 2,
     height: 1.5,
-    backgroundColor: '#3BA569',
+    backgroundColor: colors.green,
     top: '50%',
   },
   bannerTag: {
     position: 'absolute',
     backgroundColor: 'rgba(38, 43, 40, 0.92)',
     borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: colors.separator,
     borderRadius: 5,
     paddingHorizontal: 3,
     paddingVertical: 1,
@@ -529,7 +938,7 @@ const styles = StyleSheet.create({
   },
   bannerTagText: {
     fontSize: 8,
-    color: '#FFF',
+    color: colors.textWhite,
     fontFamily: 'Inter_600SemiBold',
   },
   bannerTextContainer: {
@@ -540,13 +949,13 @@ const styles = StyleSheet.create({
   bannerSubtitle: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: '#AEB4AE',
+    color: colors.textSecondary,
     marginBottom: 3,
   },
   bannerTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 14,
-    color: '#F4B740',
+    color: colors.gold,
   },
   bannerLogoContainer: {
     width: 48,
@@ -567,7 +976,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginLeft: 20,
     marginBottom: 16,
   },
@@ -582,9 +991,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   calCard: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderRadius: 16,
     width: 110,
     height: 110,
@@ -604,11 +1013,8 @@ const styles = StyleSheet.create({
   calLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: Colors.textWhite,
+    color: colors.textSecondary,
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
     marginBottom: 10,
   },
   recipeScrollContent: {
@@ -617,13 +1023,13 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: colors.overlayStrong,
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.backgroundAlt,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    backgroundColor: colors.backgroundAlt,
+    borderTopLeftRadius: Radii.cardLarge,
+    borderTopRightRadius: Radii.cardLarge,
     height: '90%',
   },
   modalTitleRow: {
@@ -637,19 +1043,19 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 22,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   modalCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surfaceElevated,
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalSeparator: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: colors.border,
     marginHorizontal: 20,
     marginBottom: 20,
   },
@@ -660,7 +1066,7 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginBottom: 16,
   },
   filterPillsContainer: {
@@ -671,16 +1077,16 @@ const styles = StyleSheet.create({
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderRadius: 100,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   filterPillActive: {
-    backgroundColor: Colors.surfaceElevated,
-    borderColor: Colors.textSecondary,
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.textSecondary,
   },
   filterPillIcon: {
     fontSize: 16,
@@ -689,7 +1095,7 @@ const styles = StyleSheet.create({
   filterPillText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   filterPillTextActive: {
     fontFamily: 'Inter_600SemiBold',
@@ -699,19 +1105,19 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 40,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: colors.border,
   },
   modalApplyBtn: {
-    backgroundColor: Colors.green,
-    height: 56,
-    borderRadius: 16,
+    backgroundColor: colors.green,
+    height: 50,
+    borderRadius: Radii.button,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalApplyBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: '#FFF',
+    color: colors.textWhite,
   },
   premiumOverlayContainer: {
     ...StyleSheet.absoluteFillObject,

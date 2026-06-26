@@ -31,7 +31,13 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.*
+!.env.example
+
+# dev / one-off scripts (kept locally, not versioned)
+scratch/
+/generate_*.js
 
 # typescript
 *.tsbuildinfo

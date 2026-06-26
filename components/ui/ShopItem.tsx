@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { useApp } from '../../context/AppContext';
 import { haptic } from '../../lib/haptics';
 
@@ -11,6 +12,8 @@ interface ShopItemProps {
 }
 
 export function ShopItem({ id, name }: ShopItemProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { shoppingList, toggleShoppingItem, removeShoppingItem } = useApp();
   const item = shoppingList.find(i => i.id === id);
   const done = item ? item.checked : false;
@@ -43,7 +46,7 @@ export function ShopItem({ id, name }: ShopItemProps) {
       <Pressable style={styles.itemPressable} onPress={handlePress}>
         <View style={[styles.check, done && styles.checkDone]}>
           <Animated.View style={{ transform: [{ scale: checkScale }], opacity: pop }}>
-            <Ionicons name="checkmark" size={14} color={Colors.white} />
+            <Ionicons name="checkmark" size={14} color={colors.white} />
           </Animated.View>
         </View>
         <Text style={[styles.name, done && styles.nameDone]} numberOfLines={1}>
@@ -58,13 +61,13 @@ export function ShopItem({ id, name }: ShopItemProps) {
         }}
         activeOpacity={0.7}
       >
-        <Ionicons name="trash-outline" size={16} color={Colors.textMuted} />
+        <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -81,24 +84,24 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: Colors.separator,
-    backgroundColor: Colors.surface,
+    borderColor: colors.separator,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkDone: {
-    backgroundColor: Colors.green,
-    borderColor: Colors.green,
+    backgroundColor: colors.green,
+    borderColor: colors.green,
   },
   name: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
     paddingRight: 8,
   },
   nameDone: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textDecorationLine: 'line-through',
   },
   deleteBtn: {

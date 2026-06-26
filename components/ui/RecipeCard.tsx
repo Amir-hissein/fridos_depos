@@ -9,9 +9,15 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { Recipe } from '../../constants/recipes';
 import { PressableScale } from './PressableScale';
+import { useFridge } from '../../context/FridgeContext';
+import { recipeOwnership } from '../../services/shoppingList';
+import { localizeRecipeName } from '../../services/localizeRecipe';
+import { useTranslation } from 'react-i18next';
+
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 44;
@@ -25,9 +31,29 @@ interface RecipeCardProps {
   warnAllergen?: boolean;
 }
 
+const mapDifficulty = (diff: string) => {
+  if (diff === 'Kolay') return 'easy';
+  if (diff === 'Orta') return 'medium';
+  if (diff === 'Zor') return 'hard';
+  return 'easy';
+};
+
+const mapMealTypeKey = (mealType: string) => {
+  if (mealType === 'Kahvaltı') return 'breakfast';
+  if (['Öğle Yemeği', 'Ana Yemek', 'Ana Öğün'].includes(mealType)) return 'lunch';
+  if (['Akşam Yemeği'].includes(mealType)) return 'dinner';
+  if (['Ara Öğün', 'Tatlı', 'İçecek'].includes(mealType)) return 'snack';
+  return 'all';
+};
+
 export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, warnAllergen }: RecipeCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = !!recipe.image && !imgFailed;
+  const { ingredients } = useFridge();
+  const { tag, missingCount } = recipeOwnership(recipe, ingredients);
+  const { t } = useTranslation();
 
   return (
     <PressableScale
@@ -57,15 +83,15 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
       />
 
       {/* Status badge */}
-      <View style={[styles.badge, recipe.tag === 'complete' ? styles.badgeGreen : styles.badgeOrange]}>
+      <View style={[styles.badge, tag === 'complete' ? styles.badgeGreen : styles.badgeOrange]}>
         <Ionicons
-          name={recipe.tag === 'complete' ? 'checkmark-circle' : 'alert-circle-outline'}
+          name={tag === 'complete' ? 'checkmark-circle' : 'alert-circle-outline'}
           size={13}
-          color={Colors.white}
+          color={colors.white}
           style={{ marginRight: 4 }}
         />
         <Text style={styles.badgeText}>
-          {recipe.tag === 'complete' ? 'You have it all' : `${recipe.missingCount} missing`}
+          {tag === 'complete' ? t('recipes.card.allOwned') : t('recipes.card.missingCount', { count: missingCount })}
         </Text>
       </View>
 
@@ -74,7 +100,7 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
         <Ionicons
           name={bookmarked ? 'bookmark' : 'bookmark-outline'}
           size={20}
-          color={Colors.white}
+          color={colors.white}
         />
       </TouchableOpacity>
 
@@ -82,19 +108,19 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
       <View style={styles.bottom}>
         {warnAllergen && (
           <View style={styles.allergenPill}>
-            <Ionicons name="warning" size={11} color={Colors.white} />
-            <Text style={styles.allergenPillText}>Allergen</Text>
+            <Ionicons name="warning" size={11} color={colors.white} />
+            <Text style={styles.allergenPillText}>{t('recipes.card.allergen')}</Text>
           </View>
         )}
-        <Text style={styles.name} numberOfLines={2}>{recipe.name}</Text>
+        <Text style={styles.name} numberOfLines={2}>{localizeRecipeName(recipe, t)}</Text>
         <View style={styles.metaRow}>
           <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.75)" />
-          <Text style={styles.metaText}>{recipe.time} min</Text>
+          <Text style={styles.metaText}>{recipe.time} {t('plan.min')}</Text>
           <Text style={styles.metaDivider}>•</Text>
           <Ionicons name="flame-outline" size={13} color="rgba(255,255,255,0.75)" />
           <Text style={styles.metaText}>{recipe.kcal} kcal</Text>
           <Text style={styles.metaDivider}>•</Text>
-          <Text style={styles.metaText}>{recipe.difficulty}</Text>
+          <Text style={styles.metaText}>{t('setup.paces.' + mapDifficulty(recipe.difficulty))}</Text>
         </View>
       </View>
 
@@ -102,7 +128,7 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
       {locked && (
         <View style={styles.lockOverlay}>
           <View style={styles.lockPill}>
-            <Ionicons name="lock-closed" size={14} color={Colors.goldDark} />
+            <Ionicons name="lock-closed" size={14} color={colors.goldDark} />
             <Text style={styles.lockPillText}>PREMIUM</Text>
           </View>
         </View>
@@ -111,7 +137,7 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: 220,
@@ -119,7 +145,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
     position: 'relative',
-    shadowColor: Colors.shadowBlack,
+    shadowColor: colors.shadowBlack,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -143,12 +169,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 10,
   },
-  badgeGreen: { backgroundColor: Colors.green },
-  badgeOrange: { backgroundColor: Colors.orange },
+  badgeGreen: { backgroundColor: colors.green },
+  badgeOrange: { backgroundColor: colors.orange },
   badgeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    color: Colors.white,
+    color: colors.white,
   },
   bookmark: {
     position: 'absolute',
@@ -172,7 +198,7 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: Colors.white,
+    color: colors.white,
     marginBottom: 8,
   },
   metaRow: {
@@ -201,7 +227,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.gold,
+    backgroundColor: colors.gold,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 22,
@@ -209,7 +235,7 @@ const styles = StyleSheet.create({
   lockPillText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 12,
-    color: Colors.goldDark,
+    color: colors.goldDark,
     letterSpacing: 0.6,
   },
   allergenPill: {
@@ -217,7 +243,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     alignSelf: 'flex-start',
-    backgroundColor: '#E53935',
+    backgroundColor: colors.red,
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 10,
@@ -226,8 +252,22 @@ const styles = StyleSheet.create({
   allergenPillText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 11,
-    color: Colors.white,
+    color: colors.white,
     letterSpacing: 0.2,
+  },
+  allergenBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.red,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   cardB: {
     width: 150,
@@ -241,7 +281,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.surface,
   },
   badgeB: {
     position: 'absolute',
@@ -256,7 +296,7 @@ const styles = StyleSheet.create({
   badgeTextB: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 10,
-    color: Colors.white,
+    color: colors.white,
   },
   bottomB: {
     position: 'absolute',
@@ -271,7 +311,7 @@ const styles = StyleSheet.create({
   nameB: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
-    color: Colors.white,
+    color: colors.white,
     flex: 1,
     marginRight: 8,
   },
@@ -283,7 +323,7 @@ const styles = StyleSheet.create({
   kcalTextB: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    color: Colors.white,
+    color: colors.white,
   },
   cardC: {
     width: width * 0.75,
@@ -291,7 +331,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.surface,
   },
   cardCImgArea: {
     width: '100%',
@@ -310,7 +350,7 @@ const styles = StyleSheet.create({
   nameC: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.white,
+    color: colors.white,
     marginBottom: 6,
   },
   metaC: {
@@ -326,7 +366,7 @@ const styles = StyleSheet.create({
   metaTextC: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: '#D1D1D1',
+    color: colors.textSecondary,
   },
   cardD: {
     width: width * 0.65,
@@ -334,7 +374,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.surface,
   },
   cardDImgArea: {
     width: '100%',
@@ -353,15 +393,18 @@ const styles = StyleSheet.create({
   nameD: {
     fontFamily: 'Inter_700Bold',
     fontSize: 16,
-    color: Colors.white,
+    color: colors.white,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
 });
 
-export function RecipeCardB({ recipe, onPress }: RecipeCardProps) {
+export function RecipeCardB({ recipe, onPress, warnAllergen }: RecipeCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = !!recipe.image && !imgFailed;
+  const { t } = useTranslation();
 
   return (
     <PressableScale
@@ -389,13 +432,21 @@ export function RecipeCardB({ recipe, onPress }: RecipeCardProps) {
       />
 
       <View style={styles.badgeB}>
-        <Text style={styles.badgeTextB}>{recipe.mealType || 'Tarif'}</Text>
+        <Text style={styles.badgeTextB}>
+          {recipe.mealType ? t('recipes.meals.' + mapMealTypeKey(recipe.mealType)) : t('recipes.card.recipeFallback')}
+        </Text>
       </View>
 
+      {warnAllergen && (
+        <View style={styles.allergenBadge}>
+          <Ionicons name="warning" size={13} color={colors.white} />
+        </View>
+      )}
+
       <View style={styles.bottomB}>
-        <Text style={styles.nameB} numberOfLines={2}>{recipe.name}</Text>
+        <Text style={styles.nameB} numberOfLines={2}>{localizeRecipeName(recipe, t)}</Text>
         <View style={styles.kcalBadgeB}>
-          <Ionicons name="flame" size={12} color={Colors.white} />
+          <Ionicons name="flame" size={12} color={colors.white} />
           <Text style={styles.kcalTextB}>{recipe.kcal}</Text>
         </View>
       </View>
@@ -403,9 +454,12 @@ export function RecipeCardB({ recipe, onPress }: RecipeCardProps) {
   );
 }
 
-export function RecipeCardC({ recipe, onPress }: RecipeCardProps) {
+export function RecipeCardC({ recipe, onPress, warnAllergen }: RecipeCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = !!recipe.image && !imgFailed;
+  const { t } = useTranslation();
 
   return (
     <PressableScale
@@ -427,23 +481,32 @@ export function RecipeCardC({ recipe, onPress }: RecipeCardProps) {
       </View>
 
       <View style={styles.bottomC}>
-        <Text style={styles.nameC} numberOfLines={1}>{recipe.name}</Text>
+        <Text style={styles.nameC} numberOfLines={1}>{localizeRecipeName(recipe, t)}</Text>
         <View style={styles.metaC}>
           <View style={styles.metaItemC}>
-            <Ionicons name="flame" size={14} color="#D1D1D1" />
+            <Ionicons name="flame" size={14} color={colors.textSecondary} />
             <Text style={styles.metaTextC}>{recipe.kcal} kcal</Text>
           </View>
           <View style={styles.metaItemC}>
-            <Ionicons name="time" size={14} color="#D1D1D1" />
-            <Text style={styles.metaTextC}>{recipe.time} dk</Text>
+            <Ionicons name="time" size={14} color={colors.textSecondary} />
+            <Text style={styles.metaTextC}>{recipe.time} {t('plan.min')}</Text>
           </View>
         </View>
       </View>
+
+      {warnAllergen && (
+        <View style={styles.allergenBadge}>
+          <Ionicons name="warning" size={13} color={colors.white} />
+        </View>
+      )}
     </PressableScale>
   );
 }
 
-export function RecipeCardD({ recipe, onPress }: RecipeCardProps) {
+export function RecipeCardD({ recipe, onPress, warnAllergen }: RecipeCardProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { t } = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = !!recipe.image && !imgFailed;
 
@@ -473,8 +536,14 @@ export function RecipeCardD({ recipe, onPress }: RecipeCardProps) {
       />
 
       <View style={styles.bottomD}>
-        <Text style={styles.nameD} numberOfLines={2}>{recipe.name}</Text>
+        <Text style={styles.nameD} numberOfLines={2}>{localizeRecipeName(recipe, t)}</Text>
       </View>
+
+      {warnAllergen && (
+        <View style={styles.allergenBadge}>
+          <Ionicons name="warning" size={13} color={colors.white} />
+        </View>
+      )}
     </PressableScale>
   );
 }

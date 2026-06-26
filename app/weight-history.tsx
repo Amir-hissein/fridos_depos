@@ -9,13 +9,16 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { PressableScale } from '../components/ui/PressableScale';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { Colors } from '../constants/colors';
+import { Colors, ThemeColors } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { haptic } from '../lib/haptics';
 import { usePlan } from '../context/PlanContext';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
+import { useTranslation } from 'react-i18next';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -31,6 +34,9 @@ function EditModal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const m = useThemedStyles(makeModalStyles);
   return (
     <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView
@@ -38,13 +44,13 @@ function EditModal({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <TouchableOpacity style={m.overlay} activeOpacity={1} onPress={onClose} />
-        <View style={m.sheet}>
+        <View style={[m.sheet, { paddingBottom: 24 + insets.bottom }]}>
           <View style={m.handle} />
           <Text style={m.sheetTitle}>{title}</Text>
           {children}
-          <TouchableOpacity style={m.closeBtn} onPress={onClose} activeOpacity={0.8}>
-            <Text style={m.closeBtnText}>Kapat</Text>
-          </TouchableOpacity>
+          <PressableScale haptic="light" style={m.closeBtn} onPress={onClose} activeOpacity={0.8}>
+            <Text style={m.closeBtnText}>{t('common.cancel')}</Text>
+          </PressableScale>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -65,27 +71,33 @@ function StatRow({
   valueAccent?: boolean;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const s = useThemedStyles(makeStyles);
   return (
-    <TouchableOpacity
+    <PressableScale haptic="light"
       style={s.card}
       onPress={onPress}
       activeOpacity={onPress ? 0.75 : 1}
     >
       <View style={s.iconWrap}>
-        <MaterialCommunityIcons name={icon} size={20} color={Colors.textSecondary} />
+        <MaterialCommunityIcons name={icon} size={20} color={colors.textSecondary} />
       </View>
       <Text style={s.cardLabel}>{label}</Text>
       <Text style={[s.cardValue, valueAccent && s.cardValueAccent]}>{value}</Text>
       {onPress && (
-        <MaterialCommunityIcons name="chevron-right" size={18} color={Colors.textMuted} />
+        <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textMuted} />
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
 /* ─── Main Screen ────────────────────────────────────────────── */
 export default function WeightHistoryScreen() {
+  const { colors } = useTheme();
+  const s = useThemedStyles(makeStyles);
+  const m = useThemedStyles(makeModalStyles);
   const { profile, updateProfile } = usePlan();
+  const { t } = useTranslation();
 
   const [editModal, setEditModal] = useState<string | null>(null);
   const [tempWeight, setTempWeight] = useState(profile.weight);
@@ -108,21 +120,14 @@ export default function WeightHistoryScreen() {
   const estimatedMonths = remaining > 0 ? (remaining / (weeklyRate * 4.33)).toFixed(1) : '0';
 
   const goalLabel =
-    currentWeight > targetWeight ? 'Kilo Verme' :
-    currentWeight < targetWeight ? 'Kilo Alma' : 'Kilo Koruma';
+    currentWeight > targetWeight ? t('profile.personalInfo.goals.lose') :
+    currentWeight < targetWeight ? t('profile.personalInfo.goals.gain') : t('profile.personalInfo.goals.maintain');
 
-  const speedLabel = 'Hızlı (Haftada 1 kg)';
+  const speedLabel = t('profile.weightHistoryPage.rateValue');
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Kilo Geçmişi</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title={t('profile.settings.weightHistory')} />
 
       <ScrollView
         style={s.scroll}
@@ -137,30 +142,30 @@ export default function WeightHistoryScreen() {
               <View style={s.ringBg} />
               {/* Progress fill — visual only, based on % */}
               <View style={[s.ringFill, {
-                borderTopColor: progressPct > 0 ? Colors.orange : 'transparent',
-                borderRightColor: progressPct > 25 ? Colors.orange : 'transparent',
-                borderBottomColor: progressPct > 50 ? Colors.orange : 'transparent',
-                borderLeftColor: progressPct > 75 ? Colors.orange : 'transparent',
+                borderTopColor: progressPct > 0 ? colors.orange : 'transparent',
+                borderRightColor: progressPct > 25 ? colors.orange : 'transparent',
+                borderBottomColor: progressPct > 50 ? colors.orange : 'transparent',
+                borderLeftColor: progressPct > 75 ? colors.orange : 'transparent',
               }]} />
               <View style={s.circleCenter}>
                 <Text style={s.circlePct}>{progressPct}%</Text>
-                <Text style={s.circleLabel}>İlerleme</Text>
+                <Text style={s.circleLabel}>{t('profile.weightHistoryPage.progress')}</Text>
               </View>
             </View>
             <View style={s.progressStats}>
               <View style={s.pStat}>
-                <Text style={s.pStatValue}>{currentWeight} kg</Text>
-                <Text style={s.pStatLabel}>Şu an</Text>
+                <Text style={s.pStatValue}>{t('profile.personalInfo.weightValue', { count: currentWeight })}</Text>
+                <Text style={s.pStatLabel}>{t('profile.weightHistoryPage.current')}</Text>
               </View>
               <View style={s.pStatDivider} />
               <View style={s.pStat}>
-                <Text style={s.pStatValue}>{targetWeight} kg</Text>
-                <Text style={s.pStatLabel}>Hedef</Text>
+                <Text style={s.pStatValue}>{t('profile.personalInfo.weightValue', { count: targetWeight })}</Text>
+                <Text style={s.pStatLabel}>{t('profile.weightHistoryPage.target')}</Text>
               </View>
               <View style={s.pStatDivider} />
               <View style={s.pStat}>
-                <Text style={[s.pStatValue, { color: Colors.orange }]}>{remaining.toFixed(1)} kg</Text>
-                <Text style={s.pStatLabel}>Kalan</Text>
+                <Text style={[s.pStatValue, { color: colors.orange }]}>{t('profile.personalInfo.weightValue', { count: parseFloat(remaining.toFixed(1)) })}</Text>
+                <Text style={s.pStatLabel}>{t('profile.weightHistoryPage.remaining')}</Text>
               </View>
             </View>
           </View>
@@ -169,52 +174,52 @@ export default function WeightHistoryScreen() {
         {/* Stat rows — each in its own card, exactly like the reference */}
         <StatRow
           icon="pulse"
-          label="Mevcut Kilo"
-          value={`${currentWeight} kg`}
+          label={t('profile.weightHistoryPage.currentWeight')}
+          value={t('profile.personalInfo.weightValue', { count: currentWeight })}
           valueAccent
           onPress={() => openModal('weight')}
         />
         <StatRow
           icon="flag-outline"
-          label="Başlangıç Kilosu"
-          value={`${startWeight} kg`}
+          label={t('profile.weightHistoryPage.startWeight')}
+          value={t('profile.personalInfo.weightValue', { count: startWeight })}
         />
         <StatRow
           icon="target"
-          label="Hedef Kilo"
-          value={`${targetWeight} kg`}
+          label={t('profile.weightHistoryPage.targetWeight')}
+          value={t('profile.personalInfo.weightValue', { count: targetWeight })}
           onPress={() => openModal('targetWeight')}
         />
         <StatRow
           icon="trophy-outline"
-          label="Hedef"
+          label={t('profile.weightHistoryPage.goal')}
           value={goalLabel}
         />
         <StatRow
           icon="trending-up"
-          label="İlerleme"
+          label={t('profile.weightHistoryPage.progress')}
           value={`%${progressPct}`}
           valueAccent={progressPct === 0}
         />
         <StatRow
           icon="minus-circle-outline"
-          label="Kalan"
-          value={`${remaining.toFixed(1)} kg`}
+          label={t('profile.weightHistoryPage.remaining')}
+          value={t('profile.personalInfo.weightValue', { count: parseFloat(remaining.toFixed(1)) })}
         />
         <StatRow
           icon="lightning-bolt-outline"
-          label="Hız"
+          label={t('profile.weightHistoryPage.rate')}
           value={speedLabel}
         />
         <StatRow
           icon="calendar-month-outline"
-          label="Tahmini Süre"
-          value={`${estimatedMonths} ay`}
+          label={t('profile.weightHistoryPage.duration')}
+          value={t('profile.weightHistoryPage.durationValue', { count: parseFloat(estimatedMonths) })}
         />
       </ScrollView>
 
       {/* ── Weight Modal ── */}
-      <EditModal visible={editModal === 'weight'} title={`Mevcut Kilo: ${tempWeight} kg`} onClose={closeModal}>
+      <EditModal visible={editModal === 'weight'} title={`${t('profile.weightHistoryPage.currentWeight')}: ${t('profile.personalInfo.weightValue', { count: tempWeight })}`} onClose={closeModal}>
         <Slider
           style={{ marginHorizontal: 8, marginVertical: 20 }}
           minimumValue={35}
@@ -222,22 +227,22 @@ export default function WeightHistoryScreen() {
           step={0.5}
           value={tempWeight}
           onValueChange={v => { setTempWeight(Math.round(v * 2) / 2); haptic.select(); }}
-          minimumTrackTintColor={Colors.orange}
-          maximumTrackTintColor={Colors.separator}
-          thumbTintColor={Colors.white}
+          minimumTrackTintColor={colors.orange}
+          maximumTrackTintColor={colors.separator}
+          thumbTintColor={colors.white}
         />
-        <Text style={m.sliderVal}>{tempWeight} kg</Text>
-        <TouchableOpacity
+        <Text style={m.sliderVal}>{t('profile.personalInfo.weightValue', { count: tempWeight })}</Text>
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ weight: tempWeight }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Target Weight Modal ── */}
-      <EditModal visible={editModal === 'targetWeight'} title={`Hedef Kilo: ${tempTargetWeight} kg`} onClose={closeModal}>
+      <EditModal visible={editModal === 'targetWeight'} title={`${t('profile.weightHistoryPage.targetWeight')}: ${t('profile.personalInfo.weightValue', { count: tempTargetWeight })}`} onClose={closeModal}>
         <Slider
           style={{ marginHorizontal: 8, marginVertical: 20 }}
           minimumValue={35}
@@ -245,59 +250,36 @@ export default function WeightHistoryScreen() {
           step={0.5}
           value={tempTargetWeight}
           onValueChange={v => { setTempTargetWeight(Math.round(v * 2) / 2); haptic.select(); }}
-          minimumTrackTintColor={Colors.green}
-          maximumTrackTintColor={Colors.separator}
-          thumbTintColor={Colors.white}
+          minimumTrackTintColor={colors.green}
+          maximumTrackTintColor={colors.separator}
+          thumbTintColor={colors.white}
         />
-        <Text style={m.sliderVal}>{tempTargetWeight} kg</Text>
-        <TouchableOpacity
+        <Text style={m.sliderVal}>{t('profile.personalInfo.weightValue', { count: tempTargetWeight })}</Text>
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ targetWeight: tempTargetWeight }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
     </SafeAreaView>
   );
 }
 
 /* ─── Styles ─────────────────────────────────────────────────── */
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120, gap: 10 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 18,
-    color: Colors.textPrimary,
-  },
-
   // Progress card
   progressCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: 16,
     marginBottom: 4,
   },
   progressInner: {
@@ -317,7 +299,7 @@ const s = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 8,
-    borderColor: Colors.backgroundAlt,
+    borderColor: colors.backgroundAlt,
   },
   ringFill: {
     position: 'absolute',
@@ -326,7 +308,7 @@ const s = StyleSheet.create({
     borderRadius: 60,
     borderWidth: 8,
     borderColor: 'transparent',
-    borderTopColor: Colors.orange,
+    borderTopColor: colors.orange,
     transform: [{ rotate: '-90deg' }],
   },
   circleCenter: {
@@ -335,13 +317,13 @@ const s = StyleSheet.create({
   circlePct: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 32,
   },
   circleLabel: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   progressStats: {
     flexDirection: 'row',
@@ -353,18 +335,18 @@ const s = StyleSheet.create({
   pStatValue: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   pStatLabel: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   pStatDivider: {
     width: 1,
     height: 32,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: colors.borderLight,
   },
 
   // Stat rows
@@ -372,10 +354,10 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingVertical: 17,
     paddingHorizontal: 16,
   },
@@ -383,36 +365,36 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.backgroundAlt,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   cardValue: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     maxWidth: 160,
     textAlign: 'right',
   },
   cardValueAccent: {
-    color: Colors.orange,
+    color: colors.orange,
     fontFamily: 'Inter_600SemiBold',
   },
 });
 
 /* ─── Modal Styles ───────────────────────────────────────────── */
-const m = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
+const makeModalStyles = (colors: ThemeColors) => StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: colors.overlayMedium },
   sheet: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
@@ -422,22 +404,22 @@ const m = StyleSheet.create({
   },
   handle: {
     width: 36, height: 4, borderRadius: 2,
-    backgroundColor: Colors.separator,
+    backgroundColor: colors.separator,
     alignSelf: 'center', marginBottom: 8,
   },
   sheetTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   saveBtn: {
-    backgroundColor: Colors.green,
-    borderRadius: 14,
+    backgroundColor: colors.green,
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: Colors.shadowGreen,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -446,25 +428,25 @@ const m = StyleSheet.create({
   saveBtnText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.white,
+    color: colors.white,
   },
   closeBtn: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   closeBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   sliderVal: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 28,
-    color: Colors.textPrimary,
+    fontSize: 26,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },

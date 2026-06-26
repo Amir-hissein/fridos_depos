@@ -1,179 +1,244 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  Image,
-  Modal,
+  Animated,
+  Easing,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PressableScale } from '../../components/ui/PressableScale';
+import { Button } from '../../components/ui/Button';
+import { BottomSheet } from '../../components/ui/BottomSheet';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
+import { Radii } from '../../constants/layout';
 import { RECIPES, isRecipeLockedForFree } from '../../constants/recipes';
+import { getRecipeMacrosForPortions } from '../../services/nutrition';
 import { haptic } from '../../lib/haptics';
 import { useApp, FREE_RECIPE_LIMIT } from '../../context/AppContext';
+import { useFavorites } from '../../context/FavoritesContext';
+import { useCustomRecipes } from '../../context/CustomRecipesContext';
+import { useFeedback } from '../../context/FeedbackContext';
+import { useFridge } from '../../context/FridgeContext';
+import { recipeOwnership } from '../../services/shoppingList';
+import { localizeRecipe } from '../../services/localizeRecipe';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 export default function RecipeDetailScreen() {
+  const { colors, scheme } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const recipe = RECIPES.find(r => r.id === id) ?? RECIPES[0];
+  const insets = useSafeAreaInsets();
+  const { getCustomRecipe, removeCustomRecipe } = useCustomRecipes();
+  const { confirm, toast } = useFeedback();
+  const recipe = RECIPES.find(r => r.id === id) ?? getCustomRecipe(id ?? '') ?? RECIPES[0];
+  const isCustom = recipe.id.startsWith('custom_');
+
+  const handleDelete = async () => {
+    haptic.light();
+    const ok = await confirm({
+      title: t('recipes.delete.title'),
+      message: t('recipes.delete.message'),
+      destructive: true,
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+    });
+    if (!ok) return;
+    haptic.success();
+    removeCustomRecipe(recipe.id);
+    toast(t('recipes.delete.done'));
+    router.back();
+  };
   
   const { isPremium } = useApp();
   const isLocked = !isPremium && isRecipeLockedForFree(recipe.id, FREE_RECIPE_LIMIT);
   
-  const [bookmarked, setBookmarked] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const bookmarked = isFavorite(recipe.id);
+  const { ingredients: fridge } = useFridge();
+  const ownership = recipeOwnership(recipe, fridge);
   const [imgFailed, setImgFailed] = useState(false);
   const [activeTab, setActiveTab] = useState<'ingredients' | 'steps'>('ingredients');
   const showImage = !!recipe.image && !imgFailed;
+  const { t } = useTranslation();
+  // Contenu localisé (nom/ingrédients/étapes) ; `recipe` reste brut pour la logique.
+  const loc = localizeRecipe(recipe, t);
 
   // Modal State
   const [addModalVisible, setAddModalVisible] = useState(false);
-  const [selectedMeal, setSelectedMeal] = useState('Kahvaltı');
+  const [selectedMeal, setSelectedMeal] = useState('breakfast');
   const [selectedServing, setSelectedServing] = useState(1);
 
-  const MEALS = ['Kahvaltı', 'Öğle', 'Akşam', 'Atıştırmalık'];
-  const SERVINGS = [0.5, 1, 1.5, 2];
+  const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+  const portionMacros = getRecipeMacrosForPortions(recipe, selectedServing);
+
+  // Smooth entrance: the hero gently settles while the content rises into place.
+  const entrance = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, []);
+  const heroScale = entrance.interpolate({ inputRange: [0, 1], outputRange: [1.1, 1] });
+  const contentTranslate = entrance.interpolate({ inputRange: [0, 1], outputRange: [28, 0] });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar style={scheme === 'light' ? 'dark' : 'light'} translucent />
 
-      {/* Hero Image */}
-      <View style={[styles.hero, { backgroundColor: recipe.bgColor }]}>
-        <Text style={styles.heroEmoji}>{recipe.emoji}</Text>
-        {showImage && (
-          <Image
-            source={{ uri: recipe.image }}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-            onError={() => setImgFailed(true)}
-          />
-        )}
-      </View>
-
-      {/* Nav Buttons (Absolute over image) */}
-      <SafeAreaView style={styles.navOverlay}>
-        <View style={styles.navBar}>
-          <TouchableOpacity style={styles.navBtn} onPress={() => router.back()} activeOpacity={0.8}>
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.navBtn}
-            onPress={() => {
-              haptic.light();
-              setBookmarked(b => !b);
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name={bookmarked ? 'bookmark' : 'bookmark-outline'}
-              size={22}
-              color="#FFF"
-            />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-
-      {/* Scrollable Content Sheet */}
+      {/* Single scroll: hero image + all content scroll together */}
       <ScrollView
-        style={styles.sheet}
-        contentContainerStyle={styles.sheetContent}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.sheetPull} />
+        {/* Hero Image — fades smoothly into the content (no hard sheet edge) */}
+        <View style={[styles.hero, { backgroundColor: recipe.bgColor }]}>
+          <Animated.Text style={[styles.heroEmoji, { transform: [{ scale: heroScale }] }]}>{recipe.emoji}</Animated.Text>
+          {showImage && (
+            <Animated.Image
+              source={{ uri: recipe.image }}
+              style={[StyleSheet.absoluteFill, { transform: [{ scale: heroScale }] }]}
+              resizeMode="cover"
+              onError={() => setImgFailed(true)}
+            />
+          )}
+          <LinearGradient
+            colors={['transparent', colors.background]}
+            style={styles.heroFade}
+            pointerEvents="none"
+          />
+        </View>
 
-        <View style={styles.titleRow}>
-          <Text style={styles.recipeName}>{recipe.name}</Text>
+        {/* Content flows seamlessly from the faded image */}
+        <Animated.View style={[styles.sheetBody, { opacity: entrance, transform: [{ translateY: contentTranslate }] }]}>
+
+        <View style={styles.titleHeader}>
+          <Text style={styles.recipeName}>{loc.name}</Text>
           <View style={styles.timeBadge}>
-            <Ionicons name="time" size={14} color="#D1D1D1" />
-            <Text style={styles.timeText}>{recipe.time}dk</Text>
+            <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+            <Text style={styles.timeText}>{recipe.time} {t('plan.min')}</Text>
           </View>
         </View>
 
         {/* Macros Row */}
         <View style={styles.macrosRow}>
           <View style={styles.macroCard}>
-            <Ionicons name="flame" size={24} color={Colors.orange} />
+            <View style={[styles.macroIconWrap, { backgroundColor: colors.orange + '16' }]}>
+              <MaterialCommunityIcons name="fire" size={20} color={colors.orange} />
+            </View>
             <Text style={styles.macroValue} numberOfLines={1} adjustsFontSizeToFit>
               {recipe.kcal} <Text style={styles.macroUnit}>kcal</Text>
             </Text>
-            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>Kalori</Text>
+            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>{t('plan.calorie')}</Text>
           </View>
 
           <View style={styles.macroCard}>
-            <MaterialCommunityIcons name="food-steak" size={24} color="#4AAEEA" />
+            <View style={[styles.macroIconWrap, { backgroundColor: colors.protein + '16' }]}>
+              <MaterialCommunityIcons name="food-steak" size={20} color={colors.protein} />
+            </View>
             <Text style={styles.macroValue} numberOfLines={1} adjustsFontSizeToFit>
               {recipe.protein} <Text style={styles.macroUnit}>g</Text>
             </Text>
-            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>Protein</Text>
+            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>{t('plan.protein')}</Text>
           </View>
 
           <View style={styles.macroCard}>
-            <MaterialCommunityIcons name="bread-slice" size={24} color={Colors.gold} />
+            <View style={[styles.macroIconWrap, { backgroundColor: colors.carbs + '16' }]}>
+              <MaterialCommunityIcons name="bread-slice" size={20} color={colors.carbs} />
+            </View>
             <Text style={styles.macroValue} numberOfLines={1} adjustsFontSizeToFit>
               {recipe.carbs} <Text style={styles.macroUnit}>g</Text>
             </Text>
-            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>Karbonhidrat</Text>
+            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>{t('plan.carbs')}</Text>
           </View>
 
           <View style={styles.macroCard}>
-            <Ionicons name="water" size={24} color="#8CD743" />
+            <View style={[styles.macroIconWrap, { backgroundColor: colors.fat + '16' }]}>
+              <MaterialCommunityIcons name="water" size={20} color={colors.fat} />
+            </View>
             <Text style={styles.macroValue} numberOfLines={1} adjustsFontSizeToFit>
               {recipe.fat} <Text style={styles.macroUnit}>g</Text>
             </Text>
-            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>Yağ</Text>
+            <Text style={styles.macroLabel} numberOfLines={1} adjustsFontSizeToFit>{t('plan.fat')}</Text>
           </View>
         </View>
 
-        {/* Tabs */}
-        <View style={styles.tabsRow}>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'ingredients' && styles.tabBtnActive]}
+        {/* Tabs Segmented Control */}
+        <View style={styles.segmentedControl}>
+          <PressableScale haptic="light"
+            style={[styles.segmentBtn, activeTab === 'ingredients' && styles.segmentBtnActive]}
             onPress={() => setActiveTab('ingredients')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, activeTab === 'ingredients' && styles.tabTextActive]}>
-              Malzemeler
+            <Text style={[styles.segmentText, activeTab === 'ingredients' && styles.segmentTextActive]}>
+              {t('recipes.details.ingredients')}
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, activeTab === 'steps' && styles.tabBtnActive]}
+          </PressableScale>
+          <PressableScale haptic="light"
+            style={[styles.segmentBtn, activeTab === 'steps' && styles.segmentBtnActive]}
             onPress={() => setActiveTab('steps')}
             activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, activeTab === 'steps' && styles.tabTextActive]}>
-              Hazırlanışı
+            <Text style={[styles.segmentText, activeTab === 'steps' && styles.segmentTextActive]}>
+              {t('recipes.details.preparation')}
             </Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
 
         {/* Tab Content */}
         <View style={styles.tabContentArea}>
           {activeTab === 'ingredients' && (
-            <View style={styles.ingredientsList}>
-              {recipe.ingredients.map((ing, idx) => (
-                <View key={idx} style={styles.ingRow}>
-                  <Text style={styles.ingName}>{ing.name}</Text>
-                  <Text style={styles.ingQty}>{ing.quantity}</Text>
-                </View>
-              ))}
+            <View style={styles.ingredientsCard}>
+              {loc.ingredients.map((ing, idx) => {
+                const owned = ownership.ingredients[idx]?.owned ?? false;
+                const isLast = idx === loc.ingredients.length - 1;
+                return (
+                  <View key={idx}>
+                    <View style={styles.ingRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 16 }}>
+                        <Ionicons
+                          name={owned ? 'checkmark-circle' : 'add-circle-outline'}
+                          size={18}
+                          color={owned ? colors.green : colors.textMuted}
+                          style={{ marginRight: 10 }}
+                        />
+                        <Text style={[styles.ingName, !owned && { color: colors.textSecondary }]}>{ing.name}</Text>
+                      </View>
+                      <Text style={styles.ingQty}>{ing.quantity}</Text>
+                    </View>
+                    {!isLast && <View style={styles.ingRowDivider} />}
+                  </View>
+                );
+              })}
             </View>
           )}
 
           {activeTab === 'steps' && (
-            <View style={styles.stepsList}>
-              {recipe.steps.map((step, idx) => (
-                <View key={idx} style={styles.stepRow}>
-                  <View style={styles.stepNumBadge}>
-                    <Text style={styles.stepNumText}>{idx + 1}</Text>
+            <View style={styles.stepsCard}>
+              {loc.steps.map((step, idx) => {
+                const isLast = idx === loc.steps.length - 1;
+                return (
+                  <View key={idx}>
+                    <View style={styles.stepRow}>
+                      <View style={styles.stepNumBadge}>
+                        <Text style={styles.stepNumText}>{idx + 1}</Text>
+                      </View>
+                      <Text style={styles.stepText}>{step.text}</Text>
+                    </View>
+                    {!isLast && <View style={styles.stepRowDivider} />}
                   </View>
-                  <Text style={styles.stepText}>{step.text}</Text>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
 
@@ -185,11 +250,11 @@ export default function RecipeDetailScreen() {
             >
               <View style={styles.premiumOverlayContainer}>
                 <View style={styles.premiumBox}>
-                  <MaterialCommunityIcons name="crown" size={44} color="#F4B740" />
-                  <Text style={styles.premiumText}>Premium'a Özel!</Text>
+                  <MaterialCommunityIcons name="crown" size={44} color={colors.gold} />
+                  <Text style={styles.premiumText}>{t('recipes.details.premiumOnly')}</Text>
                 </View>
                 
-                <TouchableOpacity
+                <PressableScale haptic="light"
                   style={styles.premiumBtn}
                   onPress={() => {
                     haptic.light();
@@ -198,22 +263,49 @@ export default function RecipeDetailScreen() {
                   activeOpacity={0.8}
                 >
                   <Text style={styles.premiumBtnText}>
-                    Premium'a katıl tüm hizmetlerden yararlan!
+                    {t('recipes.details.premiumJoin')}
                   </Text>
-                </TouchableOpacity>
+                </PressableScale>
               </View>
             </BlurView>
           )}
         </View>
 
+        </Animated.View>
         {/* Spacer for bottom buttons */}
         <View style={{ height: 160 }} />
       </ScrollView>
 
+      {/* Nav Buttons (absolute over the hero) */}
+      <SafeAreaView style={styles.navOverlay}>
+        <View style={styles.navBar}>
+          <PressableScale haptic="light" style={styles.navBtn} onPress={() => router.back()} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="arrow-left" size={22} color={colors.white} />
+          </PressableScale>
+          <View style={styles.navRight}>
+            {isCustom && (
+              <PressableScale haptic="light" style={styles.navBtn} onPress={handleDelete} activeOpacity={0.8}>
+                <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.white} />
+              </PressableScale>
+            )}
+            <PressableScale haptic="light"
+              style={styles.navBtn}
+              onPress={() => { haptic.light(); toggleFavorite(recipe.id); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name={bookmarked ? 'bookmark' : 'bookmark-outline'} size={22} color={colors.white} />
+            </PressableScale>
+          </View>
+        </View>
+      </SafeAreaView>
+
       {/* Fixed Bottom Action Buttons */}
-      <View style={styles.bottomActions}>
-        <TouchableOpacity
-          style={styles.actionBtnPrimary}
+      <View style={[styles.bottomActions, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <Button
+          variant="primary"
+          icon={<Ionicons name="add" size={22} color={colors.textWhite} />}
+          label={t('recipes.details.addToMeal')}
+          style={{ flex: 1 }}
           onPress={() => {
             haptic.light();
             if (isLocked) {
@@ -222,148 +314,121 @@ export default function RecipeDetailScreen() {
               setAddModalVisible(true);
             }
           }}
-        >
-          <Ionicons name="add" size={22} color="#000" />
-          <Text style={styles.actionBtnPrimaryText}>Öğünüme Ekle</Text>
-        </TouchableOpacity>
+        />
 
-        <TouchableOpacity style={styles.actionBtnPrimary} onPress={() => haptic.light()}>
-          <Ionicons name="paper-plane" size={20} color="#000" />
-          <Text style={styles.actionBtnPrimaryText}>Tarifi Paylaş</Text>
-        </TouchableOpacity>
+        <PressableScale
+          haptic="light"
+          style={styles.shareButton}
+          onPress={() => haptic.light()}
+        >
+          <Ionicons name="paper-plane-outline" size={20} color={colors.textPrimary} />
+        </PressableScale>
       </View>
 
-      {/* Add to Meal Modal */}
-      <Modal visible={addModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={{ flex: 1 }} onPress={() => setAddModalVisible(false)} />
-          <View style={styles.modalContent}>
-            
-            <View style={styles.sheetPull} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalRecipeTitle}>{recipe.name} <Text style={{ color: '#666' }}>| 🕒 {recipe.time}dk</Text></Text>
-            </View>
+      {/* Add to Meal BottomSheet */}
+      <BottomSheet visible={addModalVisible} onClose={() => setAddModalVisible(false)} handle={true}>
+        <View style={styles.sheetHeader}>
+          <View style={styles.sheetHeaderText}>
+            <Text style={styles.sheetTitle}>{t('recipes.details.addToMeal')}</Text>
+            <Text style={styles.sheetSubtitle}>{loc.name} · 🕒 {recipe.time} {t('plan.min')}</Text>
+          </View>
+          <PressableScale haptic="light" style={styles.sheetCloseBtn} onPress={() => setAddModalVisible(false)}>
+            <Ionicons name="close" size={20} color={colors.textSecondary} />
+          </PressableScale>
+        </View>
 
-            <View style={styles.modalTitleRow}>
-              <Text style={styles.modalTitle}>Hangi öğüne eklensin?</Text>
-              <TouchableOpacity style={{ position: 'absolute', right: 0 }} onPress={() => setAddModalVisible(false)}>
-                <Ionicons name="close-circle" size={28} color="#444" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Mini Macros Row */}
-            <View style={styles.modalMacros}>
-              <View style={styles.modalMacroItem}>
-                <Ionicons name="flame" size={16} color="#E8E8E8" />
-                <Text style={styles.modalMacroText}>{recipe.kcal}</Text>
-              </View>
-              <View style={styles.modalMacroItem}>
-                <MaterialCommunityIcons name="food-steak" size={16} color="#E8E8E8" />
-                <Text style={styles.modalMacroText}>{recipe.protein}g</Text>
-              </View>
-              <View style={styles.modalMacroItem}>
-                <Ionicons name="water" size={16} color="#E8E8E8" />
-                <Text style={styles.modalMacroText}>{recipe.fat}g</Text>
-              </View>
-              <View style={styles.modalMacroItem}>
-                <MaterialCommunityIcons name="bread-slice" size={16} color="#E8E8E8" />
-                <Text style={styles.modalMacroText}>{recipe.carbs}g</Text>
-              </View>
-            </View>
-
-            {/* Meals List */}
-            <View style={styles.mealOptions}>
-              {MEALS.map(meal => {
-                const isActive = selectedMeal === meal;
-                let iconName = 'restaurant-outline';
-                if (meal === 'Kahvaltı') iconName = 'egg-outline'; // Changed to egg
-                if (meal === 'Öğle') iconName = 'fast-food-outline';
-                if (meal === 'Akşam') iconName = 'restaurant-outline';
-                if (meal === 'Atıştırmalık') iconName = 'cafe-outline';
-
-                if (isActive) {
-                  return (
-                    <View key={meal} style={{ flexDirection: 'row', gap: 10 }}>
-                      <TouchableOpacity
-                        style={[styles.mealOptionBtn, styles.mealOptionBtnActive, { flex: 1 }]}
-                        activeOpacity={0.8}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                          <Ionicons name={iconName as any} size={20} color={Colors.green} />
-                          <Text style={[styles.mealOptionText, styles.mealOptionTextActive]}>
-                            {meal}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.mealDropdownBtn} activeOpacity={0.8}>
-                        <Ionicons name="caret-up" size={18} color={Colors.textSecondary} />
-                      </TouchableOpacity>
-                    </View>
-                  );
-                }
-
-                return (
-                  <TouchableOpacity
-                    key={meal}
-                    style={styles.mealOptionBtn}
-                    onPress={() => {
-                      haptic.light();
-                      setSelectedMeal(meal);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <Ionicons name={iconName as any} size={20} color={Colors.textSecondary} />
-                      <Text style={styles.mealOptionText}>
-                        {meal}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Servings Selector */}
-            <View style={styles.servingSelector}>
-              {SERVINGS.map(s => {
-                const isActive = selectedServing === s;
-                return (
-                  <TouchableOpacity
-                    key={s}
-                    style={[styles.servingBtn, isActive && styles.servingBtnActive]}
-                    onPress={() => {
-                      haptic.light();
-                      setSelectedServing(s);
-                    }}
-                  >
-                    <Text style={[styles.servingBtnText, isActive && styles.servingBtnTextActive]}>
-                      {s}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* Done Button */}
-            <TouchableOpacity
-              style={styles.modalDoneBtn}
-              onPress={() => {
-                haptic.success();
-                setAddModalVisible(false);
-              }}
-            >
-              <Text style={styles.modalDoneBtnText}>Bitti</Text>
-            </TouchableOpacity>
-
+        {/* Mini Macros Row */}
+        <View style={styles.modalMacros}>
+          <View style={styles.modalMacroItem}>
+            <MaterialCommunityIcons name="fire" size={16} color={colors.orange} />
+            <Text style={styles.modalMacroText}>{portionMacros.kcal}</Text>
+          </View>
+          <View style={styles.modalMacroItem}>
+            <MaterialCommunityIcons name="food-steak" size={16} color={colors.protein} />
+            <Text style={styles.modalMacroText}>{portionMacros.protein}g</Text>
+          </View>
+          <View style={styles.modalMacroItem}>
+            <MaterialCommunityIcons name="bread-slice" size={16} color={colors.carbs} />
+            <Text style={styles.modalMacroText}>{portionMacros.carbs}g</Text>
+          </View>
+          <View style={styles.modalMacroItem}>
+            <MaterialCommunityIcons name="water" size={16} color={colors.fat} />
+            <Text style={styles.modalMacroText}>{portionMacros.fat}g</Text>
           </View>
         </View>
-      </Modal>
+
+        {/* Meal section */}
+        <Text style={styles.sheetSectionLabel}>{t('recipes.details.whichMeal')}</Text>
+        <View style={styles.mealOptions}>
+          {MEALS.map(meal => {
+            const isActive = selectedMeal === meal;
+            let iconName = 'restaurant-outline';
+            if (meal === 'breakfast') iconName = 'egg-outline';
+            if (meal === 'lunch') iconName = 'fast-food-outline';
+            if (meal === 'dinner') iconName = 'restaurant-outline';
+            if (meal === 'snack') iconName = 'cafe-outline';
+
+            return (
+              <PressableScale haptic="light"
+                key={meal}
+                style={[styles.mealOptionBtn, isActive && styles.mealOptionBtnActive]}
+                onPress={() => {
+                  haptic.light();
+                  setSelectedMeal(meal);
+                }}
+              >
+                <View style={styles.mealOptionLeft}>
+                  <Ionicons name={iconName as any} size={20} color={isActive ? colors.green : colors.textSecondary} />
+                  <Text style={[styles.mealOptionText, isActive && styles.mealOptionTextActive]}>{t('recipes.meals.' + meal)}</Text>
+                </View>
+                {isActive && <Ionicons name="checkmark-circle" size={22} color={colors.green} />}
+              </PressableScale>
+            );
+          })}
+        </View>
+
+        {/* Servings section */}
+        <Text style={styles.sheetSectionLabel}>{t('recipes.details.portion')}</Text>
+        <View style={styles.servingStepper}>
+          <PressableScale haptic="light"
+            style={[styles.stepBtn, selectedServing <= 0.5 && styles.stepBtnDisabled]}
+            disabled={selectedServing <= 0.5}
+            onPress={() => setSelectedServing(v => Math.max(0.5, +(v - 0.5).toFixed(1)))}
+          >
+            <Ionicons name="remove" size={22} color={colors.textPrimary} />
+          </PressableScale>
+
+          <View style={styles.stepValueWrap}>
+            <Text style={styles.stepValue}>{selectedServing}</Text>
+            <Text style={styles.stepUnit}>{t('recipes.details.portionUnit')}</Text>
+          </View>
+
+          <PressableScale haptic="light"
+            style={[styles.stepBtn, selectedServing >= 8 && styles.stepBtnDisabled]}
+            disabled={selectedServing >= 8}
+            onPress={() => setSelectedServing(v => Math.min(8, +(v + 0.5).toFixed(1)))}
+          >
+            <Ionicons name="add" size={22} color={colors.textPrimary} />
+          </PressableScale>
+        </View>
+
+        {/* Done Button */}
+        <PressableScale haptic="light"
+          style={styles.modalDoneBtn}
+          onPress={() => {
+            haptic.success();
+            setAddModalVisible(false);
+          }}
+        >
+          <Text style={styles.modalDoneBtnText}>{t('common.done')}</Text>
+        </PressableScale>
+      </BottomSheet>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   hero: {
     width: '100%',
     height: 340,
@@ -378,51 +443,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingTop: 12,
   },
+  navRight: { flexDirection: 'row', gap: 10 },
   navBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: Radii.box,
+    backgroundColor: colors.overlayMedium,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sheet: {
-    flex: 1,
-    marginTop: -32,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    backgroundColor: Colors.background,
+  scrollContent: { flexGrow: 1 },
+  heroFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 140,
   },
-  sheetContent: { paddingHorizontal: 20, paddingTop: 12 },
-  sheetPull: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.borderStrong,
-    alignSelf: 'center',
+  sheetBody: {
+    marginTop: -44,
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+    paddingTop: 4,
+  },
+  titleHeader: {
     marginBottom: 20,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    flexWrap: 'wrap',
+    gap: 8,
   },
   recipeName: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 22,
-    color: Colors.textPrimary,
-    marginRight: 12,
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 24,
+    color: colors.textPrimary,
+    lineHeight: 32,
   },
   timeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: colors.backgroundAlt,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
   },
   timeText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 16,
-    color: Colors.textSecondary,
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   macrosRow: {
     flexDirection: 'row',
@@ -432,99 +501,134 @@ const styles = StyleSheet.create({
   },
   macroCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 90,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    minHeight: 110,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  macroIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   macroValue: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     width: '100%',
   },
   macroUnit: {
     fontFamily: 'Inter_500Medium',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   macroLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 10,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     width: '100%',
   },
-  tabsRow: {
+  segmentedControl: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    marginBottom: 20,
+    backgroundColor: colors.backgroundAlt,
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
   },
-  tabBtn: {
+  segmentBtn: {
     flex: 1,
-    paddingVertical: 14,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    justifyContent: 'center',
+    borderRadius: 10,
   },
-  tabBtnActive: {
-    borderBottomColor: Colors.green,
+  segmentBtnActive: {
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadowBlack,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  tabText: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 15,
-    color: Colors.textMuted,
+  segmentText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: colors.textSecondary,
   },
-  tabTextActive: {
-    color: Colors.textPrimary,
+  segmentTextActive: {
+    color: colors.textPrimary,
+    fontFamily: 'Inter_700Bold',
   },
   tabContentArea: {
     minHeight: 320,
     position: 'relative',
   },
-  ingredientsList: {
-    gap: 16,
+  ingredientsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
   ingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingBottom: 12,
+    paddingVertical: 14,
   },
   ingName: {
     fontFamily: 'Inter_500Medium',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
-    marginRight: 16,
   },
   ingQty: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
-  stepsList: {
-    gap: 20,
+  ingRowDivider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+  },
+  stepsCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
   stepRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 16,
+    gap: 14,
+    paddingVertical: 16,
+  },
+  stepRowDivider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
   },
   stepNumBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.greenLight,
+    backgroundColor: colors.greenLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -532,13 +636,13 @@ const styles = StyleSheet.create({
   stepNumText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 13,
-    color: Colors.green,
+    color: colors.green,
   },
   stepText: {
     flex: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 22,
   },
   bottomActions: {
@@ -549,68 +653,68 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 36,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: colors.border,
+    flexDirection: 'row',
     gap: 12,
   },
-  actionBtnPrimary: {
-    flexDirection: 'row',
+  shareButton: {
+    width: 52,
+    height: 52,
+    borderRadius: Radii.button,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.green,
-    height: 54,
-    borderRadius: 16,
-    gap: 10,
+    backgroundColor: colors.surface,
   },
-  actionBtnPrimaryText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 16,
-    color: '#FFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.backgroundAlt,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 12,
-  },
-  modalHeader: {
-    marginBottom: 24,
+  sheetHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalRecipeTitle: {
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  modalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    gap: 12,
     marginBottom: 20,
-    position: 'relative',
   },
-  modalTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 18,
-    color: Colors.textPrimary,
+  sheetHeaderText: {
+    flex: 1,
+  },
+  sheetTitle: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 20,
+    color: colors.textPrimary,
+  },
+  sheetSubtitle: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 3,
+  },
+  sheetCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetSectionLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  mealOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   modalMacros: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -623,7 +727,7 @@ const styles = StyleSheet.create({
   modalMacroText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   mealOptions: {
     gap: 10,
@@ -633,75 +737,85 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderRadius: 12,
   },
   mealOptionBtnActive: {
-    backgroundColor: Colors.surfaceElevated,
-    borderColor: Colors.green,
+    backgroundColor: colors.surfaceElevated,
+    borderColor: colors.green,
   },
   mealOptionText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   mealOptionTextActive: {
-    color: Colors.green,
+    color: colors.green,
   },
   mealDropdownBtn: {
-    backgroundColor: Colors.surfaceElevated,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderRadius: 12,
-    width: 56,
+    width: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  servingSelector: {
+  servingStepper: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 30,
-  },
-  servingBtn: {
-    flex: 1,
-    paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 8,
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 8,
+    marginBottom: 22,
   },
-  servingBtnActive: {
-    backgroundColor: Colors.surfaceElevated,
+  stepBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  servingBtnText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 15,
-    color: Colors.textSecondary,
+  stepBtnDisabled: {
+    opacity: 0.4,
   },
-  servingBtnTextActive: {
-    color: Colors.textPrimary,
+  stepValueWrap: {
+    alignItems: 'center',
+  },
+  stepValue: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 22,
+    color: colors.textPrimary,
+  },
+  stepUnit: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   modalDoneBtn: {
-    backgroundColor: Colors.green,
-    borderRadius: 14,
-    height: 56,
+    backgroundColor: colors.green,
+    borderRadius: Radii.button,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalDoneBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: '#FFF',
+    color: colors.textWhite,
   },
   premiumBlur: {
     ...StyleSheet.absoluteFillObject,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   premiumOverlayContainer: {
@@ -713,8 +827,8 @@ const styles = StyleSheet.create({
   },
   premiumBox: {
     borderWidth: 2,
-    borderColor: '#F4B740',
-    backgroundColor: '#1E1911',
+    borderColor: colors.gold,
+    backgroundColor: colors.surfaceElevated,
     borderRadius: 18,
     paddingVertical: 24,
     paddingHorizontal: 20,
@@ -726,13 +840,13 @@ const styles = StyleSheet.create({
   premiumText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 20,
-    color: '#FFF',
+    color: colors.textWhite,
     marginTop: 8,
   },
   premiumBtn: {
-    borderWidth: 1.5,
-    borderColor: '#F4B740',
-    backgroundColor: '#15120E',
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surfaceDark,
+    borderColor: colors.gold,
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -743,7 +857,7 @@ const styles = StyleSheet.create({
   premiumBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: '#FFF',
+    color: colors.textWhite,
     textAlign: 'center',
   },
 });

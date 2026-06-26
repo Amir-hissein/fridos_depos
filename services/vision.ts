@@ -48,6 +48,19 @@ export async function detectIngredients(imageUri?: string): Promise<DetectedIngr
   return MOCK_DETECTIONS;
 }
 
+export type NutriScore = 'A' | 'B' | 'C' | 'D' | 'E';
+
+/** A single food item identified on the plate. */
+export interface MealItem {
+  id: string;
+  /** i18n key suffix under `scan.mealResult.items.*`; falls back to `name`. */
+  key: string;
+  name: string;
+  emoji: string;
+  grams: number;
+  kcal: number;
+}
+
 export interface DetectedMeal {
   name: string;
   emoji: string;
@@ -55,12 +68,19 @@ export interface DetectedMeal {
   protein: number;
   carbs: number;
   fat: number;
+  fiber: number;
+  sugar: number;
   confidence: number;
+  nutriScore: NutriScore;
+  items: MealItem[];
 }
 
 /**
- * Estimate the calories & macros of a plated meal from a photo.
+ * Estimate the calories, macros & per-item breakdown of a plated meal from a photo.
  * Mock today; later a Supabase Edge Function proxying a vision model.
+ *
+ * All numbers describe the meal at portion = 1×. The UI scales them when the
+ * user adjusts the portion slider.
  */
 export async function detectMeal(imageUri?: string): Promise<DetectedMeal> {
   await delay(500);
@@ -71,6 +91,47 @@ export async function detectMeal(imageUri?: string): Promise<DetectedMeal> {
     protein: 38,
     carbs: 26,
     fat: 19,
+    fiber: 6,
+    sugar: 8,
     confidence: 92,
+    nutriScore: 'A',
+    items: [
+      { id: 'm1', key: 'grilled_chicken', name: 'Grilled chicken', emoji: '🍗', grams: 150, kcal: 220 },
+      { id: 'm2', key: 'broccoli', name: 'Broccoli', emoji: '🥦', grams: 80, kcal: 55 },
+      { id: 'm3', key: 'basmati_rice', name: 'Basmati rice', emoji: '🍚', grams: 120, kcal: 145 },
+      { id: 'm4', key: 'olive_oil', name: 'Olive oil', emoji: '🫒', grams: 5, kcal: 22 },
+    ],
+  };
+}
+
+/** A detected meal scaled to a chosen portion — all numbers ready to display/log. */
+export interface ScaledMeal {
+  portion: number;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sugar: number;
+  items: MealItem[];
+}
+
+/**
+ * The AI estimate is anchored at portion = 1×. This is the single place that
+ * turns it into the calories/macros the user actually logs once they adjust the
+ * portion — keep this logic out of the screens so the value that hits the
+ * calorie tracker always comes from here.
+ */
+export function scaleMeal(meal: DetectedMeal, portion: number): ScaledMeal {
+  const r = (n: number) => Math.round(n * portion);
+  return {
+    portion,
+    kcal: r(meal.kcal),
+    protein: r(meal.protein),
+    carbs: r(meal.carbs),
+    fat: r(meal.fat),
+    fiber: r(meal.fiber),
+    sugar: r(meal.sugar),
+    items: meal.items.map(it => ({ ...it, grams: r(it.grams), kcal: r(it.kcal) })),
   };
 }

@@ -3,8 +3,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { PressableScale } from './PressableScale';
+import { useTranslation } from 'react-i18next';
 
 type IName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -20,13 +22,16 @@ interface PremiumGateProps {
  * (meal plan, shopping list…). Routes to the paywall.
  */
 export function PremiumGate({ icon, title, description, features }: PremiumGateProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { t } = useTranslation();
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.content}>
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={40} color={Colors.green} />
+          <Ionicons name={icon} size={40} color={colors.green} />
           <View style={styles.lockBadge}>
-            <Ionicons name="lock-closed" size={13} color={Colors.white} />
+            <Ionicons name="lock-closed" size={13} color={colors.white} />
           </View>
         </View>
 
@@ -36,7 +41,7 @@ export function PremiumGate({ icon, title, description, features }: PremiumGateP
         <View style={styles.features}>
           {features.map((f, i) => (
             <View key={i} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={19} color={Colors.green} />
+              <Ionicons name="checkmark-circle" size={19} color={colors.green} />
               <Text style={styles.featureText}>{f}</Text>
             </View>
           ))}
@@ -48,8 +53,8 @@ export function PremiumGate({ icon, title, description, features }: PremiumGateP
           scaleTo={0.97}
           haptic="medium"
         >
-          <Ionicons name="star" size={18} color={Colors.white} />
-          <Text style={styles.ctaText}>Unlock Premium</Text>
+          <Ionicons name="star" size={18} color={colors.white} />
+          <Text style={styles.ctaText}>{t('common.unlockPremium')}</Text>
         </PressableScale>
 
         <Text style={styles.price}>$5/month · cancel anytime</Text>
@@ -58,8 +63,8 @@ export function PremiumGate({ icon, title, description, features }: PremiumGateP
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
   content: {
     flex: 1,
     alignItems: 'center',
@@ -71,7 +76,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: Colors.greenLight,
+    backgroundColor: colors.greenLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 26,
@@ -83,26 +88,26 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: Colors.gold,
+    backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: Colors.background,
+    borderColor: colors.background,
   },
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 24,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 10,
   },
   desc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 28,
+    marginBottom: 22,
   },
   features: {
     alignSelf: 'stretch',
@@ -117,7 +122,7 @@ const styles = StyleSheet.create({
   featureText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   cta: {
@@ -125,11 +130,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.green,
-    height: 56,
+    backgroundColor: colors.green,
+    height: 52,
     borderRadius: 16,
     alignSelf: 'stretch',
-    shadowColor: Colors.shadowGreen,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.32,
     shadowRadius: 16,
@@ -138,12 +143,12 @@ const styles = StyleSheet.create({
   ctaText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: Colors.white,
+    color: colors.white,
   },
   price: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 14,
   },
 });

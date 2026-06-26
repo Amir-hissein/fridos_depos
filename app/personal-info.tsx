@@ -9,27 +9,33 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { PressableScale } from '../components/ui/PressableScale';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
-import { Colors } from '../constants/colors';
+import { Colors, ThemeColors } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
+import { Radii } from '../constants/layout';
+import { FadeInItem } from '../components/ui/FadeInItem';
+import { BottomSheet } from '../components/ui/BottomSheet';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { haptic } from '../lib/haptics';
 import { usePlan } from '../context/PlanContext';
 import { computeTargets } from '../services/plan';
+import { useTranslation } from 'react-i18next';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const GOAL_OPTIONS = [
-  { key: 'lose', label: 'Kilo Verme' },
-  { key: 'maintain', label: 'Kilo Koruma' },
-  { key: 'gain', label: 'Kilo Alma' },
+  { key: 'lose', labelKey: 'profile.personalInfo.goals.lose' },
+  { key: 'maintain', labelKey: 'profile.personalInfo.goals.maintain' },
+  { key: 'gain', labelKey: 'profile.personalInfo.goals.gain' },
 ];
 
 const ACTIVITY_OPTIONS = [
-  { key: 'sedentary', label: 'Hareketsiz', desc: '0–1 gün/hafta' },
-  { key: 'active', label: 'Aktif', desc: '3–5 gün/hafta' },
-  { key: 'cardio', label: 'Çok Aktif', desc: '6–7 gün/hafta' },
+  { key: 'sedentary', labelKey: 'profile.personalInfo.activityOptions.sedentary.label', descKey: 'profile.personalInfo.activityOptions.sedentary.desc' },
+  { key: 'active', labelKey: 'profile.personalInfo.activityOptions.active.label', descKey: 'profile.personalInfo.activityOptions.active.desc' },
+  { key: 'cardio', labelKey: 'profile.personalInfo.activityOptions.cardio.label', descKey: 'profile.personalInfo.activityOptions.cardio.desc' },
 ];
 
 /* ─── Edit Modal ────────────────────────────────────────────── */
@@ -44,23 +50,16 @@ function EditModal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
+  const m = useThemedStyles(makeModalStyles);
   return (
-    <Modal visible={visible} transparent animationType="slide">
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <TouchableOpacity style={m.overlay} activeOpacity={1} onPress={onClose} />
-        <View style={m.sheet}>
-          <View style={m.handle} />
-          <Text style={m.sheetTitle}>{title}</Text>
-          {children}
-          <TouchableOpacity style={m.closeBtn} onPress={onClose} activeOpacity={0.8}>
-            <Text style={m.closeBtnText}>Kapat</Text>
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+    <BottomSheet visible={visible} onClose={onClose} contentStyle={{ gap: 12 }}>
+      <Text style={m.sheetTitle}>{title}</Text>
+      {children}
+      <PressableScale haptic="light" style={m.closeBtn} onPress={onClose} activeOpacity={0.8}>
+        <Text style={m.closeBtnText}>{t('common.cancel')}</Text>
+      </PressableScale>
+    </BottomSheet>
   );
 }
 
@@ -76,8 +75,10 @@ function InfoRow({
   value: string;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const s = useThemedStyles(makeStyles);
   return (
-    <TouchableOpacity
+    <PressableScale haptic="light"
       style={s.infoRow}
       onPress={onPress}
       activeOpacity={onPress ? 0.75 : 1}
@@ -86,21 +87,25 @@ function InfoRow({
         <MaterialCommunityIcons
           name={icon}
           size={20}
-          color={Colors.textSecondary}
+          color={colors.textSecondary}
         />
       </View>
       <Text style={s.infoLabel}>{label}</Text>
       <Text style={s.infoValue}>{value}</Text>
       {onPress && (
-        <MaterialCommunityIcons name="chevron-right" size={18} color={Colors.textMuted} />
+        <MaterialCommunityIcons name="chevron-right" size={18} color={colors.textMuted} />
       )}
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
 /* ─── Main Screen ───────────────────────────────────────────── */
 export default function PersonalInfoScreen() {
+  const { colors } = useTheme();
+  const s = useThemedStyles(makeStyles);
+  const m = useThemedStyles(makeModalStyles);
   const { profile, updateProfile } = usePlan();
+  const { t } = useTranslation();
 
   const [editModal, setEditModal] = useState<string | null>(null);
   const [tempHeight, setTempHeight] = useState(profile.height);
@@ -122,19 +127,12 @@ export default function PersonalInfoScreen() {
     setEditModal(null);
   };
 
-  const goalLabel = GOAL_OPTIONS.find(g => g.key === tempGoal)?.label ?? 'Kilo Verme';
-  const activityLabel = ACTIVITY_OPTIONS.find(a => a.key === tempActivity)?.label ?? 'Aktif';
+  const goalLabel = tempGoal ? t(`profile.personalInfo.goals.${tempGoal}`) : '';
+  const activityLabel = tempActivity ? t(`profile.personalInfo.activityOptions.${tempActivity}.label`) : '';
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Kişisel Bilgiler</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title={t('profile.settings.personalInfo')} />
 
       <ScrollView
         style={s.scroll}
@@ -142,70 +140,70 @@ export default function PersonalInfoScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Info Group 1 - Physique */}
-        <View style={s.group}>
+        <FadeInItem index={0} style={s.group}>
           <InfoRow
             icon={tempSex === 'male' ? 'human-male' : 'human-female'}
-            label="Cinsiyet"
-            value={tempSex === 'male' ? 'Erkek' : 'Kadın'}
+            label={t('profile.personalInfo.gender')}
+            value={tempSex === 'male' ? t('profile.personalInfo.male') : t('profile.personalInfo.female')}
             onPress={() => openModal('sex')}
           />
           <View style={s.divider} />
           <InfoRow
             icon="calendar-account-outline"
-            label="Yaş"
-            value={`${tempAge} yaş`}
+            label={t('profile.personalInfo.age')}
+            value={t('profile.personalInfo.ageValue', { count: tempAge })}
             onPress={() => openModal('age')}
           />
           <View style={s.divider} />
           <InfoRow
             icon="human-male-height-variant"
-            label="Boy"
-            value={`${profile.height} cm`}
+            label={t('profile.personalInfo.height')}
+            value={t('profile.personalInfo.heightValue', { count: profile.height })}
             onPress={() => openModal('height')}
           />
           <View style={s.divider} />
           <InfoRow
             icon="weight-kilogram"
-            label="Ağırlık"
-            value={`${profile.weight} kg`}
+            label={t('profile.personalInfo.weight')}
+            value={t('profile.personalInfo.weightValue', { count: profile.weight })}
             onPress={() => openModal('weight')}
           />
-        </View>
+        </FadeInItem>
 
         {/* Info Group 2 - Hedefler */}
-        <View style={s.group}>
+        <FadeInItem index={1} style={s.group}>
           <InfoRow
             icon="trending-down"
-            label="Amaç"
+            label={t('profile.personalInfo.goal')}
             value={goalLabel}
             onPress={() => openModal('goal')}
           />
           <View style={s.divider} />
           <InfoRow
             icon="scale-balance"
-            label="Hedef Kilo"
-            value={`${profile.targetWeight} kg`}
+            label={t('profile.personalInfo.targetWeight')}
+            value={t('profile.personalInfo.weightValue', { count: profile.targetWeight })}
             onPress={() => openModal('targetWeight')}
           />
           <View style={s.divider} />
           <InfoRow
             icon="lightning-bolt-outline"
-            label="Aktivite Seviyesi"
+            label={t('profile.personalInfo.activity')}
             value={activityLabel}
             onPress={() => openModal('activity')}
           />
-        </View>
+        </FadeInItem>
 
         {/* Macros Summary */}
-        <View style={s.macrosCard}>
-          <Text style={s.macrosTitle}>Günlük Hedefleriniz</Text>
-          <Text style={s.macrosSub}>Bilgilerinize göre hesaplandı</Text>
+        <FadeInItem index={2} style={s.macrosCard}>
+          <Text style={s.macrosTitle}>{t('profile.personalInfo.targets.title')}</Text>
+          <Text style={s.macrosSub}>{t('profile.personalInfo.targets.sub')}</Text>
           <View style={s.macrosGrid}>
             {[
-              { icon: 'fire' as IconName, label: 'Kalori', value: `${targets.kcal}`, unit: 'kcal', color: Colors.orange },
-              { icon: 'bread-slice' as IconName, label: 'Karbonhidrat', value: `${targets.carbs}`, unit: 'g', color: '#F4D03F' },
-              { icon: 'food-steak' as IconName, label: 'Protein', value: `${targets.protein}`, unit: 'g', color: '#4A90D9' },
-              { icon: 'water' as IconName, label: 'Yağ', value: `${targets.fat}`, unit: 'g', color: '#9B59B6' },
+              { icon: 'fire' as IconName, label: t('profile.personalInfo.targets.calorie'), value: `${targets.kcal}`, unit: 'kcal', color: colors.orange },
+              { icon: 'bread-slice' as IconName, label: t('profile.personalInfo.targets.carbs'), value: `${targets.carbs}`, unit: 'g', color: colors.gold },
+              { icon: 'food-steak' as IconName, label: t('profile.personalInfo.targets.protein'), value: `${targets.protein}`, unit: 'g', color: colors.blue },
+              { icon: 'water' as IconName, label: t('profile.personalInfo.targets.fat'), value: `${targets.fat}`, unit: 'g', color: colors.purple },
             ].map(m => (
               <View key={m.label} style={s.macroBox}>
                 <View style={[s.macroIconWrap, { backgroundColor: m.color + '20' }]}>
@@ -216,13 +214,13 @@ export default function PersonalInfoScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </FadeInItem>
       </ScrollView>
 
       {/* ── Sex Modal ── */}
-      <EditModal visible={editModal === 'sex'} title="Cinsiyet" onClose={closeModal}>
+      <EditModal visible={editModal === 'sex'} title={t('profile.personalInfo.gender')} onClose={closeModal}>
         {(['male', 'female'] as const).map(sx => (
-          <TouchableOpacity
+          <PressableScale haptic="light"
             key={sx}
             style={[m.optionRow, tempSex === sx && m.optionRowActive]}
             onPress={() => { haptic.select(); setTempSex(sx); }}
@@ -231,27 +229,27 @@ export default function PersonalInfoScreen() {
             <MaterialCommunityIcons
               name={sx === 'male' ? 'gender-male' : 'gender-female'}
               size={22}
-              color={tempSex === sx ? Colors.green : Colors.textSecondary}
+              color={tempSex === sx ? colors.green : colors.textSecondary}
             />
             <Text style={[m.optionText, tempSex === sx && m.optionTextActive]}>
-              {sx === 'male' ? 'Erkek' : 'Kadın'}
+              {sx === 'male' ? t('profile.personalInfo.male') : t('profile.personalInfo.female')}
             </Text>
             {tempSex === sx && (
-              <MaterialCommunityIcons name="check-circle" size={20} color={Colors.green} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.green} />
             )}
-          </TouchableOpacity>
+          </PressableScale>
         ))}
-        <TouchableOpacity
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ sex: tempSex }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Age Modal ── */}
-      <EditModal visible={editModal === 'age'} title={`Yaş: ${tempAge}`} onClose={closeModal}>
+      <EditModal visible={editModal === 'age'} title={`${t('profile.personalInfo.age')}: ${t('profile.personalInfo.ageValue', { count: tempAge })}`} onClose={closeModal}>
         <Slider
           style={{ marginHorizontal: 8, marginVertical: 20 }}
           minimumValue={14}
@@ -259,22 +257,22 @@ export default function PersonalInfoScreen() {
           step={1}
           value={tempAge}
           onValueChange={v => { setTempAge(Math.round(v)); haptic.select(); }}
-          minimumTrackTintColor={Colors.orange}
-          maximumTrackTintColor={Colors.separator}
-          thumbTintColor={Colors.white}
+          minimumTrackTintColor={colors.orange}
+          maximumTrackTintColor={colors.separator}
+          thumbTintColor={colors.white}
         />
-        <Text style={m.sliderVal}>{tempAge} Yaş</Text>
-        <TouchableOpacity
+        <Text style={m.sliderVal}>{t('profile.personalInfo.ageValue', { count: tempAge })}</Text>
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ age: tempAge }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Height Modal ── */}
-      <EditModal visible={editModal === 'height'} title={`Boy: ${tempHeight} cm`} onClose={closeModal}>
+      <EditModal visible={editModal === 'height'} title={`${t('profile.personalInfo.height')}: ${t('profile.personalInfo.heightValue', { count: tempHeight })}`} onClose={closeModal}>
         <Slider
           style={{ marginHorizontal: 8, marginVertical: 20 }}
           minimumValue={50}
@@ -282,22 +280,22 @@ export default function PersonalInfoScreen() {
           step={1}
           value={tempHeight}
           onValueChange={v => { setTempHeight(Math.round(v)); haptic.select(); }}
-          minimumTrackTintColor={Colors.green}
-          maximumTrackTintColor={Colors.separator}
-          thumbTintColor={Colors.white}
+          minimumTrackTintColor={colors.green}
+          maximumTrackTintColor={colors.separator}
+          thumbTintColor={colors.white}
         />
-        <Text style={m.sliderVal}>{tempHeight} cm</Text>
-        <TouchableOpacity
+        <Text style={m.sliderVal}>{t('profile.personalInfo.heightValue', { count: tempHeight })}</Text>
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ height: tempHeight }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Weight Modal ── */}
-      <EditModal visible={editModal === 'weight'} title={`Ağırlık: ${tempWeight} kg`} onClose={closeModal}>
+      <EditModal visible={editModal === 'weight'} title={`${t('profile.personalInfo.weight')}: ${t('profile.personalInfo.weightValue', { count: tempWeight })}`} onClose={closeModal}>
         <Slider
           style={{ marginHorizontal: 8, marginVertical: 20 }}
           minimumValue={35}
@@ -305,22 +303,22 @@ export default function PersonalInfoScreen() {
           step={0.5}
           value={tempWeight}
           onValueChange={v => { setTempWeight(Math.round(v * 2) / 2); haptic.select(); }}
-          minimumTrackTintColor={Colors.orange}
-          maximumTrackTintColor={Colors.separator}
-          thumbTintColor={Colors.white}
+          minimumTrackTintColor={colors.orange}
+          maximumTrackTintColor={colors.separator}
+          thumbTintColor={colors.white}
         />
-        <Text style={m.sliderVal}>{tempWeight} kg</Text>
-        <TouchableOpacity
+        <Text style={m.sliderVal}>{t('profile.personalInfo.weightValue', { count: tempWeight })}</Text>
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ weight: tempWeight }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Target Weight Modal ── */}
-      <EditModal visible={editModal === 'targetWeight'} title={`Hedef Kilo: ${tempTargetWeight} kg`} onClose={closeModal}>
+      <EditModal visible={editModal === 'targetWeight'} title={`${t('profile.personalInfo.targetWeight')}: ${t('profile.personalInfo.weightValue', { count: tempTargetWeight })}`} onClose={closeModal}>
         <Slider
           style={{ marginHorizontal: 8, marginVertical: 20 }}
           minimumValue={35}
@@ -328,104 +326,81 @@ export default function PersonalInfoScreen() {
           step={0.5}
           value={tempTargetWeight}
           onValueChange={v => { setTempTargetWeight(Math.round(v * 2) / 2); haptic.select(); }}
-          minimumTrackTintColor="#E53935"
-          maximumTrackTintColor={Colors.separator}
-          thumbTintColor={Colors.white}
+          minimumTrackTintColor={colors.red}
+          maximumTrackTintColor={colors.separator}
+          thumbTintColor={colors.white}
         />
-        <Text style={m.sliderVal}>{tempTargetWeight} kg</Text>
-        <TouchableOpacity
+        <Text style={m.sliderVal}>{t('profile.personalInfo.weightValue', { count: tempTargetWeight })}</Text>
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ targetWeight: tempTargetWeight }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Goal Modal ── */}
-      <EditModal visible={editModal === 'goal'} title="Amaç" onClose={closeModal}>
+      <EditModal visible={editModal === 'goal'} title={t('profile.personalInfo.goal')} onClose={closeModal}>
         {GOAL_OPTIONS.map(g => (
-          <TouchableOpacity
+          <PressableScale haptic="light"
             key={g.key}
             style={[m.optionRow, tempGoal === g.key && m.optionRowActive]}
             onPress={() => { haptic.select(); setTempGoal(g.key); }}
             activeOpacity={0.8}
           >
-            <Text style={[m.optionText, tempGoal === g.key && m.optionTextActive]}>{g.label}</Text>
+            <Text style={[m.optionText, tempGoal === g.key && m.optionTextActive]}>{t(g.labelKey)}</Text>
             {tempGoal === g.key && (
-              <MaterialCommunityIcons name="check-circle" size={20} color={Colors.green} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.green} />
             )}
-          </TouchableOpacity>
+          </PressableScale>
         ))}
-        <TouchableOpacity style={m.saveBtn} onPress={() => { haptic.success(); closeModal(); }} activeOpacity={0.8}>
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+        <PressableScale haptic="light" style={m.saveBtn} onPress={() => { haptic.success(); closeModal(); }} activeOpacity={0.8}>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
 
       {/* ── Activity Modal ── */}
-      <EditModal visible={editModal === 'activity'} title="Aktivite Seviyesi" onClose={closeModal}>
+      <EditModal visible={editModal === 'activity'} title={t('profile.personalInfo.activity')} onClose={closeModal}>
         {ACTIVITY_OPTIONS.map(a => (
-          <TouchableOpacity
+          <PressableScale haptic="light"
             key={a.key}
             style={[m.optionRow, tempActivity === a.key && m.optionRowActive]}
             onPress={() => { haptic.select(); setTempActivity(a.key as any); }}
             activeOpacity={0.8}
           >
             <View style={{ flex: 1 }}>
-              <Text style={[m.optionText, tempActivity === a.key && m.optionTextActive]}>{a.label}</Text>
-              <Text style={m.optionDesc}>{a.desc}</Text>
+              <Text style={[m.optionText, tempActivity === a.key && m.optionTextActive]}>{t(a.labelKey)}</Text>
+              <Text style={m.optionDesc}>{t(a.descKey)}</Text>
             </View>
             {tempActivity === a.key && (
-              <MaterialCommunityIcons name="check-circle" size={20} color={Colors.green} />
+              <MaterialCommunityIcons name="check-circle" size={20} color={colors.green} />
             )}
-          </TouchableOpacity>
+          </PressableScale>
         ))}
-        <TouchableOpacity
+        <PressableScale haptic="light"
           style={m.saveBtn}
           onPress={() => { updateProfile({ activity: tempActivity }); haptic.success(); closeModal(); }}
           activeOpacity={0.8}
         >
-          <Text style={m.saveBtnText}>Kaydet</Text>
-        </TouchableOpacity>
+          <Text style={m.saveBtnText}>{t('common.save')}</Text>
+        </PressableScale>
       </EditModal>
     </SafeAreaView>
   );
 }
 
 /* ─── Styles ────────────────────────────────────────────────── */
-const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 18,
-    color: Colors.textPrimary,
-  },
-
   group: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     marginBottom: 16,
     overflow: 'hidden',
   },
@@ -441,50 +416,50 @@ const s = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: Colors.backgroundAlt,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   infoLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   infoValue: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     maxWidth: 140,
     textAlign: 'right',
   },
 
   divider: {
     height: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: colors.borderLight,
     marginLeft: 68,
   },
 
   macrosCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 18,
     marginBottom: 16,
   },
   macrosTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   macrosSub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginBottom: 16,
   },
   macrosGrid: {
@@ -495,7 +470,7 @@ const s = StyleSheet.create({
   macroBox: {
     width: '47%',
     flexGrow: 1,
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 16,
     padding: 14,
     gap: 6,
@@ -511,30 +486,30 @@ const s = StyleSheet.create({
   macroValue: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 22,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   macroUnit: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   macroLabel: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
 });
 
 /* ─── Modal Styles ─────────────────────────────────────────── */
-const m = StyleSheet.create({
+const makeModalStyles = (colors: ThemeColors) => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlayMedium,
   },
   sheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: Radii.cardLarge,
+    borderTopRightRadius: Radii.cardLarge,
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 40,
@@ -544,34 +519,34 @@ const m = StyleSheet.create({
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.separator,
+    backgroundColor: colors.separator,
     alignSelf: 'center',
     marginBottom: 8,
   },
   sheetTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   saveBtn: {
-    backgroundColor: Colors.green,
-    borderRadius: 14,
+    backgroundColor: colors.green,
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: Colors.shadowGreen,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -580,25 +555,25 @@ const m = StyleSheet.create({
   saveBtnText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.white,
+    color: colors.white,
   },
   closeBtn: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   closeBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   sliderVal: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 28,
-    color: Colors.textPrimary,
+    fontSize: 26,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -606,29 +581,29 @@ const m = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 14,
     padding: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   optionRowActive: {
-    backgroundColor: Colors.greenLight,
-    borderColor: Colors.green,
+    backgroundColor: colors.greenLight,
+    borderColor: colors.green,
   },
   optionText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   optionTextActive: {
-    color: Colors.green,
+    color: colors.green,
   },
   optionDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
 });

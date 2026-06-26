@@ -38,14 +38,59 @@ function categorize(name: string): string {
 
 /**
  * Compare a recipe's ingredients with the fridge and return what's missing.
- * An ingredient is missing when it's flagged `owned: false` OR absent from the fridge.
+ * Source de vérité = le frigo : un ingrédient manque s'il n'y est pas présent.
  */
 export function generateFromRecipe(recipe: Recipe, fridge: string[]): MissingItem[] {
   return recipe.ingredients
-    .filter(ing => !ing.owned || !fridgeHas(ing.name, fridge))
+    .filter(ing => !fridgeHas(ing.name, fridge))
     .map(ing => ({
       name: ing.name,
       quantity: ing.quantity,
       category: categorize(ing.name),
     }));
+}
+
+/**
+ * Statut d'une recette dérivé du frigo : liste des ingrédients avec `owned` recalculé,
+ * nombre manquant et tag complete/missing. Remplace les valeurs statiques des données.
+ */
+export function recipeOwnership(recipe: Recipe, fridge: string[]) {
+  const ingredients = recipe.ingredients.map(ing => ({
+    ...ing,
+    owned: fridgeHas(ing.name, fridge),
+  }));
+  const missingCount = ingredients.filter(i => !i.owned).length;
+  return {
+    ingredients,
+    missingCount,
+    tag: (missingCount === 0 ? 'complete' : 'missing') as 'complete' | 'missing',
+  };
+}
+
+/** How many of a recipe's ingredients are missing from the fridge. */
+export function countMissing(recipe: Recipe, fridge: string[]): number {
+  return generateFromRecipe(recipe, fridge).length;
+}
+
+/**
+ * Derive a recipe's status from the fridge: 'complete' when nothing is missing,
+ * otherwise 'missing'. Replaces the hard-coded `tag` on the recipe data.
+ */
+export function deriveRecipeTag(recipe: Recipe, fridge: string[]): 'complete' | 'missing' {
+  return countMissing(recipe, fridge) === 0 ? 'complete' : 'missing';
+}
+
+/**
+ * Merge the missing items of several recipes into one de-duplicated list
+ * (e.g. building a shopping list from a whole meal plan).
+ */
+export function generateFromRecipes(recipes: Recipe[], fridge: string[]): MissingItem[] {
+  const byKey = new Map<string, MissingItem>();
+  for (const recipe of recipes) {
+    for (const item of generateFromRecipe(recipe, fridge)) {
+      const key = normalizeIngredient(item.name);
+      if (!byKey.has(key)) byKey.set(key, item);
+    }
+  }
+  return Array.from(byKey.values());
 }

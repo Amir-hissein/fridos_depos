@@ -10,21 +10,28 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { PressableScale } from '../../components/ui/PressableScale';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { haptic } from '../../lib/haptics';
+import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const VF_WIDTH = Math.round(SCREEN_WIDTH * 0.9);
 const VF_HEIGHT = Math.round(SCREEN_HEIGHT * 0.55);
 
 export default function CameraScreen() {
-  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { mode, slot } = useLocalSearchParams<{ mode?: string; slot?: string }>();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const isMeal = mode === 'meal';
   const resultPath = isMeal ? '/scan/meal-result' : '/scan/result';
   const [permission, requestPermission] = useCameraPermissions();
@@ -80,7 +87,7 @@ export default function CameraScreen() {
     setTimeout(() => {
       haptic.success();
       setAnalyzing(false);
-      router.push({ pathname: resultPath, params: uri ? { uri } : {} });
+      router.push({ pathname: resultPath, params: { ...(uri ? { uri } : {}), ...(slot ? { slot } : {}) } });
     }, 1400);
   };
 
@@ -99,7 +106,7 @@ export default function CameraScreen() {
       setTimeout(() => {
         haptic.success();
         setAnalyzing(false);
-        router.push({ pathname: resultPath, params: uri ? { uri } : {} });
+        router.push({ pathname: resultPath, params: { ...(uri ? { uri } : {}), ...(slot ? { slot } : {}) } });
       }, 1400);
     }
   };
@@ -113,7 +120,7 @@ export default function CameraScreen() {
   if (!permission) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color={Colors.green} size="large" />
+        <ActivityIndicator color={colors.green} size="large" />
       </View>
     );
   }
@@ -123,34 +130,34 @@ export default function CameraScreen() {
     return (
       <View style={[styles.container, styles.centered]}>
         <SafeAreaView style={styles.permClose} edges={['top']}>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-            <Ionicons name="close" size={22} color={Colors.white} />
-          </TouchableOpacity>
+          <PressableScale haptic="light" style={styles.iconBtn} onPress={() => router.back()}>
+            <Ionicons name="close" size={22} color={colors.white} />
+          </PressableScale>
         </SafeAreaView>
 
         <View style={styles.permIconWrap}>
-          <Ionicons name="camera" size={42} color={Colors.green} />
+          <Ionicons name="camera" size={42} color={colors.green} />
         </View>
-        <Text style={styles.permTitle}>Enable the camera</Text>
+        <Text style={styles.permTitle}>{t('scan.camera.permission.title')}</Text>
         <Text style={styles.permDesc}>
-          Fridos needs access to your camera to scan the food in your fridge and suggest recipes.
+          {t('scan.camera.permission.desc')}
         </Text>
 
         {permission.canAskAgain ? (
-          <TouchableOpacity style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
-            <Text style={styles.permBtnText}>Allow camera access</Text>
-          </TouchableOpacity>
+          <PressableScale haptic="light" style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+            <Text style={styles.permBtnText}>{t('scan.camera.permission.allow')}</Text>
+          </PressableScale>
         ) : (
-          <TouchableOpacity style={styles.permBtn} onPress={() => Linking.openSettings()} activeOpacity={0.85}>
-            <Ionicons name="settings-outline" size={19} color={Colors.white} />
-            <Text style={styles.permBtnText}>Open settings</Text>
-          </TouchableOpacity>
+          <PressableScale haptic="light" style={styles.permBtn} onPress={() => Linking.openSettings()} activeOpacity={0.85}>
+            <Ionicons name="settings-outline" size={19} color={colors.white} />
+            <Text style={styles.permBtnText}>{t('scan.camera.permission.settings')}</Text>
+          </PressableScale>
         )}
 
-        <TouchableOpacity style={styles.permSecondary} onPress={() => router.back()} activeOpacity={0.7}>
-          <Text style={styles.permSecondaryText}>Maybe later</Text>
-        </TouchableOpacity>
+        <PressableScale haptic="light" style={styles.permSecondary} onPress={() => router.back()} activeOpacity={0.7}>
+          <Text style={styles.permSecondaryText}>{t('scan.camera.permission.later')}</Text>
+        </PressableScale>
       </View>
     );
   }
@@ -195,35 +202,35 @@ export default function CameraScreen() {
         </View>
         <View style={styles.maskRowBottom}>
           <View style={styles.hintPill}>
-            <Ionicons name="scan-outline" size={15} color={Colors.green} />
-            <Text style={styles.hintText}>{isMeal ? 'Frame your plate in the viewfinder' : 'Frame the food inside the viewfinder'}</Text>
+            <Ionicons name="scan-outline" size={15} color={colors.green} />
+            <Text style={styles.hintText}>{isMeal ? t('scan.camera.hints.meal') : t('scan.camera.hints.fridge')}</Text>
           </View>
         </View>
       </View>
 
       {/* Header */}
       <SafeAreaView style={styles.headerBar} edges={['top']}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="close" size={22} color={Colors.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isMeal ? 'Scan a meal' : 'Scan your fridge'}</Text>
-        <TouchableOpacity
+        <PressableScale haptic="light" style={styles.iconBtn} onPress={() => router.back()}>
+          <Ionicons name="close" size={22} color={colors.white} />
+        </PressableScale>
+        <Text style={styles.headerTitle}>{isMeal ? t('scan.camera.headers.meal') : t('scan.camera.headers.fridge')}</Text>
+        <PressableScale haptic="light"
           style={[styles.iconBtn, torch && styles.iconBtnActive]}
           onPress={() => {
             haptic.light();
             setTorch(t => !t);
           }}
         >
-          <Ionicons name={torch ? 'flash' : 'flash-outline'} size={20} color={torch ? Colors.scanBg : Colors.white} />
-        </TouchableOpacity>
+          <Ionicons name={torch ? 'flash' : 'flash-outline'} size={20} color={torch ? colors.scanBg : colors.white} />
+        </PressableScale>
       </SafeAreaView>
 
       {/* Controls */}
-      <SafeAreaView style={styles.controlsWrap} edges={['bottom']}>
+      <View style={[styles.controlsWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={styles.controlsRow}>
-          <TouchableOpacity style={styles.secondaryBtn} onPress={handlePickImage} disabled={analyzing}>
-            <Ionicons name="images-outline" size={22} color={Colors.white} />
-          </TouchableOpacity>
+          <PressableScale haptic="light" style={styles.secondaryBtn} onPress={handlePickImage} disabled={analyzing}>
+            <Ionicons name="images-outline" size={22} color={colors.white} />
+          </PressableScale>
           <Animated.View style={{ transform: [{ scale: captureScale }] }}>
             <TouchableOpacity
               style={styles.captureBtn}
@@ -236,7 +243,7 @@ export default function CameraScreen() {
               <View style={styles.captureBtnInner} />
             </TouchableOpacity>
           </Animated.View>
-          <TouchableOpacity
+          <PressableScale haptic="light"
             style={styles.secondaryBtn}
             onPress={() => {
               haptic.light();
@@ -244,10 +251,10 @@ export default function CameraScreen() {
             }}
             disabled={analyzing}
           >
-            <Ionicons name="camera-reverse-outline" size={22} color={Colors.white} />
-          </TouchableOpacity>
+            <Ionicons name="camera-reverse-outline" size={22} color={colors.white} />
+          </PressableScale>
         </View>
-      </SafeAreaView>
+      </View>
 
       {/* Effet d'obturateur (flash blanc) */}
       <Animated.View
@@ -259,9 +266,9 @@ export default function CameraScreen() {
       {analyzing && (
         <View style={styles.analyzeOverlay}>
           <View style={styles.analyzeCard}>
-            <ActivityIndicator color={Colors.green} size="large" />
-            <Text style={styles.analyzeTitle}>Analyzing…</Text>
-            <Text style={styles.analyzeDesc}>{isMeal ? 'Estimating calories' : 'Detecting your food'}</Text>
+            <ActivityIndicator color={colors.green} size="large" />
+            <Text style={styles.analyzeTitle}>{t('scan.camera.analyzing.title')}</Text>
+            <Text style={styles.analyzeDesc}>{isMeal ? t('scan.camera.analyzing.desc.meal') : t('scan.camera.analyzing.desc.fridge')}</Text>
           </View>
         </View>
       )}
@@ -269,8 +276,8 @@ export default function CameraScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.scanBg },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.scanBg },
   centered: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
 
   /* ── Écran d'autorisation ── */
@@ -286,7 +293,7 @@ const styles = StyleSheet.create({
     width: 92,
     height: 92,
     borderRadius: 46,
-    backgroundColor: Colors.greenLight,
+    backgroundColor: colors.greenLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 26,
@@ -294,7 +301,7 @@ const styles = StyleSheet.create({
   permTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 24,
-    color: Colors.white,
+    color: colors.white,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -311,11 +318,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.green,
-    height: 56,
+    backgroundColor: colors.green,
+    height: 52,
     borderRadius: 16,
     alignSelf: 'stretch',
-    shadowColor: Colors.shadowGreen,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 16,
@@ -324,7 +331,7 @@ const styles = StyleSheet.create({
   permBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: Colors.white,
+    color: colors.white,
   },
   permSecondary: {
     paddingVertical: 16,
@@ -339,7 +346,7 @@ const styles = StyleSheet.create({
   /* ── Masque à fenêtre découpée ── */
   maskRow: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.scanOverlay,
   },
   maskMiddle: {
     height: VF_HEIGHT,
@@ -347,11 +354,11 @@ const styles = StyleSheet.create({
   },
   maskSide: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.scanOverlay,
   },
   maskRowBottom: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: colors.scanOverlay,
     alignItems: 'center',
     paddingTop: 28,
   },
@@ -372,7 +379,7 @@ const styles = StyleSheet.create({
   hintText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   headerBar: {
     position: 'absolute',
@@ -389,20 +396,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 17,
-    color: Colors.white,
+    color: colors.white,
   },
   iconBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.separator,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBtnActive: {
-    backgroundColor: Colors.gold,
+    backgroundColor: colors.gold,
   },
-  corner: { position: 'absolute', width: 36, height: 36, borderColor: Colors.green },
+  corner: { position: 'absolute', width: 36, height: 36, borderColor: colors.green },
   tl: { top: -7, left: -7, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 29 },
   tr: { top: -7, right: -7, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 29 },
   bl: { bottom: -7, left: -7, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 29 },
@@ -433,8 +440,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: 2.5,
     borderRadius: 2,
-    backgroundColor: '#7DEBA8',
-    shadowColor: '#5FD68C',
+    backgroundColor: colors.green,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
     shadowRadius: 12,
@@ -457,7 +464,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: colors.separator,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -466,7 +473,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 5,
-    borderColor: Colors.white,
+    borderColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -474,7 +481,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -482,17 +489,17 @@ const styles = StyleSheet.create({
   /* ── Obturateur & analyse ── */
   shutter: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
   },
   analyzeOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: colors.overlayStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   analyzeCard: {
     width: 220,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 24,
     paddingVertical: 28,
     paddingHorizontal: 24,
@@ -502,12 +509,12 @@ const styles = StyleSheet.create({
   analyzeTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: 12,
   },
   analyzeDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

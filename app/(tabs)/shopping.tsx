@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,41 +9,89 @@ import {
   TextInput,
   Keyboard,
 } from 'react-native';
+import { PressableScale } from '../../components/ui/PressableScale';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { Colors, ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
+import { Radii } from '../../constants/layout';
 import { ShopItem } from '../../components/ui/ShopItem';
 import { FadeInItem } from '../../components/ui/FadeInItem';
 import { PremiumGate } from '../../components/ui/PremiumGate';
 import { useApp } from '../../context/AppContext';
+import { useFeedback } from '../../context/FeedbackContext';
+import { usePlan } from '../../context/PlanContext';
+import { useFridge } from '../../context/FridgeContext';
+import { RECIPES } from '../../constants/recipes';
+import { generateFromRecipes } from '../../services/shoppingList';
 import { haptic } from '../../lib/haptics';
+import { useTranslation } from 'react-i18next';
+
+const getCategoryLabel = (catLabel: string, t: any) => {
+  const clean = catLabel.replace(/[🥬🧀🛒📦]/g, '').trim().toLowerCase();
+  if (clean.includes('sebze') || clean.includes('fruit') || clean.includes('produce')) return t('shopping.categories.fruitsVeg');
+  if (clean.includes('süt') || clean.includes('dairy')) return t('shopping.categories.dairy');
+  if (clean.includes('temel') || clean.includes('pantry') || clean.includes('kiler') || clean.includes('gıda')) return t('shopping.categories.pantry');
+  return t('shopping.categories.other');
+};
 
 type TabKey = 'myitems' | 'tobuy';
 
 const CATEGORIES = [
-  { key: '🥬 Sebze & Meyve', label: 'Sebze & Meyve', icon: 'fruit-watermelon' as const, color: '#27AE60' },
-  { key: '🧀 Süt Ürünleri', label: 'Süt Ürünleri', icon: 'cheese' as const, color: '#F39C12' },
-  { key: '🛒 Temel Gıda', label: 'Temel Gıda', icon: 'cart' as const, color: '#3498DB' },
-  { key: '📦 Diğer', label: 'Diğer', icon: 'dots-horizontal' as const, color: Colors.textMuted },
+  { key: '🥬 Fruits & vegetables', label: 'Produce', icon: 'fruit-watermelon' as const, color: Colors.green },
+  { key: '🧀 Dairy', label: 'Dairy', icon: 'cheese' as const, color: Colors.yellow },
+  { key: '🛒 Pantry', label: 'Pantry', icon: 'cart' as const, color: Colors.blue },
+  { key: '📦 Other', label: 'Other', icon: 'dots-horizontal' as const, color: Colors.textMuted },
 ];
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const CAT_ICONS: Record<string, { icon: IconName; color: string }> = {
-  '🥬 Sebze & Meyve': { icon: 'fruit-watermelon', color: '#27AE60' },
-  '🥬 Fruits & vegetables': { icon: 'fruit-watermelon', color: '#27AE60' },
-  '🧀 Süt Ürünleri': { icon: 'cheese', color: '#F39C12' },
-  '🧀 Dairy': { icon: 'cheese', color: '#F39C12' },
-  '🛒 Temel Gıda': { icon: 'cart', color: '#3498DB' },
-  '🛒 Pantry': { icon: 'cart', color: '#3498DB' },
-  '📦 Diğer': { icon: 'dots-horizontal', color: Colors.textMuted },
+  '🥬 Fruits & vegetables': { icon: 'fruit-watermelon', color: Colors.green },
+  '🧀 Dairy': { icon: 'cheese', color: Colors.yellow },
+  '🛒 Pantry': { icon: 'cart', color: Colors.blue },
   '📦 Other': { icon: 'dots-horizontal', color: Colors.textMuted },
 };
 
 export default function ShoppingScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { shoppingList, addShoppingItem, clearCheckedItems, isPremium } = useApp();
+  const { confirm, toast } = useFeedback();
+  const { loggedRecipeIds } = usePlan();
+  const { ingredients: fridge } = useFridge();
   const [activeTab, setActiveTab] = useState<TabKey>('myitems');
+  const { t } = useTranslation();
+
+  // « Alınacaklar » = ingrédients manquants (vs frigo) des recettes ajoutées aux repas,
+  // en excluant ce qui est déjà dans la liste manuelle.
+  const derivedMissing = useMemo(() => {
+    const planned = RECIPES.filter(r => loggedRecipeIds.includes(r.id));
+    return generateFromRecipes(planned, fridge).filter(
+      m => !shoppingList.some(s => s.name.trim().toLowerCase() === m.name.trim().toLowerCase()),
+    );
+  }, [loggedRecipeIds, fridge, shoppingList]);
+
+  const addMissingToList = (name: string, category: string) => {
+    haptic.success();
+    addShoppingItem(name, category);
+    toast(t('shopping.toastAdded'));
+  };
+
+  const handleClearChecked = async () => {
+    const ok = await confirm({
+      title: t('shopping.clearConfirmTitle'),
+      message: t('shopping.clearConfirmMsg'),
+      destructive: true,
+      confirmLabel: t('shopping.clearConfirmDone'),
+      cancelLabel: t('common.cancel'),
+    });
+    if (ok) {
+      clearCheckedItems();
+      toast(t('shopping.toastUpdated'));
+    }
+  };
 
   const totalItems = shoppingList.length;
   const doneItems = shoppingList.filter(item => item.checked).length;
@@ -51,7 +99,7 @@ export default function ShoppingScreen() {
   const progressPct = Math.round(progress * 100);
 
   const [inputText, setInputText] = useState('');
-  const [activeCategory, setActiveCategory] = useState('🥬 Sebze & Meyve');
+  const [activeCategory, setActiveCategory] = useState('🥬 Fruits & vegetables');
   const [showInput, setShowInput] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
@@ -85,78 +133,82 @@ export default function ShoppingScreen() {
     return (
       <PremiumGate
         icon="cart"
-        title="Otomatik alışveriş listeleri"
-        description="Öğün planınızı hazır alışveriş listesine dönüştürüyoruz, kategorilere göre düzenliyoruz."
-        features={[
-          'Plandan otomatik oluşturulur',
-          'Kategorilere göre sıralanır',
-          'Alışveriş sırasında işaret edin',
-        ]}
+        title={t('shopping.gate.title')}
+        description={t('shopping.gate.description')}
+        features={t('shopping.gate.features', { returnObjects: true }) as string[]}
       />
     );
   }
 
-  // Unchecked = "to buy", checked = "my items / done"
-  const pendingItems = shoppingList.filter(item => !item.checked);
-  const doneItemsList = shoppingList.filter(item => item.checked);
-  const displayItems = activeTab === 'tobuy' ? pendingItems : shoppingList;
+  // « Ürünlerim » = liste manuelle ; « Alınacaklar » = dérivée du plan (derivedMissing).
+  const displayItems = shoppingList;
   const categories = Array.from(new Set(displayItems.map(item => item.category)));
+  const derivedCategories = Array.from(new Set(derivedMissing.map(m => m.category)));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Market Listesi</Text>
-          <Text style={styles.sub}>
-            {activeTab === 'myitems'
-              ? `${totalItems} ürün, ${doneItems} alındı`
-              : `${pendingItems.length} ürün bekliyor`}
-          </Text>
+        <View style={styles.headerLeft}>
+          <PressableScale
+            haptic="light"
+            style={styles.backBtn}
+            onPress={() => (router.canGoBack() ? router.back() : router.push('/(tabs)/profile'))}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
+          </PressableScale>
+          <View style={styles.headerTitleBlock}>
+            <Text style={styles.title}>{t('shopping.title')}</Text>
+            <Text style={styles.sub}>
+              {activeTab === 'myitems'
+                ? t('shopping.itemsStatus', { total: totalItems, done: doneItems })
+                : t('shopping.missingCount', { count: derivedMissing.length })}
+            </Text>
+          </View>
         </View>
         <View style={styles.headerActions}>
           {doneItems > 0 && (
-            <TouchableOpacity
-              style={[styles.headerActionBtn, { backgroundColor: Colors.orangeLight, marginRight: 8 }]}
-              onPress={() => { haptic.light(); clearCheckedItems(); }}
+            <PressableScale haptic="light"
+              style={[styles.headerActionBtn, { backgroundColor: colors.orangeLight, marginRight: 8 }]}
+              onPress={handleClearChecked}
               activeOpacity={0.8}
             >
-              <MaterialCommunityIcons name="trash-can-outline" size={20} color={Colors.orange} />
-            </TouchableOpacity>
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.orange} />
+            </PressableScale>
           )}
-          <TouchableOpacity style={styles.headerActionBtn} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="share-variant-outline" size={20} color={Colors.green} />
-          </TouchableOpacity>
+          <PressableScale haptic="light" style={styles.headerActionBtn} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="share-variant-outline" size={20} color={colors.green} />
+          </PressableScale>
         </View>
       </View>
 
       {/* Description */}
       <Text style={styles.desc}>
-        Almanız gereken ürünleri ve mevcut ürünlerinize görebilir malzemelerinizle sağlıklı tarifler hazırlamaya devam edebilirsiniz.
+        {t('shopping.desc')}
       </Text>
 
       {/* Tabs */}
       <View style={styles.tabRow}>
-        <TouchableOpacity
+        <PressableScale haptic="light"
           style={styles.tabBtn}
           onPress={() => { haptic.light(); setActiveTab('myitems'); }}
           activeOpacity={0.75}
         >
           <Text style={[styles.tabText, activeTab === 'myitems' && styles.tabTextActive]}>
-            Ürünlerim
+            {t('shopping.tabs.myItems')}
           </Text>
           {activeTab === 'myitems' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-        <TouchableOpacity
+        </PressableScale>
+        <PressableScale haptic="light"
           style={styles.tabBtn}
           onPress={() => { haptic.light(); setActiveTab('tobuy'); }}
           activeOpacity={0.75}
         >
           <Text style={[styles.tabText, activeTab === 'tobuy' && styles.tabTextActive]}>
-            Alınacaklar{pendingItems.length > 0 ? ` (${pendingItems.length})` : ''}
+            {t('shopping.tabs.toBuy')}{derivedMissing.length > 0 ? ` (${derivedMissing.length})` : ''}
           </Text>
           {activeTab === 'tobuy' && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
+        </PressableScale>
       </View>
 
       <ScrollView
@@ -165,17 +217,17 @@ export default function ShoppingScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Progress card - only show when has items */}
-        {totalItems > 0 && (
+        {/* Progress card - liste manuelle uniquement */}
+        {activeTab === 'myitems' && totalItems > 0 && (
           <View style={styles.progressCard}>
             <View style={styles.progressTop}>
               <View style={styles.progressTextLeft}>
                 <Text style={styles.progressTitle}>
                   {doneItems === totalItems && totalItems > 0
-                    ? 'Tüm ürünler alındı! 🎉'
-                    : `${totalItems - doneItems} ürün kaldı`}
+                    ? t('shopping.progress.allDone')
+                    : t('shopping.progress.remaining', { count: totalItems - doneItems })}
                 </Text>
-                <Text style={styles.progressSub}>{doneItems} / {totalItems} alındı</Text>
+                <Text style={styles.progressSub}>{doneItems} / {totalItems}</Text>
               </View>
               <Text style={styles.progressPct}>{progressPct}%</Text>
             </View>
@@ -195,20 +247,20 @@ export default function ShoppingScreen() {
                   style={styles.input}
                   value={inputText}
                   onChangeText={setInputText}
-                  placeholder="Ürün adı..."
-                  placeholderTextColor={Colors.textMuted}
+                  placeholder={t('shopping.addPlaceholderInput')}
+                  placeholderTextColor={colors.textMuted}
                   onSubmitEditing={handleAddItem}
                   returnKeyType="done"
                   autoFocus
                 />
-                <TouchableOpacity style={styles.addButton} onPress={handleAddItem} activeOpacity={0.8}>
-                  <Text style={styles.addButtonText}>Ekle</Text>
-                </TouchableOpacity>
+                <PressableScale haptic="light" style={styles.addButton} onPress={handleAddItem} activeOpacity={0.8}>
+                  <Text style={styles.addButtonText}>{t('shopping.addBtn')}</Text>
+                </PressableScale>
               </View>
               {/* Category picker */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {CATEGORIES.map(cat => (
-                  <TouchableOpacity
+                  <PressableScale haptic="light"
                     key={cat.key}
                     style={[
                       styles.categoryPill,
@@ -222,14 +274,14 @@ export default function ShoppingScreen() {
                         activeCategory === cat.key && styles.categoryPillTextActive,
                       ]}
                     >
-                      {cat.label}
+                      {getCategoryLabel(cat.key, t)}
                     </Text>
-                  </TouchableOpacity>
+                  </PressableScale>
                 ))}
               </ScrollView>
             </View>
           ) : (
-            <TouchableOpacity
+            <PressableScale haptic="light"
               style={styles.addPlaceholder}
               onPress={() => {
                 setShowInput(true);
@@ -238,26 +290,66 @@ export default function ShoppingScreen() {
               activeOpacity={0.88}
             >
               <View style={styles.addIconWrap}>
-                <MaterialCommunityIcons name="plus" size={18} color={Colors.green} />
+                <MaterialCommunityIcons name="plus" size={18} color={colors.green} />
               </View>
-              <Text style={styles.addPlaceholderText}>Ürün ekle...</Text>
-            </TouchableOpacity>
+              <Text style={styles.addPlaceholderText}>{t('shopping.addPlaceholder')}</Text>
+            </PressableScale>
           )}
         </View>
 
-        {/* Categories / items list */}
-        {displayItems.length > 0 ? (
+        {/* ── Onglet "Alınacaklar" : dérivé des recettes du plan − frigo ── */}
+        {activeTab === 'tobuy' ? (
+          derivedMissing.length > 0 ? (
+            derivedCategories.map((catLabel, ci) => {
+              const catItems = derivedMissing.filter(m => m.category === catLabel);
+              const ci_ = CAT_ICONS[catLabel] ?? { icon: 'dots-horizontal' as IconName, color: colors.textMuted };
+              return (
+                <FadeInItem key={catLabel} index={ci + 1} style={styles.categoryBlock}>
+                  <View style={styles.catHeader}>
+                    <View style={styles.catIconWrap}>
+                      <MaterialCommunityIcons name={ci_.icon} size={14} color={colors.textSecondary} />
+                    </View>
+                    <Text style={styles.catLabel}>{getCategoryLabel(catLabel, t)}</Text>
+                    <Text style={styles.catCount}>{catItems.length}</Text>
+                  </View>
+                  <View style={styles.itemsList}>
+                    {catItems.map((m, ii) => (
+                      <React.Fragment key={`${m.name}-${ii}`}>
+                        {ii > 0 && <View style={styles.itemDivider} />}
+                        <View style={styles.buyRow}>
+                          <Text style={styles.buyName} numberOfLines={1}>{m.name}</Text>
+                          {!!m.quantity && <Text style={styles.buyQty}>{m.quantity}</Text>}
+                          <PressableScale haptic="light" style={styles.buyAddBtn} onPress={() => addMissingToList(m.name, m.category)}>
+                            <MaterialCommunityIcons name="plus" size={18} color={colors.white} />
+                          </PressableScale>
+                        </View>
+                      </React.Fragment>
+                    ))}
+                  </View>
+                </FadeInItem>
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="silverware-fork-knife" size={52} color={colors.textMuted} />
+              <Text style={styles.emptyText}>{t('shopping.emptyTobuyTitle')}</Text>
+              <Text style={styles.emptySub}>
+                {t('shopping.emptyTobuySub')}
+              </Text>
+            </View>
+          )
+        ) : displayItems.length > 0 ? (
           categories.map((catLabel, ci) => {
             const catItems = displayItems.filter(item => item.category === catLabel);
             if (catItems.length === 0) return null;
-            const ci_ = CAT_ICONS[catLabel] ?? { icon: 'dots-horizontal' as IconName, color: Colors.textMuted };
+            const ci_ = CAT_ICONS[catLabel] ?? { icon: 'dots-horizontal' as IconName, color: colors.textMuted };
             return (
               <FadeInItem key={catLabel} index={ci + 1} style={styles.categoryBlock}>
                 <View style={styles.catHeader}>
                   <View style={styles.catIconWrap}>
-                    <MaterialCommunityIcons name={ci_.icon} size={14} color={Colors.textSecondary} />
+                    <MaterialCommunityIcons name={ci_.icon} size={14} color={colors.textSecondary} />
                   </View>
-                  <Text style={styles.catLabel}>{catLabel}</Text>
+                  <Text style={styles.catLabel}>{getCategoryLabel(catLabel, t)}</Text>
                   <Text style={styles.catCount}>{catItems.length}</Text>
                 </View>
                 <View style={styles.itemsList}>
@@ -273,21 +365,9 @@ export default function ShoppingScreen() {
           })
         ) : (
           <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name={activeTab === 'tobuy' ? 'check-circle-outline' : 'cart-outline'}
-              size={52}
-              color={Colors.textMuted}
-            />
-            <Text style={styles.emptyText}>
-              {activeTab === 'tobuy'
-                ? 'Alınacak ürün yok'
-                : 'Listeniz boş görünüyor'}
-            </Text>
-            <Text style={styles.emptySub}>
-              {activeTab === 'tobuy'
-                ? 'Harika! Tüm ürünler alındı.'
-                : 'Ürün ekleyin veya öğün planınızdan otomatik oluşturun.'}
-            </Text>
+            <MaterialCommunityIcons name="cart-outline" size={52} color={colors.textMuted} />
+            <Text style={styles.emptyText}>{t('shopping.emptyMyitemsTitle')}</Text>
+            <Text style={styles.emptySub}>{t('shopping.emptyMyitemsSub')}</Text>
           </View>
         )}
       </ScrollView>
@@ -295,8 +375,8 @@ export default function ShoppingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
 
@@ -311,19 +391,19 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: Colors.textPrimary,
-    lineHeight: 32,
+    color: colors.textPrimary,
+    lineHeight: 34,
     marginBottom: 2,
   },
   sub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   desc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     paddingHorizontal: 20,
     paddingBottom: 14,
     lineHeight: 19,
@@ -337,7 +417,26 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: Colors.greenLight,
+    backgroundColor: colors.greenLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  headerTitleBlock: {
+    flex: 1,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -347,7 +446,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     borderBottomWidth: 1.5,
-    borderBottomColor: Colors.borderLight,
+    borderBottomColor: colors.borderLight,
     marginBottom: 4,
   },
   tabBtn: {
@@ -358,11 +457,11 @@ const styles = StyleSheet.create({
   tabText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 15,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   tabTextActive: {
     fontFamily: 'Inter_700Bold',
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   tabUnderline: {
     position: 'absolute',
@@ -371,18 +470,18 @@ const styles = StyleSheet.create({
     right: 24,
     height: 2.5,
     borderRadius: 2,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: colors.textPrimary,
   },
 
   // Progress
   progressCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
     padding: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     marginBottom: 14,
-    shadowColor: Colors.shadowBlack,
+    shadowColor: colors.shadowBlack,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -398,28 +497,28 @@ const styles = StyleSheet.create({
   progressTitle: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   progressSub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   progressPct: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: Colors.green,
+    color: colors.green,
   },
   progressBarBg: {
-    height: 7,
-    backgroundColor: Colors.separatorLight,
+    height: 8,
+    backgroundColor: colors.separatorLight,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
     borderRadius: 4,
   },
 
@@ -431,9 +530,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderRadius: 14,
     height: 50,
     paddingHorizontal: 14,
@@ -442,21 +541,21 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: Colors.backgroundAlt,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addPlaceholderText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   inputContainer: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.green,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.green,
     borderRadius: 16,
     padding: 12,
     gap: 10,
@@ -470,14 +569,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textPrimary,
-    backgroundColor: Colors.backgroundAlt,
-    borderRadius: 10,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    borderRadius: 14,
     paddingHorizontal: 12,
     height: 40,
   },
   addButton: {
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
     paddingHorizontal: 16,
     height: 40,
     borderRadius: 10,
@@ -487,28 +588,28 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.white,
+    color: colors.white,
   },
   categoryPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
     marginRight: 6,
   },
   categoryPillActive: {
-    borderColor: Colors.green,
-    backgroundColor: Colors.greenLight,
+    borderColor: colors.green,
+    backgroundColor: colors.greenLight,
   },
   categoryPillText: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   categoryPillTextActive: {
-    color: Colors.green,
+    color: colors.green,
     fontFamily: 'Inter_600SemiBold',
   },
 
@@ -527,35 +628,60 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 7,
-    backgroundColor: Colors.backgroundAlt,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    backgroundColor: colors.backgroundAlt,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   catLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
   catCount: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   itemsList: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
     paddingVertical: 4,
     paddingHorizontal: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   itemDivider: {
     height: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: colors.borderLight,
     marginLeft: 36,
+  },
+  buyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  buyName: {
+    flex: 1,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  buyQty: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  buyAddBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.green,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   emptyState: {
@@ -563,23 +689,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 48,
     paddingHorizontal: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     marginTop: 8,
     gap: 6,
   },
   emptyText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: 8,
   },
   emptySub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 18,
   },

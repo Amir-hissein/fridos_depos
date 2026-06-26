@@ -10,18 +10,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { Colors, ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
+import { Radii } from '../../constants/layout';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { FadeInItem } from '../../components/ui/FadeInItem';
+import { Badge } from '../../components/ui/Badge';
+import { Card } from '../../components/ui/Card';
 import { haptic } from '../../lib/haptics';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from 'react-i18next';
 
 type IName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface Feature {
   icon: IName;
-  label: string;
-  desc: string;
+  key: string;
   color: string;
   bg: string;
 }
@@ -29,49 +33,46 @@ interface Feature {
 const FEATURES: Feature[] = [
   {
     icon: 'scan',
-    label: 'Unlimited scanning',
-    desc: 'Scan your fridge & meals as many times as you want',
+    key: 'scan',
     color: Colors.green,
     bg: Colors.greenLight,
   },
   {
     icon: 'calendar',
-    label: 'Weekly meal plans',
-    desc: 'Auto-generated plans based on your goals & fridge',
-    color: '#6C8EFF',
-    bg: 'rgba(108,142,255,0.15)',
+    key: 'plans',
+    color: Colors.blue,
+    bg: Colors.blueLight,
   },
   {
     icon: 'cart',
-    label: 'Smart shopping lists',
-    desc: 'Missing ingredients added automatically',
+    key: 'lists',
     color: Colors.orange,
     bg: Colors.orangeLight,
   },
   {
     icon: 'options',
-    label: 'Advanced filters',
-    desc: 'Full diet & allergen filter control',
-    color: '#B47FFF',
-    bg: 'rgba(180,127,255,0.15)',
+    key: 'filters',
+    color: Colors.purple,
+    bg: Colors.purpleLight,
   },
   {
     icon: 'restaurant',
-    label: 'All recipes · No ads',
-    desc: 'Unlimited access to every recipe, ad-free',
+    key: 'recipes',
     color: Colors.gold,
     bg: Colors.goldLight,
   },
 ];
 
 const REVIEWS = [
-  { name: 'Sarah M.', text: '"I stopped wasting food completely. Game changer!"', stars: 5 },
-  { name: 'James K.', text: '"The meal planner saves me 2 hours every week."', stars: 5 },
-  { name: 'Amal R.', text: '"Finally an app that respects my diet. Love it."', stars: 5 },
+  { name: 'Sarah M.', stars: 5 },
+  { name: 'James K.', stars: 5 },
+  { name: 'Amal R.', stars: 5 },
 ];
 
 /* ── Pulse ring component ── */
 function PulseRing({ delay = 0 }: { delay?: number }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
@@ -102,6 +103,9 @@ function PulseRing({ delay = 0 }: { delay?: number }) {
 
 /* ── Active (Premium) screen ── */
 function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.activeContent} showsVerticalScrollIndicator={false}>
@@ -116,17 +120,17 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
               <PulseRing delay={700} />
               <View style={styles.activeBadge}>
                 <LinearGradient
-                  colors={[Colors.gold, '#E8A020']}
+                  colors={[colors.gold, colors.goldGradientEnd]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={StyleSheet.absoluteFill}
                 />
-                <Ionicons name="star" size={36} color="#fff" />
+                <Ionicons name="star" size={36} color={colors.white} />
               </View>
             </View>
-            <Text style={styles.activeTitle}>You're Premium ✨</Text>
+            <Text style={styles.activeTitle}>{t('pro.active.title')}</Text>
             <Text style={styles.activeSubtitle}>
-              Everything is unlocked.{'\n'}Cook without limits!
+              {t('pro.active.subtitle')}
             </Text>
           </LinearGradient>
         </FadeInItem>
@@ -134,14 +138,14 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
         {/* Perks unlocked */}
         <FadeInItem index={1}>
           <View style={styles.perksCard}>
-            <Text style={styles.perksTitle}>Your perks</Text>
+            <Text style={styles.perksTitle}>{t('pro.active.perks')}</Text>
             {FEATURES.map((f, i) => (
-              <View key={f.label} style={[styles.perkRow, i < FEATURES.length - 1 && styles.perkBorder]}>
+              <View key={f.key} style={[styles.perkRow, i < FEATURES.length - 1 && styles.perkBorder]}>
                 <View style={[styles.perkIcon, { backgroundColor: f.bg }]}>
                   <Ionicons name={f.icon} size={17} color={f.color} />
                 </View>
-                <Text style={styles.perkLabel}>{f.label}</Text>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.green} />
+                <Text style={styles.perkLabel}>{t(`pro.features.${f.key}.label`)}</Text>
+                <Ionicons name="checkmark-circle" size={20} color={colors.green} />
               </View>
             ))}
           </View>
@@ -149,18 +153,18 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
 
         {/* Billing info */}
         <FadeInItem index={2}>
-          <View style={styles.billingCard}>
+          <Card style={{ marginBottom: 20, gap: 12 }}>
             <View style={styles.billingRow}>
-              <Text style={styles.billingKey}>Plan</Text>
+              <Text style={styles.billingKey}>{t('pro.active.plan')}</Text>
               <View style={styles.billingBadge}>
-                <Text style={styles.billingBadgeText}>Yearly · $35.88/yr</Text>
+                <Text style={styles.billingBadgeText}>{t('pro.active.yearlyBill')}</Text>
               </View>
             </View>
-            <View style={[styles.billingRow, { borderTopWidth: 1, borderTopColor: Colors.borderLight, paddingTop: 12 }]}>
-              <Text style={styles.billingKey}>Next billing</Text>
-              <Text style={styles.billingVal}>June 21, 2027</Text>
+            <View style={[styles.billingRow, { borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: 12 }]}>
+              <Text style={styles.billingKey}>{t('pro.active.nextBilling')}</Text>
+              <Text style={styles.billingVal}>{t('pro.active.nextBillingDate')}</Text>
             </View>
-          </View>
+          </Card>
         </FadeInItem>
 
         {/* Manage / Downgrade (for testing) */}
@@ -171,10 +175,10 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
             haptic="light"
             onPress={onDowngrade}
           >
-            <Ionicons name="settings-outline" size={17} color={Colors.textSecondary} />
-            <Text style={styles.manageText}>Manage subscription</Text>
+            <Ionicons name="settings-outline" size={17} color={colors.textSecondary} />
+            <Text style={styles.manageText}>{t('pro.active.manage')}</Text>
           </PressableScale>
-          <Text style={styles.manageSub}>Tap to simulate downgrade (testing)</Text>
+          <Text style={styles.manageSub}>{t('pro.active.manageTest')}</Text>
         </FadeInItem>
       </ScrollView>
     </SafeAreaView>
@@ -185,6 +189,9 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
 export default function ProScreen() {
   const { isPremium, setPremium } = useApp();
   const [plan, setPlan] = useState<'monthly' | 'annual'>('annual');
+  const { t, i18n } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const subscribe = () => {
     haptic.success();
@@ -194,6 +201,22 @@ export default function ProScreen() {
   if (isPremium) {
     return <ActiveScreen onDowngrade={() => setPremium(false)} />;
   }
+
+  const reviews = [
+    { name: 'Sarah M.', text: t('pro.reviews.0.text'), stars: 5 },
+    { name: 'James K.', text: t('pro.reviews.1.text'), stars: 5 },
+    { name: 'Amal R.', text: t('pro.reviews.2.text'), stars: 5 },
+  ];
+
+  const price = plan === 'annual'
+    ? (i18n.language === 'fr' ? '35,88 $/an' : i18n.language === 'tr' ? '$35.88/yıl' : '$35.88/yr')
+    : (i18n.language === 'fr' ? '4,99 $/mois' : i18n.language === 'tr' ? '$4.99/ay' : '$4.99/mo');
+
+  const trustLabels = [
+    t('pro.trust.secure'),
+    t('pro.trust.noCharge'),
+    t('pro.trust.cancel'),
+  ];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -207,15 +230,15 @@ export default function ProScreen() {
           >
             <View style={styles.heroIconWrap}>
               <LinearGradient
-                colors={[Colors.gold, '#E8A020']}
+                colors={[colors.gold, colors.goldGradientEnd]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
-              <Ionicons name="trophy" size={38} color="#fff" />
+              <Ionicons name="trophy" size={38} color={colors.textWhite} />
             </View>
-            <Text style={styles.heroTitle}>Go Fridos Premium</Text>
-            <Text style={styles.heroSub}>Cook without limits, plan your week,{'\n'}zero ads — starting free.</Text>
+            <Text style={styles.heroTitle}>{t('pro.heroTitle')}</Text>
+            <Text style={styles.heroSub}>{t('pro.heroSub')}</Text>
           </LinearGradient>
         </FadeInItem>
 
@@ -223,15 +246,15 @@ export default function ProScreen() {
         <FadeInItem index={1}>
           <View style={styles.featuresCard}>
             {FEATURES.map((f, i) => (
-              <View key={f.label} style={[styles.featureRow, i < FEATURES.length - 1 && styles.featureBorder]}>
+              <View key={f.key} style={[styles.featureRow, i < FEATURES.length - 1 && styles.featureBorder]}>
                 <View style={[styles.featureIcon, { backgroundColor: f.bg }]}>
                   <Ionicons name={f.icon} size={18} color={f.color} />
                 </View>
                 <View style={styles.featureBody}>
-                  <Text style={styles.featureLabel}>{f.label}</Text>
-                  <Text style={styles.featureDesc}>{f.desc}</Text>
+                  <Text style={styles.featureLabel}>{t(`pro.features.${f.key}.label`)}</Text>
+                  <Text style={styles.featureDesc}>{t(`pro.features.${f.key}.desc`)}</Text>
                 </View>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.green} />
+                <Ionicons name="checkmark-circle" size={20} color={colors.green} />
               </View>
             ))}
           </View>
@@ -239,7 +262,7 @@ export default function ProScreen() {
 
         {/* ── Plan selector ── */}
         <FadeInItem index={2}>
-          <Text style={styles.sectionTitle}>Choose your plan</Text>
+          <Text style={styles.sectionTitle}>{t('pro.choosePlan')}</Text>
           <View style={styles.plans}>
             {/* Monthly */}
             <PressableScale
@@ -247,15 +270,15 @@ export default function ProScreen() {
               scaleTo={0.96}
               onPress={() => { haptic.select(); setPlan('monthly'); }}
             >
-              <Text style={[styles.planName, plan === 'monthly' && styles.planNameActive]}>Monthly</Text>
+              <Text style={[styles.planName, plan === 'monthly' && styles.planNameActive]}>{t('pro.monthly')}</Text>
               <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, plan === 'monthly' && styles.planPriceActive]}>$4.99</Text>
-                <Text style={styles.planPer}>/mo</Text>
+                <Text style={[styles.planPrice, plan === 'monthly' && styles.planPriceActive]}>{t('pro.monthlyPrice', '$4.99')}</Text>
+                <Text style={styles.planPer}>{t('pro.perMonth', '/mo')}</Text>
               </View>
-              <Text style={styles.planNote}>Billed monthly</Text>
+              <Text style={styles.planNote}>{t('pro.billedMonthly')}</Text>
               {plan === 'monthly' && (
                 <View style={styles.planCheck}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.green} />
+                  <Ionicons name="checkmark-circle" size={18} color={colors.green} />
                 </View>
               )}
             </PressableScale>
@@ -266,18 +289,16 @@ export default function ProScreen() {
               scaleTo={0.96}
               onPress={() => { haptic.select(); setPlan('annual'); }}
             >
-              <View style={styles.savingBadge}>
-                <Text style={styles.savingText}>Save 40%</Text>
-              </View>
-              <Text style={[styles.planName, plan === 'annual' && styles.planNameActive]}>Yearly</Text>
+              <Badge label={t('pro.save')} variant="orange" style={styles.savingBadge} />
+              <Text style={[styles.planName, plan === 'annual' && styles.planNameActive]}>{t('pro.yearly')}</Text>
               <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, plan === 'annual' && styles.planPriceActive]}>$2.99</Text>
-                <Text style={styles.planPer}>/mo</Text>
+                <Text style={[styles.planPrice, plan === 'annual' && styles.planPriceActive]}>{t('pro.yearlyPrice', '$2.99')}</Text>
+                <Text style={styles.planPer}>{t('pro.perMonth', '/mo')}</Text>
               </View>
-              <Text style={styles.planNote}>$35.88 billed yearly</Text>
+              <Text style={styles.planNote}>{t('pro.billedYearly')}</Text>
               {plan === 'annual' && (
                 <View style={styles.planCheck}>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.green} />
+                  <Ionicons name="checkmark-circle" size={18} color={colors.green} />
                 </View>
               )}
             </PressableScale>
@@ -286,17 +307,17 @@ export default function ProScreen() {
 
         {/* ── Reviews ── */}
         <FadeInItem index={3}>
-          <Text style={styles.sectionTitle}>What people say</Text>
+          <Text style={styles.sectionTitle}>{t('pro.reviewsTitle')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.reviewsRow}
           >
-            {REVIEWS.map((r, i) => (
+            {reviews.map((r, i) => (
               <View key={i} style={styles.reviewCard}>
                 <View style={styles.reviewStars}>
                   {Array.from({ length: r.stars }).map((_, j) => (
-                    <Ionicons key={j} name="star" size={12} color={Colors.gold} />
+                    <Ionicons key={j} name="star" size={12} color={colors.gold} />
                   ))}
                 </View>
                 <Text style={styles.reviewText}>{r.text}</Text>
@@ -310,23 +331,23 @@ export default function ProScreen() {
         <FadeInItem index={4}>
           <PressableScale style={styles.cta} scaleTo={0.97} haptic="medium" onPress={subscribe}>
             <LinearGradient
-              colors={[Colors.green, Colors.greenDark]}
+              colors={[colors.green, colors.greenDark]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            <Ionicons name="star" size={20} color="#fff" />
-            <Text style={styles.ctaText}>Start 7-day free trial</Text>
+            <Ionicons name="star" size={20} color={colors.white} />
+            <Text style={styles.ctaText}>{t('pro.startTrial')}</Text>
           </PressableScale>
           <Text style={styles.ctaNote}>
-            Then {plan === 'annual' ? '$35.88/yr' : '$4.99/mo'} · Cancel anytime
+            {t('pro.trialNote', { price })}
           </Text>
           <View style={styles.trustRow}>
             {(['shield-checkmark-outline', 'card-outline', 'refresh-circle-outline'] as IName[]).map((icon, i) => (
               <View key={i} style={styles.trustItem}>
-                <Ionicons name={icon} size={14} color={Colors.textMuted} />
+                <Ionicons name={icon} size={14} color={colors.textMuted} />
                 <Text style={styles.trustText}>
-                  {['Secure', 'No charge today', 'Easy cancel'][i]}
+                  {trustLabels[i]}
                 </Text>
               </View>
             ))}
@@ -338,15 +359,15 @@ export default function ProScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
 
   // ── Paywall ────────────────────────────────────────────────────
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
 
   hero: {
     alignItems: 'center',
-    borderRadius: 28,
+    borderRadius: Radii.cardLarge,
     paddingTop: 32,
     paddingBottom: 28,
     marginBottom: 20,
@@ -359,7 +380,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     marginBottom: 18,
-    shadowColor: Colors.gold,
+    shadowColor: colors.gold,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -368,24 +389,24 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 10,
   },
   heroSub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
 
   // ── Features ───────────────────────────────────────────────────
   featuresCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingHorizontal: 18,
     marginBottom: 24,
   },
@@ -395,7 +416,7 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 14,
   },
-  featureBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  featureBorder: { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   featureIcon: {
     width: 40,
     height: 40,
@@ -408,13 +429,13 @@ const styles = StyleSheet.create({
   featureLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 2,
   },
   featureDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     lineHeight: 17,
   },
 
@@ -422,20 +443,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 17,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 14,
   },
   plans: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 28,
+    marginBottom: 22,
   },
   planCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     paddingVertical: 20,
     paddingHorizontal: 14,
     alignItems: 'center',
@@ -443,17 +464,17 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   planCardBest: {
-    borderColor: 'rgba(244,183,64,0.35)',
-    backgroundColor: 'rgba(244,183,64,0.06)',
+    borderColor: colors.goldBorder,
+    backgroundColor: colors.goldLight,
   },
   planCardActive: {
-    borderColor: Colors.green,
-    backgroundColor: Colors.greenLight,
+    borderColor: colors.green,
+    backgroundColor: colors.greenLight,
   },
   savingBadge: {
     position: 'absolute',
     top: -13,
-    backgroundColor: Colors.orange,
+    backgroundColor: colors.orange,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
@@ -461,7 +482,7 @@ const styles = StyleSheet.create({
   savingText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 11,
-    color: '#fff',
+    color: colors.white,
   },
   planCheck: {
     position: 'absolute',
@@ -471,10 +492,10 @@ const styles = StyleSheet.create({
   planName: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginBottom: 8,
   },
-  planNameActive: { color: Colors.green },
+  planNameActive: { color: colors.green },
   planPriceRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -484,19 +505,19 @@ const styles = StyleSheet.create({
   planPrice: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
-  planPriceActive: { color: Colors.green },
+  planPriceActive: { color: colors.green },
   planPer: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     paddingBottom: 4,
   },
   planNote: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
   },
 
@@ -504,14 +525,14 @@ const styles = StyleSheet.create({
   reviewsRow: {
     gap: 12,
     paddingBottom: 4,
-    marginBottom: 28,
+    marginBottom: 22,
   },
   reviewCard: {
     width: 220,
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 16,
   },
   reviewStars: {
@@ -522,14 +543,14 @@ const styles = StyleSheet.create({
   reviewText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 19,
     marginBottom: 10,
   },
   reviewName: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
 
   // ── CTA ────────────────────────────────────────────────────────
@@ -538,10 +559,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    height: 58,
-    borderRadius: 18,
+    height: 50,
+    borderRadius: Radii.button,
     overflow: 'hidden',
-    shadowColor: Colors.shadowGreen,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -551,12 +572,12 @@ const styles = StyleSheet.create({
   ctaText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 17,
-    color: '#fff',
+    color: colors.textWhite,
   },
   ctaNote: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -573,7 +594,7 @@ const styles = StyleSheet.create({
   trustText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
 
   // ── Active / Premium screen ────────────────────────────────────
@@ -581,7 +602,7 @@ const styles = StyleSheet.create({
 
   activeHero: {
     alignItems: 'center',
-    borderRadius: 28,
+    borderRadius: Radii.cardLarge,
     paddingTop: 40,
     paddingBottom: 32,
     marginBottom: 20,
@@ -599,7 +620,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 2,
-    borderColor: Colors.gold,
+    borderColor: colors.gold,
   },
   activeBadge: {
     width: 80,
@@ -608,7 +629,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    shadowColor: Colors.gold,
+    shadowColor: colors.gold,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.5,
     shadowRadius: 20,
@@ -617,30 +638,30 @@ const styles = StyleSheet.create({
   activeTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 10,
     textAlign: 'center',
   },
   activeSubtitle: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
 
   perksCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingHorizontal: 18,
     marginBottom: 16,
   },
   perksTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     paddingTop: 16,
     paddingBottom: 4,
   },
@@ -650,7 +671,7 @@ const styles = StyleSheet.create({
     gap: 14,
     paddingVertical: 13,
   },
-  perkBorder: { borderBottomWidth: 1, borderBottomColor: Colors.borderLight },
+  perkBorder: { borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   perkIcon: {
     width: 36,
     height: 36,
@@ -661,15 +682,15 @@ const styles = StyleSheet.create({
   perkLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
   },
 
   billingCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: Radii.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 16,
     marginBottom: 20,
     gap: 12,
@@ -682,10 +703,10 @@ const styles = StyleSheet.create({
   billingKey: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   billingBadge: {
-    backgroundColor: Colors.greenLight,
+    backgroundColor: colors.greenLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
@@ -693,12 +714,12 @@ const styles = StyleSheet.create({
   billingBadgeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
-    color: Colors.green,
+    color: colors.green,
   },
   billingVal: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   manageBtn: {
@@ -706,22 +727,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    height: 50,
+    borderRadius: Radii.button,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     marginBottom: 8,
   },
   manageText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   manageSub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textLight,
+    color: colors.textLight,
     textAlign: 'center',
   },
 });

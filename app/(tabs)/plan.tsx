@@ -14,13 +14,22 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Flame, Clock } from 'lucide-react-native';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-const TRACKER_ICON_COLOR = '#F3E1C7';
-import { Colors } from '../../constants/colors';
+import { Colors, ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { FadeInItem } from '../../components/ui/FadeInItem';
 import { PressableScale } from '../../components/ui/PressableScale';
+import { ProgressBar } from '../../components/ui/ProgressBar';
+import { InsightCard } from '../../components/ui/InsightCard';
+import { progress, computeWeightTrend } from '../../services/summary';
+import { buildInsights } from '../../services/insights';
 import { haptic } from '../../lib/haptics';
 import { useApp } from '../../context/AppContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { usePlan } from '../../context/PlanContext';
+import { useAllergens } from '../../context/AllergenContext';
+import { recommendRecipes } from '../../services/recipeFilters';
+import { localizeRecipeName } from '../../services/localizeRecipe';
+import { useTranslation } from 'react-i18next';
 import { RECIPES } from '../../constants/recipes';
 import { CalorieRing } from '../../components/ui/CalorieRing';
 
@@ -33,22 +42,17 @@ const CARD_W = (SCREEN_W - H_PAD * 2 - GRID_GAP) / 2;  // exact half
 interface MealSlotDef {
   key: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   label: string;
-  icon: MCIName;
+  image: any;
   targetKcal: number;
-  iconBg: string;
-  iconColor: string;
+  color: string;
 }
 
+// Une couleur d'accent par repas (tokens du thème) — barre + tinte de l'icône.
 const MEALS: MealSlotDef[] = [
-  { key: 'breakfast', label: 'Kahvaltı',      icon: 'egg-fried',    targetKcal: 500, iconBg: '#2B2000', iconColor: '#F4B740' },
-  { key: 'lunch',     label: 'Öğle',          icon: 'food',         targetKcal: 500, iconBg: '#00172A', iconColor: '#6C9EFF' },
-  { key: 'dinner',    label: 'Akşam Yemeği',  icon: 'room-service', targetKcal: 500, iconBg: '#001525', iconColor: '#5BB5FF' },
-  { key: 'snack',     label: 'Ara Öğün',      icon: 'cookie',       targetKcal: 193, iconBg: '#1C002E', iconColor: '#C47FFF' },
-];
-
-const TURKISH_MONTHS = [
-  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
-  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+  { key: 'breakfast', label: 'plan.meals.breakfast', image: require('../../assets/images/breakfast_icon.png'), targetKcal: 500, color: Colors.gold },
+  { key: 'lunch',     label: 'plan.meals.lunch',     image: require('../../assets/images/lunch_icon.png'),     targetKcal: 500, color: Colors.green },
+  { key: 'dinner',    label: 'plan.meals.dinner',    image: require('../../assets/images/dinner_icon.png'),    targetKcal: 500, color: Colors.blue },
+  { key: 'snack',     label: 'plan.meals.snack',     image: require('../../assets/images/snack_icon.png'),     targetKcal: 193, color: Colors.orange },
 ];
 
 /* ─── Meal card ───────────────────────────────────────────────── */
@@ -63,7 +67,12 @@ function MealCard({
   active: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const mc = useThemedStyles(makeMcStyles);
   const pct = Math.min(consumed / slot.targetKcal, 1);
+  const mealColor = colors[slot.key === 'breakfast' ? 'gold' : slot.key === 'lunch' ? 'green' : slot.key === 'dinner' ? 'blue' : 'orange'];
+
   return (
     <PressableScale
       style={[mc.card, active && mc.cardActive, { width: CARD_W }]}
@@ -73,10 +82,10 @@ function MealCard({
     >
       {/* Icon + label row */}
       <View style={mc.topRow}>
-        <View style={[mc.iconBox, { backgroundColor: slot.iconBg }]}>
-          <MaterialCommunityIcons name={slot.icon} size={26} color={slot.iconColor} />
+        <View style={[mc.iconBox, { backgroundColor: mealColor + '22' }]}>
+          <Image source={slot.image} style={{ width: 28, height: 28, tintColor: mealColor }} resizeMode="contain" />
         </View>
-        <Text style={mc.label} numberOfLines={2}>{slot.label}</Text>
+        <Text style={mc.label} numberOfLines={2}>{t(slot.label)}</Text>
       </View>
 
       {/* Kcal */}
@@ -85,14 +94,13 @@ function MealCard({
         <Text style={mc.kcalOf}>/{slot.targetKcal} Kcal</Text>
       </View>
 
-      {/* Progress bar */}
+      {/* Progress bar — couleur propre au repas */}
       <View style={mc.bar}>
         {pct > 0 && (
           <View
             style={[
               mc.barFill,
-              { width: `${pct * 100}%` as `${number}%` },
-              active ? mc.barActive : mc.barDefault,
+              { width: `${pct * 100}%` as `${number}%`, backgroundColor: mealColor },
             ]}
           />
         )}
@@ -101,17 +109,17 @@ function MealCard({
   );
 }
 
-const mc = StyleSheet.create({
+const makeMcStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 14,
     gap: 10,
   },
   cardActive: {
-    borderColor: Colors.gold,
+    borderColor: colors.gold,
     borderWidth: 2,
   },
   topRow: {
@@ -130,7 +138,7 @@ const mc = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
     lineHeight: 20,
   },
@@ -142,27 +150,27 @@ const mc = StyleSheet.create({
   kcalNum: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 24,
   },
   kcalOf: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     paddingBottom: 2,
   },
   bar: {
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.separatorLight,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     borderRadius: 2,
   },
-  barDefault: { backgroundColor: Colors.green },
-  barActive:  { backgroundColor: Colors.gold  },
+  barDefault: { backgroundColor: colors.green },
+  barActive:  { backgroundColor: colors.gold  },
 });
 
 /* ─── Tracker row ─────────────────────────────────────────────── */
@@ -179,6 +187,23 @@ function Tracker({
   last?: boolean;
   onPress?: () => void;
 }) {
+  const { colors } = useTheme();
+  const tr = useThemedStyles(makeTrStyles);
+
+  let iconColor = colors.gold;
+  let bg = colors.backgroundAlt;
+
+  if (icon === 'cup-water') {
+    iconColor = colors.blue;
+    bg = colors.blueLight;
+  } else if (icon === 'walk') {
+    iconColor = colors.orange;
+    bg = colors.orangeLight;
+  } else if (icon === 'scale-bathroom') {
+    iconColor = colors.green;
+    bg = colors.greenLight;
+  }
+
   return (
     <PressableScale
       style={[tr.row, !last && tr.border]}
@@ -186,8 +211,8 @@ function Tracker({
       haptic="light"
       onPress={onPress}
     >
-      <View style={tr.iconBox}>
-        <MaterialCommunityIcons name={icon} size={26} color={TRACKER_ICON_COLOR} />
+      <View style={[tr.iconBox, { backgroundColor: bg }]}>
+        <MaterialCommunityIcons name={icon} size={26} color={iconColor} />
       </View>
       <View style={tr.body}>
         <Text style={tr.title}>{title}</Text>
@@ -199,12 +224,12 @@ function Tracker({
           )}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
+      <Ionicons name="chevron-forward" size={16} color={colors.textLight} />
     </PressableScale>
   );
 }
 
-const tr = StyleSheet.create({
+const makeTrStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,13 +238,12 @@ const tr = StyleSheet.create({
   },
   border: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.separator,
+    borderBottomColor: colors.separator,
   },
   iconBox: {
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: Colors.backgroundAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,62 +251,91 @@ const tr = StyleSheet.create({
   title: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.gold,
+    color: colors.textPrimary,
     marginBottom: 3,
   },
   sub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   bold: {
     fontFamily: 'Inter_700Bold',
-    color: Colors.gold,
+    color: colors.textPrimary,
     fontSize: 12,
   },
 });
 
 /* ─── Main screen ─────────────────────────────────────────────── */
 export default function PlanScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation();
-  const { isPremium } = useApp();
+  const { t } = useTranslation();
+  const months = t('plan.months', { returnObjects: true }) as string[];
+  const weekdays = t('plan.weekdays', { returnObjects: true }) as string[];
+  const { isPremium, userName } = useApp();
+  const { toast } = useFeedback();
+  const { userAllergens } = useAllergens();
   const {
     profile,
     targets,
     intake,
     consumedKcal,
+    consumedMacros,
+    weeklyIntake,
     selectedDayIndex,
     setSelectedDayIndex,
     logMeal,
     addWater,
     updateSteps,
-    updateWeight,
+    updateProfile,
   } = usePlan();
 
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // States for calendar month navigation
+  // Calendrier : on part toujours de la vraie date du jour (00:00 pour comparer).
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
   const [currentYearMonth, setCurrentYearMonth] = useState({
-    year: 2026,
-    month: 5, // June (0-indexed)
+    year: today.getFullYear(),
+    month: today.getMonth(),
   });
 
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 5, 22)); // Default selected date matches screenshot (22 June)
+  const [selectedDate, setSelectedDate] = useState(() => new Date(today));
 
   // Active tracker bottom sheet state ('water' | 'steps' | 'weight' | null)
   const [activeTracker, setActiveTracker] = useState<'water' | 'steps' | 'weight' | null>(null);
 
   React.useEffect(() => {
     navigation.setOptions({
-      tabBarStyle: { display: (activeTracker !== null || calendarOpen) ? 'none' : 'flex' },
+      tabBarStyle: { display: activeTracker !== null ? 'none' : 'flex' },
     });
-  }, [activeTracker, calendarOpen, navigation]);
+  }, [activeTracker, navigation]);
 
   // Temporary control values for bottom sheets
   const [tempWater, setTempWater] = useState(0);
   const [tempSteps, setTempSteps] = useState(0);
   const [tempWeight, setTempWeight] = useState(75.0);
+
+  // Tracker goals come from the profile/targets (not hard-coded).
+  const waterGoal = targets.waterMl;
+  const stepsGoal = profile.dailySteps;
+  const trackerGoal =
+    activeTracker === 'water' ? waterGoal :
+    activeTracker === 'steps' ? stepsGoal : 0;
+  const trackerCurrent =
+    activeTracker === 'water' ? tempWater :
+    activeTracker === 'steps' ? tempSteps : tempWeight;
+  const trackerUnit =
+    activeTracker === 'water' ? 'ml' :
+    activeTracker === 'steps' ? t('plan.trackers.step') : 'kg';
+  const trackerProgress = trackerGoal > 0 ? progress(trackerCurrent, trackerGoal) : null;
 
   // Dynamic calendar cell generator
   const calendarCells = useMemo(() => {
@@ -330,18 +383,81 @@ export default function PlanScreen() {
     });
   };
 
-  const activeDateStr = `${selectedDate.getDate()} ${TURKISH_MONTHS[selectedDate.getMonth()]}`;
+  // Statut calorique d'un jour → pilote les pastilles couleur + la légende.
+  const STATUS_COLOR = { full: colors.green, partial: colors.gold, over: colors.red } as const;
+  const getDayStatus = (
+    year: number,
+    month: number,
+    day: number,
+  ): keyof typeof STATUS_COLOR | null => {
+    const cellDate = new Date(year, month, day);
+    cellDate.setHours(0, 0, 0, 0);
+    if (cellDate.getTime() > today.getTime()) return null; // pas de suivi pour le futur
+    const wd = (cellDate.getDay() + 6) % 7; // 0 = Lun … 6 = Dim
+    const di = weeklyIntake[wd];
+    if (!di) return null;
+    const consumed = di.breakfast + di.lunch + di.dinner + di.snack;
+    if (consumed <= 0) return null;
+    const target = targets.kcal || 1;
+    if (consumed > target) return 'over';
+    if (consumed >= target * 0.85) return 'full';
+    return 'partial';
+  };
+
+  const isCurrentMonth =
+    currentYearMonth.month === today.getMonth() &&
+    currentYearMonth.year === today.getFullYear();
+
+  const goToToday = () => {
+    haptic.light();
+    setCurrentYearMonth({ year: today.getFullYear(), month: today.getMonth() });
+    setSelectedDate(new Date(today));
+    setSelectedDayIndex((today.getDay() + 6) % 7);
+  };
+
+  const activeDateStr = `${selectedDate.getDate()} ${months[selectedDate.getMonth()]}`;
 
   const calorieGoal = targets.kcal;
   const totalConsumed = consumedKcal;
   const remaining = Math.max(calorieGoal - totalConsumed, 0);
 
-  const consumedProtein = Math.round((totalConsumed * 0.25) / 4);
-  const consumedCarbs = Math.round((totalConsumed * 0.50) / 4);
-  const consumedFat = Math.round((totalConsumed * 0.25) / 9);
+  // Macros mesurées (scans IA) + estimation diète pour le reste des calories.
+  // Centralisé dans PlanContext.consumedMacros.
+  const consumedProtein = Math.round(consumedMacros.protein);
+  const consumedCarbs = Math.round(consumedMacros.carbs);
+  const consumedFat = Math.round(consumedMacros.fat);
 
   const waterMl = intake.waterMl;
-  const recipes = RECIPES.slice(0, 6);
+  const recipes = recommendRecipes(RECIPES, { diet: profile.diet, allergens: userAllergens, limit: 6 });
+
+  // Contextual insights — only meaningful for the day actually being lived.
+  const todayIndex = useMemo(() => (new Date().getDay() + 6) % 7, []);
+  const isToday = selectedDayIndex === todayIndex;
+  const insights = useMemo(() => {
+    if (!isToday) return [];
+    const weights = Object.keys(weeklyIntake)
+      .sort((a, b) => Number(a) - Number(b))
+      .map(k => weeklyIntake[Number(k)]?.weight ?? 0);
+    const trend = computeWeightTrend(weights);
+    return buildInsights({
+      hour: new Date().getHours(),
+      consumedKcal: totalConsumed,
+      targetKcal: calorieGoal,
+      consumedProtein,
+      targetProtein: targets.protein,
+      waterMl,
+      waterGoalMl: waterGoal,
+      steps: intake.steps || 0,
+      stepsGoal,
+      meals: {
+        breakfast: intake.breakfast,
+        lunch: intake.lunch,
+        dinner: intake.dinner,
+        snack: intake.snack,
+      },
+      weightDeltaKg: trend.delta,
+    }).slice(0, 2);
+  }, [isToday, weeklyIntake, totalConsumed, calorieGoal, consumedProtein, targets.protein, waterMl, waterGoal, intake, stepsGoal]);
 
   /* ── Premium gate ── */
   if (!isPremium) {
@@ -349,20 +465,18 @@ export default function PlanScreen() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.gate}>
           <View style={styles.gateIcon}>
-            <Ionicons name="calendar" size={40} color={Colors.gold} />
+            <Ionicons name="calendar" size={40} color={colors.gold} />
           </View>
-          <Text style={styles.gateTitle}>Haftalık Yemek Planları</Text>
-          <Text style={styles.gateSub}>
-            Tüm haftanızı planlayın ve bir daha akşam yemeğinde{'\n'}ne yiyeceğinizi düşünmeyin.
-          </Text>
+          <Text style={styles.gateTitle}>{t('plan.gate.title')}</Text>
+          <Text style={styles.gateSub}>{t('plan.gate.subtitle')}</Text>
           <PressableScale
             style={styles.gateBtn}
             scaleTo={0.97}
             haptic="medium"
             onPress={() => router.push('/(tabs)/pro')}
           >
-            <Ionicons name="star" size={16} color="#fff" />
-            <Text style={styles.gateBtnTxt}>Premium ile Kilidi Aç</Text>
+            <Ionicons name="star" size={16} color={colors.textWhite} />
+            <Text style={styles.gateBtnTxt}>{t('plan.gate.unlock')}</Text>
           </PressableScale>
         </View>
       </SafeAreaView>
@@ -381,6 +495,7 @@ export default function PlanScreen() {
             onPress={() => setActiveTracker(null)}
           />
           <View style={styles.sheetContent}>
+            <View style={styles.sheetHandle} />
             {/* Sheet Header */}
             <View style={styles.sheetHeader}>
               <View style={styles.sheetHeaderLeft}>
@@ -389,110 +504,114 @@ export default function PlanScreen() {
                     activeTracker === 'water' ? 'cup-water' :
                     activeTracker === 'steps' ? 'walk' : 'scale-bathroom'
                   }
-                  size={24}
-                  color="#FFE8D1"
+                  size={22}
+                  color={colors.beige}
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.sheetTitle}>
-                  {activeTracker === 'water' ? 'Su Takibi' :
-                   activeTracker === 'steps' ? 'Adım takibi' : 'Kilo takibi'}
+                  {activeTracker === 'water' ? t('plan.trackers.water') :
+                   activeTracker === 'steps' ? t('plan.trackers.steps') : t('plan.trackers.weight')}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setActiveTracker(null)} style={styles.sheetCloseBtn}>
-                <Ionicons name="close" size={24} color={Colors.textPrimary} />
-              </TouchableOpacity>
+              <PressableScale haptic="light" onPress={() => setActiveTracker(null)} style={styles.sheetCloseBtn}>
+                <Ionicons name="close" size={22} color={colors.textPrimary} />
+              </PressableScale>
             </View>
 
             {/* Description */}
             <Text style={styles.sheetDesc}>
-              {activeTracker === 'water' && 'Metabolik süreçlerin kusursuz işlemesi için yeterince su tüketmelisin. Belirlenen günlük miktara ulaştığından emin ol.'}
-              {activeTracker === 'steps' && 'Günlük hareket miktarını artırmak sağlığın için önemlidir. Hedeflenen adım sayısına ulaşmak için yürümeye devam et.'}
-              {activeTracker === 'weight' && 'Hedef kilonuza ulaşmak için kilonuzu düzenli olarak kaydedin. Değişimleri takip ederek motivasyonunuzu koruyun.'}
+              {activeTracker === 'water' && t('plan.trackers.waterDesc')}
+              {activeTracker === 'steps' && t('plan.trackers.stepsDesc')}
+              {activeTracker === 'weight' && t('plan.trackers.weightDesc')}
             </Text>
 
             {/* Controls Row */}
             <View style={styles.controlRow}>
-              {/* Minus Button */}
-              <TouchableOpacity
+              <PressableScale haptic="light"
                 style={styles.controlBtn}
-                activeOpacity={0.8}
                 onPress={() => {
                   haptic.light();
-                  if (activeTracker === 'water') {
-                    setTempWater(w => Math.max(0, w - 250));
-                  } else if (activeTracker === 'steps') {
-                    setTempSteps(s => Math.max(0, s - 1000));
-                  } else {
-                    setTempWeight(wt => Math.max(30, wt - 0.1));
-                  }
+                  if (activeTracker === 'water') setTempWater(w => Math.max(0, w - 250));
+                  else if (activeTracker === 'steps') setTempSteps(s => Math.max(0, s - 1000));
+                  else setTempWeight(wt => Math.max(30, +(wt - 0.1).toFixed(1)));
                 }}
               >
-                <Ionicons name="remove" size={24} color="#fff" />
-              </TouchableOpacity>
+                <Ionicons name="remove" size={22} color={colors.textWhite} />
+              </PressableScale>
 
-              {/* Display Value */}
-              <Text style={styles.controlValue}>
-                {activeTracker === 'water' && `${tempWater}/2500ml`}
-                {activeTracker === 'steps' && `${tempSteps}/10.000 adım`}
-                {activeTracker === 'weight' && `${tempWeight.toFixed(1)} kg`}
-              </Text>
+              <View style={styles.controlValueWrap}>
+                <Text style={styles.controlValue}>
+                  {activeTracker === 'weight' ? tempWeight.toFixed(1) : trackerCurrent}
+                  <Text style={styles.controlUnit}> {trackerUnit}</Text>
+                </Text>
+                {trackerGoal > 0 && (
+                  <Text style={styles.controlGoal}>/ {trackerGoal} {trackerUnit}</Text>
+                )}
+              </View>
 
-              {/* Plus Button */}
-              <TouchableOpacity
+              <PressableScale haptic="light"
                 style={[styles.controlBtn, styles.controlBtnAdd]}
-                activeOpacity={0.8}
                 onPress={() => {
                   haptic.light();
-                  if (activeTracker === 'water') {
-                    setTempWater(w => w + 250);
-                  } else if (activeTracker === 'steps') {
-                    setTempSteps(s => s + 1000);
-                  } else {
-                    setTempWeight(wt => wt + 0.1);
-                  }
+                  if (activeTracker === 'water') setTempWater(w => w + 250);
+                  else if (activeTracker === 'steps') setTempSteps(s => s + 1000);
+                  else setTempWeight(wt => +(wt + 0.1).toFixed(1));
                 }}
               >
-                <Ionicons name="add" size={24} color="#000" />
-              </TouchableOpacity>
+                <Ionicons name="add" size={22} color={colors.textWhite} />
+              </PressableScale>
             </View>
 
-            {/* Progress Bar / Goal Info */}
-            {activeTracker === 'water' && (
-              <View style={styles.sheetProgressBarBg}>
-                <View style={[styles.sheetProgressBarFill, { width: `${Math.min(tempWater / 2500 * 100, 100)}%` as `${number}%` }]} />
+            {/* Progress / Goal */}
+            {trackerProgress ? (
+              <View style={styles.sheetProgressWrap}>
+                <ProgressBar progress={trackerProgress.ratio} />
+                <Text style={styles.sheetProgressLabel}>
+                  {t('plan.trackers.remainingGoal', { percent: trackerProgress.percent, remaining: trackerProgress.remaining, unit: trackerUnit })}
+                </Text>
               </View>
-            )}
-
-            {activeTracker === 'steps' && (
-              <View style={styles.sheetProgressBarBg}>
-                <View style={[styles.sheetProgressBarFill, { width: `${Math.min(tempSteps / 10000 * 100, 100)}%` as `${number}%` }]} />
-              </View>
-            )}
-
-            {activeTracker === 'weight' && (
+            ) : (
               <Text style={styles.weightGoalText}>
-                Hedefinize <Text style={styles.weightGoalBold}>{Math.max(0, tempWeight - profile.targetWeight).toFixed(1)} kilo</Text> kaldı.
+                {t('plan.trackers.weightToGo', { kg: Math.max(0, tempWeight - profile.targetWeight).toFixed(1) })}
               </Text>
             )}
 
             {/* Save Button */}
-            <TouchableOpacity
+            <PressableScale haptic="light"
               style={styles.saveBtn}
               activeOpacity={0.8}
               onPress={() => {
                 haptic.success();
                 if (activeTracker === 'water') {
-                  addWater(tempWater - waterMl);
+                  const delta = tempWater - waterMl;
+                  addWater(delta);
+                  if (tempWater >= waterGoal) {
+                    toast(t('feedback.water.goalReached'));
+                  } else if (delta !== 0) {
+                    toast(
+                      t(delta > 0 ? 'feedback.water.added' : 'feedback.water.removed', {
+                        ml: Math.abs(delta),
+                        total: tempWater,
+                        goal: waterGoal,
+                      }),
+                    );
+                  }
                 } else if (activeTracker === 'steps') {
                   updateSteps(tempSteps);
+                  toast(
+                    tempSteps >= stepsGoal
+                      ? t('feedback.steps.goalReached')
+                      : t('feedback.steps.saved', { steps: tempSteps }),
+                  );
                 } else {
-                  updateWeight(tempWeight);
+                  updateProfile({ weight: tempWeight });
+                  toast(t('feedback.weight.saved', { weight: tempWeight.toFixed(1) }));
                 }
                 setActiveTracker(null);
               }}
             >
-              <Text style={styles.saveBtnText}>Kaydet</Text>
-            </TouchableOpacity>
+              <Text style={styles.saveBtnText}>{t('plan.trackers.save')}</Text>
+            </PressableScale>
           </View>
         </View>
       )}
@@ -507,10 +626,10 @@ export default function PlanScreen() {
         {/* ══ 1 · HEADER & CALENDAR ═══════════════════════════════ */}
         <View style={{ zIndex: 100 }}>
           <View style={[styles.header, { zIndex: 105 }]}>
-            <Text style={[styles.greeting, calendarOpen && { opacity: 0 }]}>Merhaba Amir Hissein Abakar</Text>
+            <Text style={[styles.greeting, calendarOpen && { opacity: 0 }]}>{t('plan.greeting', { name: userName ? userName.split(' ')[0] : '' })}</Text>
             
             <PressableScale
-              style={[styles.datePill, calendarOpen && { backgroundColor: Colors.surface, borderColor: Colors.gold }]}
+              style={[styles.datePill, calendarOpen && { backgroundColor: colors.surface, borderColor: colors.gold }]}
               scaleTo={0.95}
               haptic="light"
               onPress={() => {
@@ -518,9 +637,9 @@ export default function PlanScreen() {
                 setCalendarOpen(!calendarOpen);
               }}
             >
-              <Ionicons name="calendar-outline" size={16} color={calendarOpen ? Colors.gold : Colors.textPrimary} />
-              <Text style={[styles.dateStr, calendarOpen && { color: Colors.gold }]}>{activeDateStr}</Text>
-              <Ionicons name={calendarOpen ? "chevron-up" : "chevron-down"} size={14} color={calendarOpen ? Colors.gold : Colors.textMuted} />
+              <Ionicons name="calendar-outline" size={16} color={calendarOpen ? colors.gold : colors.textPrimary} />
+              <Text style={[styles.dateStr, calendarOpen && { color: colors.gold }]}>{activeDateStr}</Text>
+              <Ionicons name={calendarOpen ? "chevron-up" : "chevron-down"} size={14} color={calendarOpen ? colors.gold : colors.textMuted} />
             </PressableScale>
           </View>
 
@@ -540,25 +659,25 @@ export default function PlanScreen() {
               <View style={[styles.calendarDropdownCard, { top: 50, left: 0, right: 0, zIndex: 110 }]}>
                 {/* Nav Row */}
                 <View style={styles.calNavRow}>
-                  <TouchableOpacity onPress={handlePrevMonth} style={styles.calNavBtn}>
-                    <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
-                  </TouchableOpacity>
+                  <PressableScale haptic="light" onPress={handlePrevMonth} style={styles.calNavBtn}>
+                    <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+                  </PressableScale>
                   <View style={styles.calHeaderTitleWrap}>
                     <Text style={styles.calMonthName}>
-                      {TURKISH_MONTHS[currentYearMonth.month]}
+                      {months[currentYearMonth.month]}
                     </Text>
                     <Text style={styles.calYearName}>
                       {currentYearMonth.year}
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={handleNextMonth} style={styles.calNavBtn}>
-                    <Ionicons name="chevron-forward" size={20} color={Colors.textPrimary} />
-                  </TouchableOpacity>
+                  <PressableScale haptic="light" onPress={handleNextMonth} style={styles.calNavBtn}>
+                    <Ionicons name="chevron-forward" size={20} color={colors.textPrimary} />
+                  </PressableScale>
                 </View>
 
                 {/* Days Header */}
                 <View style={styles.calDaysHeaderRow}>
-                  {['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map((day, i) => (
+                  {weekdays.map((day, i) => (
                     <Text key={day} style={[styles.calDayHeaderTxt, (i === 5 || i === 6) && styles.calDayHeaderTxtWeekend]}>
                       {day}
                     </Text>
@@ -576,12 +695,21 @@ export default function PlanScreen() {
                       selectedDate.getDate() === cell.day &&
                       selectedDate.getMonth() === cell.month &&
                       selectedDate.getFullYear() === cell.year;
+                    const isToday =
+                      today.getDate() === cell.day &&
+                      today.getMonth() === cell.month &&
+                      today.getFullYear() === cell.year;
+                    const cellDate = new Date(cell.year, cell.month, cell.day);
+                    cellDate.setHours(0, 0, 0, 0);
+                    const isFuture = cellDate.getTime() > today.getTime();
+                    const status = getDayStatus(cell.year, cell.month, cell.day);
 
                     return (
-                      <TouchableOpacity
+                      <PressableScale haptic="light"
                         key={`cell-${idx}`}
                         style={[
                           styles.calCellBtn,
+                          isToday && !isSelected && styles.calCellBtnToday,
                           isSelected && styles.calCellBtnSelected,
                         ]}
                         activeOpacity={0.8}
@@ -595,27 +723,50 @@ export default function PlanScreen() {
                           setCalendarOpen(false);
                         }}
                       >
-                        <Text style={[styles.calCellText, isSelected && styles.calCellTextSelected]}>
+                        <Text
+                          style={[
+                            styles.calCellText,
+                            isFuture && styles.calCellTextFuture,
+                            isToday && !isSelected && styles.calCellTextToday,
+                            isSelected && styles.calCellTextSelected,
+                          ]}
+                        >
                           {cell.day}
                         </Text>
-                      </TouchableOpacity>
+                        {status && (
+                          <View
+                            style={[
+                              styles.calCellDot,
+                              { backgroundColor: isSelected ? colors.backgroundDarkCard : STATUS_COLOR[status] },
+                            ]}
+                          />
+                        )}
+                      </PressableScale>
                     );
                   })}
                 </View>
 
+                {/* Retour à aujourd'hui (si on a navigué ailleurs) */}
+                {!isCurrentMonth && (
+                  <PressableScale haptic="light" style={styles.calTodayBtn} onPress={goToToday}>
+                    <Ionicons name="today-outline" size={14} color={colors.gold} />
+                    <Text style={styles.calTodayBtnTxt}>{t('plan.today')}</Text>
+                  </PressableScale>
+                )}
+
                 {/* Color Legend */}
                 <View style={styles.calLegendRow}>
                   <View style={styles.calLegendItem}>
-                    <View style={[styles.calLegendDot, { backgroundColor: '#4CAF50' }]} />
-                    <Text style={styles.calLegendTxt}>Dolu</Text>
+                    <View style={[styles.calLegendDot, { backgroundColor: colors.green }]} />
+                    <Text style={styles.calLegendTxt}>{t('plan.legendFull')}</Text>
                   </View>
                   <View style={styles.calLegendItem}>
-                    <View style={[styles.calLegendDot, { backgroundColor: '#FFB300' }]} />
-                    <Text style={styles.calLegendTxt}>Kısmi</Text>
+                    <View style={[styles.calLegendDot, { backgroundColor: colors.gold }]} />
+                    <Text style={styles.calLegendTxt}>{t('plan.legendPartial')}</Text>
                   </View>
                   <View style={styles.calLegendItem}>
-                    <View style={[styles.calLegendDot, { backgroundColor: '#F44336' }]} />
-                    <Text style={styles.calLegendTxt}>Fazla</Text>
+                    <View style={[styles.calLegendDot, { backgroundColor: colors.red }]} />
+                    <Text style={styles.calLegendTxt}>{t('plan.legendOver')}</Text>
                   </View>
                 </View>
               </View>
@@ -631,8 +782,8 @@ export default function PlanScreen() {
               <View style={styles.calorieLeft}>
                 {/* orange label row */}
                 <View style={styles.calorieLabelRow}>
-                  <Flame size={17} color={Colors.orange} strokeWidth={2.2} />
-                  <Text style={styles.calorieLabel}>Kalori</Text>
+                  <Flame size={17} color={colors.orange} strokeWidth={2.2} />
+                  <Text style={styles.calorieLabel}>{t('plan.calorie')}</Text>
                 </View>
                 {/* big number */}
                 <View style={styles.calorieNumRow}>
@@ -641,11 +792,11 @@ export default function PlanScreen() {
                 </View>
                 {/* remaining pill */}
                 <View style={styles.remainPill}>
-                  <Text style={styles.remainTxt}>Kalan: {remaining} kcal</Text>
+                  <Text style={styles.remainTxt}>{t('plan.remaining', { n: remaining })}</Text>
                 </View>
               </View>
               {/* ring */}
-              <CalorieRing consumed={totalConsumed} target={calorieGoal} size={90} stroke={8} color={Colors.gold} />
+              <CalorieRing consumed={totalConsumed} target={calorieGoal} size={90} stroke={8} />
             </View>
 
             {/* divider + expanded macros */}
@@ -654,7 +805,7 @@ export default function PlanScreen() {
                 <View style={styles.expandedDivider} />
                 <View style={styles.macroProgressRow}>
                   <View style={styles.macroProgressInfo}>
-                    <Text style={styles.macroProgressLabel}>Karbonhidrat</Text>
+                    <Text style={styles.macroProgressLabel}>{t('plan.carbs')}</Text>
                     <Text style={styles.macroProgressValue}>{consumedCarbs} / {targets.carbs}g</Text>
                   </View>
                   <View style={styles.macroProgressBarBg}>
@@ -664,7 +815,7 @@ export default function PlanScreen() {
 
                 <View style={styles.macroProgressRow}>
                   <View style={styles.macroProgressInfo}>
-                    <Text style={styles.macroProgressLabel}>Protein</Text>
+                    <Text style={styles.macroProgressLabel}>{t('plan.protein')}</Text>
                     <Text style={styles.macroProgressValue}>{consumedProtein} / {targets.protein}g</Text>
                   </View>
                   <View style={styles.macroProgressBarBg}>
@@ -674,7 +825,7 @@ export default function PlanScreen() {
 
                 <View style={styles.macroProgressRow}>
                   <View style={styles.macroProgressInfo}>
-                    <Text style={styles.macroProgressLabel}>Yağ</Text>
+                    <Text style={styles.macroProgressLabel}>{t('plan.fat')}</Text>
                     <Text style={styles.macroProgressValue}>{consumedFat} / {targets.fat}g</Text>
                   </View>
                   <View style={styles.macroProgressBarBg}>
@@ -695,19 +846,31 @@ export default function PlanScreen() {
                 setDetailsExpanded(!detailsExpanded);
               }}
             >
-              <Ionicons name={detailsExpanded ? "chevron-up" : "chevron-down"} size={11} color={Colors.textMuted} />
+              <Ionicons name={detailsExpanded ? "chevron-up" : "chevron-down"} size={11} color={colors.textMuted} />
               <Text style={styles.calorieFooterTxt}>
-                {detailsExpanded ? "DETAYLARI GİZLE" : "DETAYLARI GÖR"}
+                {detailsExpanded ? t('plan.hideDetails') : t('plan.showDetails')}
               </Text>
               <Text style={styles.calorieDot}>  •  </Text>
-              <Text style={styles.calorieFooterTxt}>Makro Değerleri</Text>
+              <Text style={styles.calorieFooterTxt}>{t('plan.macroValues')}</Text>
             </PressableScale>
           </View>
         </FadeInItem>
 
+        {/* ══ 2.5 · INSIGHTS ══════════════════════════════════════ */}
+        {insights.length > 0 && (
+          <FadeInItem index={2}>
+            <Text style={styles.sectionTitle}>{t('insights.title')}</Text>
+            <View style={styles.insightsWrap}>
+              {insights.map(ins => (
+                <InsightCard key={ins.id} insight={ins} />
+              ))}
+            </View>
+          </FadeInItem>
+        )}
+
         {/* ══ 3 · MY MEALS ════════════════════════════════════════ */}
         <FadeInItem index={2}>
-          <Text style={styles.sectionTitle}>Öğünlerim</Text>
+          <Text style={styles.sectionTitle}>{t('plan.myMeals')}</Text>
           <View style={styles.mealGrid}>
             {MEALS.map(slot => (
               <MealCard
@@ -729,8 +892,8 @@ export default function PlanScreen() {
           <View style={styles.trackCard}>
             <Tracker
               icon="cup-water"
-              title="Su Takibi"
-              subParts={[{ text: `${waterMl} ml` }, { text: ' / 2500 ml.' }]}
+              title={t('plan.trackers.water')}
+              subParts={[{ text: `${waterMl} ml`, bold: true }, { text: ` / ${waterGoal} ml.` }]}
               onPress={() => {
                 haptic.light();
                 setTempWater(waterMl);
@@ -739,8 +902,8 @@ export default function PlanScreen() {
             />
             <Tracker
               icon="walk"
-              title="Adım takibi"
-              subParts={[{ text: `${intake.steps || 0} adım` }, { text: ' / 10.000 adım.' }]}
+              title={t('plan.trackers.steps')}
+              subParts={[{ text: `${intake.steps || 0} ${t('plan.trackers.step')}`, bold: true }, { text: ` / ${stepsGoal} ${t('plan.trackers.step')}.` }]}
               onPress={() => {
                 haptic.light();
                 setTempSteps(intake.steps || 0);
@@ -749,15 +912,13 @@ export default function PlanScreen() {
             />
             <Tracker
               icon="scale-bathroom"
-              title="Kilo takibi"
+              title={t('plan.trackers.weight')}
               subParts={[
-                { text: 'Hedefinize ' },
-                { text: `${Math.max(0, intake.weight - profile.targetWeight).toFixed(1)} kilo`, bold: true },
-                { text: ' kaldı.' },
+                { text: t('plan.trackers.weightToGo', { kg: Math.max(0, profile.weight - profile.targetWeight).toFixed(1) }), bold: true },
               ]}
               onPress={() => {
                 haptic.light();
-                setTempWeight(intake.weight || profile.weight);
+                setTempWeight(profile.weight);
                 setActiveTracker('weight');
               }}
               last
@@ -767,7 +928,7 @@ export default function PlanScreen() {
 
         {/* ══ 5 · RECIPES FOR YOU ═════════════════════════════════ */}
         <FadeInItem index={4}>
-          <Text style={styles.sectionTitle}>Sana Uygun Tarifler</Text>
+          <Text style={styles.sectionTitle}>{t('plan.forYou')}</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -786,18 +947,18 @@ export default function PlanScreen() {
                   ? <Image source={{ uri: r.image }} style={styles.recipeImg} resizeMode="cover" />
                   : (
                     <View style={[styles.recipeImg, styles.recipeImgFallback]}>
-                      <Text style={{ fontSize: 44 }}>{r.emoji}</Text>
+                      <Text style={{ fontSize: 38 }}>{r.emoji}</Text>
                     </View>
                   )
                 }
                 {/* info */}
                 <View style={styles.recipeInfo}>
-                  <Text style={styles.recipeName} numberOfLines={2}>{r.name}</Text>
+                  <Text style={styles.recipeName} numberOfLines={2}>{localizeRecipeName(r, t)}</Text>
                   <View style={styles.recipeMeta}>
-                    <Flame size={12} color={Colors.orange} strokeWidth={2.2} />
+                    <Flame size={12} color={colors.orange} strokeWidth={2.2} />
                     <Text style={styles.recipeMetaTxt}>{r.kcal} kcal</Text>
-                    <Clock size={12} color={Colors.textMuted} strokeWidth={2.2} />
-                    <Text style={styles.recipeMetaTxt}>{r.time} dk</Text>
+                    <Clock size={12} color={colors.textMuted} strokeWidth={2.2} />
+                    <Text style={styles.recipeMetaTxt}>{r.time} {t('plan.min')}</Text>
                   </View>
                 </View>
               </PressableScale>
@@ -811,8 +972,8 @@ export default function PlanScreen() {
 }
 
 /* ─── Styles ──────────────────────────────────────────────────── */
-const styles = StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: Colors.background },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe:    { flex: 1, backgroundColor: colors.background },
   scroll:  { flex: 1 },
   content: { paddingHorizontal: H_PAD, paddingTop: 12, paddingBottom: 120 },
 
@@ -826,7 +987,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     flex: 1,
     paddingRight: 10,
     lineHeight: 28,
@@ -835,9 +996,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#1E1E1E',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -845,7 +1006,7 @@ const styles = StyleSheet.create({
   dateStr: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   // Calendar Dropdown Overlay
@@ -859,13 +1020,13 @@ const styles = StyleSheet.create({
     top: 70, // right below the header
     left: 20,
     right: 20,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.surface,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: 16,
     zIndex: 100,
-    shadowColor: '#000',
+    shadowColor: colors.shadowBlack,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.35,
     shadowRadius: 20,
@@ -881,7 +1042,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -891,12 +1052,12 @@ const styles = StyleSheet.create({
   calMonthName: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   calYearName: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: -2,
   },
   calDaysHeaderRow: {
@@ -908,12 +1069,12 @@ const styles = StyleSheet.create({
   calDayHeaderTxt: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     width: '13%',
     textAlign: 'center',
   },
   calDayHeaderTxtWeekend: {
-    color: Colors.gold,
+    color: colors.gold,
   },
   calGrid: {
     flexDirection: 'row',
@@ -930,29 +1091,62 @@ const styles = StyleSheet.create({
     width: '13%',
     aspectRatio: 1,
     borderRadius: 12,
-    backgroundColor: '#262626',
+    backgroundColor: colors.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   calCellBtnSelected: {
-    backgroundColor: '#FFE8D1',
+    backgroundColor: colors.orangeLight,
+  },
+  calCellBtnToday: {
+    borderWidth: 1.5,
+    borderColor: colors.gold,
   },
   calCellText: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   calCellTextSelected: {
-    color: '#000',
+    color: colors.backgroundDarkCard,
     fontFamily: 'Poppins_700Bold',
+  },
+  calCellTextToday: {
+    color: colors.gold,
+  },
+  calCellTextFuture: {
+    color: colors.textLight,
+  },
+  calCellDot: {
+    position: 'absolute',
+    bottom: 5,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  calTodayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    backgroundColor: colors.goldLight,
+    borderRadius: 100,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginBottom: 14,
+  },
+  calTodayBtnTxt: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 13,
+    color: colors.gold,
   },
   calLegendRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: colors.borderLight,
     paddingTop: 14,
   },
   calLegendItem: {
@@ -968,22 +1162,22 @@ const styles = StyleSheet.create({
   calLegendTxt: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 
   // Tracker Bottom Sheets Overlay
   sheetBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: colors.overlayStrong,
     justifyContent: 'flex-end',
     zIndex: 1000,
   },
   sheetContent: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     borderBottomWidth: 0,
     padding: 24,
     paddingBottom: 40,
@@ -1001,20 +1195,20 @@ const styles = StyleSheet.create({
   sheetTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   sheetCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.borderLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sheetDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 24,
   },
@@ -1028,68 +1222,101 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.separatorLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   controlBtnAdd: {
-    backgroundColor: '#2dbbb0',
+    backgroundColor: colors.green,
+  },
+  controlValueWrap: {
+    flex: 1,
+    alignItems: 'center',
   },
   controlValue: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 28,
-    color: Colors.textPrimary,
+    fontSize: 30,
+    color: colors.textPrimary,
+  },
+  controlUnit: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  controlGoal: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 13,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.separator,
+    marginBottom: 16,
+  },
+  sheetProgressWrap: {
+    gap: 8,
+    marginBottom: 24,
+  },
+  sheetProgressLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   sheetProgressBarBg: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.separatorLight,
     overflow: 'hidden',
-    marginBottom: 28,
+    marginBottom: 22,
   },
   sheetProgressBarFill: {
     height: '100%',
     borderRadius: 4,
-    backgroundColor: '#2dbbb0',
+    backgroundColor: colors.green,
   },
   weightGoalText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: 22,
   },
   weightGoalBold: {
     fontFamily: 'Inter_700Bold',
-    color: Colors.gold,
+    color: colors.gold,
   },
   saveBtn: {
-    backgroundColor: '#2dbbb0',
+    backgroundColor: colors.green,
     height: 52,
-    borderRadius: 26,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveBtnText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 16,
-    color: '#000',
+    color: colors.backgroundDarkCard,
   },
 
   // Calorie card — single rounded card with divider inside
   calorieWrap: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    marginBottom: 28,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    marginBottom: 22,
     overflow: 'hidden',
   },
   calorieTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 20,
+    padding: 16,
   },
   calorieLeft: { flex: 1, paddingRight: 16 },
   calorieLabelRow: {
@@ -1101,7 +1328,7 @@ const styles = StyleSheet.create({
   calorieLabel: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.orange,
+    color: colors.orange,
   },
   calorieNumRow: {
     flexDirection: 'row',
@@ -1110,33 +1337,33 @@ const styles = StyleSheet.create({
   },
   calorieNum: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 40,
-    color: Colors.textPrimary,
+    fontSize: 30,
+    color: colors.textPrimary,
     lineHeight: 46,
   },
   calorieGoal: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     paddingBottom: 5,
   },
   remainPill: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 9,
     paddingHorizontal: 12,
     paddingVertical: 6,
     alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderLight,
   },
   remainTxt: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   calorieDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: colors.borderLight,
     marginHorizontal: 20,
   },
   calorieFooter: {
@@ -1149,13 +1376,13 @@ const styles = StyleSheet.create({
   calorieFooterTxt: {
     fontFamily: 'Inter_500Medium',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     letterSpacing: 0.4,
   },
   calorieDot: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textLight,
+    color: colors.textLight,
   },
 
   // Expanded macros styles
@@ -1166,7 +1393,7 @@ const styles = StyleSheet.create({
   },
   expandedDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: colors.borderLight,
     marginBottom: 4,
   },
   macroProgressRow: {
@@ -1180,31 +1407,37 @@ const styles = StyleSheet.create({
   macroProgressLabel: {
     fontFamily: 'Inter_500Medium',
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   macroProgressValue: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 13,
-    color: Colors.gold,
+    color: colors.gold,
   },
   macroProgressBarBg: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.separatorLight,
     overflow: 'hidden',
   },
   macroProgressBarFill: {
     height: '100%',
     borderRadius: 3,
-    backgroundColor: Colors.gold,
+    backgroundColor: colors.gold,
   },
 
   // Section title
   sectionTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 22,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 14,
+  },
+
+  // Insights
+  insightsWrap: {
+    gap: 10,
+    marginBottom: 22,
   },
 
   // Meal grid (2 × 2, exact pixel width)
@@ -1212,17 +1445,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: GRID_GAP,
-    marginBottom: 28,
+    marginBottom: 22,
   },
 
   // Tracker card
   trackCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingHorizontal: 18,
-    marginBottom: 28,
+    marginBottom: 22,
     overflow: 'hidden',
   },
 
@@ -1233,10 +1466,10 @@ const styles = StyleSheet.create({
   },
   recipeCard: {
     width: 186,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   recipeImg: {
@@ -1244,7 +1477,7 @@ const styles = StyleSheet.create({
     height: 130,
   },
   recipeImgFallback: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1255,7 +1488,7 @@ const styles = StyleSheet.create({
   recipeName: {
     fontFamily: 'Inter_700Bold',
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     lineHeight: 18,
   },
   recipeMeta: {
@@ -1266,7 +1499,7 @@ const styles = StyleSheet.create({
   recipeMetaTxt: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginRight: 6,
   },
 
@@ -1282,7 +1515,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.goldLight,
+    backgroundColor: colors.goldLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 22,
@@ -1290,23 +1523,23 @@ const styles = StyleSheet.create({
   gateTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 22,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 10,
   },
   gateSub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 21,
-    marginBottom: 28,
+    marginBottom: 22,
   },
   gateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
     paddingHorizontal: 24,
     height: 52,
     borderRadius: 14,
@@ -1314,6 +1547,6 @@ const styles = StyleSheet.create({
   gateBtnTxt: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.white,
+    color: colors.white,
   },
 });

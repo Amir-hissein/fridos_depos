@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import {
   Text,
   StyleSheet,
@@ -6,13 +6,17 @@ import {
   ViewStyle,
   TextStyle,
 } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { Radii, Shadows } from '../../constants/layout';
+import { useThemedStyles } from '../../context/ThemeContext';
 import { PressableScale } from './PressableScale';
 
 interface ButtonProps {
   label: string;
   onPress?: () => void;
   variant?: 'primary' | 'orange' | 'premium' | 'outline';
+  /** Optional element rendered before the label (e.g. an icon). */
+  icon?: ReactNode;
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -20,8 +24,9 @@ interface ButtonProps {
 }
 
 export function Button({
-  label, onPress, variant = 'primary', loading, style, textStyle, disabled,
+  label, onPress, variant = 'primary', icon, loading, style, textStyle, disabled,
 }: ButtonProps) {
+  const styles = useThemedStyles(makeStyles);
   const containerStyle = [
     styles.base,
     variant === 'primary' && styles.primary,
@@ -34,7 +39,7 @@ export function Button({
 
   const labelStyle = [
     styles.label,
-    variant === 'outline' && { color: Colors.textPrimary },
+    variant === 'outline' && styles.outlineLabel,
     textStyle,
   ];
 
@@ -48,49 +53,40 @@ export function Button({
     >
       {loading
         ? <ActivityIndicator color="#fff" />
-        : <Text style={labelStyle}>{label}</Text>
+        : <>
+            {icon}
+            <Text style={labelStyle}>{label}</Text>
+          </>
       }
     </PressableScale>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   base: {
-    height: 54,
-    borderRadius: 14,
+    height: 52,
+    borderRadius: Radii.button,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 10,
   },
   primary: {
-    backgroundColor: Colors.green,
-    shadowColor: Colors.shadowGreen,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: c.green,
+    ...Shadows.green,
   },
   orange: {
-    backgroundColor: Colors.orange,
-    shadowColor: Colors.shadowOrange,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: c.orange,
+    ...Shadows.orange,
   },
   premium: {
-    backgroundColor: Colors.green,
-    shadowColor: Colors.shadowGreen,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
+    backgroundColor: c.green,
+    ...Shadows.green,
   },
   outline: {
     backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.border,
   },
   disabled: {
     opacity: 0.5,
@@ -98,6 +94,7 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: Colors.textWhite,
+    color: c.textWhite,
   },
+  outlineLabel: { color: c.textPrimary },
 });

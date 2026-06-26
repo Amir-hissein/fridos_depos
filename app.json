@@ -51,6 +51,13 @@
         {
           "photosPermission": "Fridos accesses your photos to analyze an image of your fridge."
         }
+      ],
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "color": "#14B8A6"
+        }
       ]
     ]
   }

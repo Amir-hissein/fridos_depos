@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { haptic, HapticKind } from '../../lib/haptics';
+import { Springs } from '../../constants/animations';
 
 interface PressableScaleProps {
   children: React.ReactNode;
@@ -18,7 +19,9 @@ interface PressableScaleProps {
   /** Retour haptique déclenché au press */
   haptic?: HapticKind;
   disabled?: boolean;
-  hitSlop?: number;
+  hitSlop?: number | { top?: number; left?: number; bottom?: number; right?: number };
+  /** Accepté pour compatibilité (migration depuis TouchableOpacity) — ignoré. */
+  activeOpacity?: number;
 }
 
 /**
@@ -41,8 +44,7 @@ export function PressableScale({
     Animated.spring(scale, {
       toValue: to,
       useNativeDriver: true,
-      friction: 7,
-      tension: 80,
+      ...Springs.press,
     }).start();
   };
 

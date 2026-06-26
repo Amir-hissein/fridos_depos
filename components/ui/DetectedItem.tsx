@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { haptic } from '../../lib/haptics';
 
 interface DetectedItemProps {
@@ -23,6 +24,8 @@ export function DetectedItem({
   onToggle,
   initialChecked = true,
 }: DetectedItemProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [localChecked, setLocalChecked] = useState(initialChecked);
   const isChecked = checked !== undefined ? checked : localChecked;
 
@@ -70,7 +73,7 @@ export function DetectedItem({
       </View>
       <View style={[styles.check, isChecked && styles.checkActive]}>
         <Animated.View style={{ transform: [{ scale: checkScale }], opacity: pop }}>
-          <Ionicons name="checkmark" size={14} color={Colors.white} />
+          <Ionicons name="checkmark" size={14} color={colors.white} />
         </Animated.View>
       </View>
     </Pressable>
@@ -83,13 +86,13 @@ function confidenceLabel(pct: number) {
   return 'Unsure';
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 13,
     height: 60,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     paddingHorizontal: 16,
     shadowColor: '#000',
@@ -112,12 +115,12 @@ const styles = StyleSheet.create({
   name: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   conf: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginTop: 2,
   },
   check: {
@@ -125,12 +128,12 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: Colors.border,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkActive: {
-    backgroundColor: Colors.green,
-    borderColor: Colors.green,
+    backgroundColor: colors.green,
+    borderColor: colors.green,
   },
 });

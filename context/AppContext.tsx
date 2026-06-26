@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { animateLayout } from '../constants/animations';
+import { usePersistentState } from '../lib/usePersistentState';
 
 /** Free plan limits — premium unlocks everything. */
 export const FREE_RECIPE_LIMIT = 3; // recipes a free user can open per day
@@ -18,6 +20,9 @@ interface AppContextType {
   onboardingDone: boolean;
   setOnboardingDone: (done: boolean) => void;
   setPremium: (premium: boolean) => void;
+  /** Display name of the user — shared between profile & plan greeting. */
+  userName: string;
+  setUserName: (name: string) => void;
   shoppingList: ShoppingItem[];
   addShoppingItem: (name: string, category: string) => void;
   removeShoppingItem: (id: string) => void;
@@ -29,9 +34,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   // Default to PREMIUM for testing — set to false to test the gate/paywall flow.
-  const [isPremium, setIsPremium] = useState(true);
-  const [onboardingDone, setOnboardingDone] = useState(false);
-  const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([
+  const [isPremium, setIsPremium] = usePersistentState('app.isPremium', true);
+  const [onboardingDone, setOnboardingDone] = usePersistentState('app.onboardingDone', false);
+  const [userName, setUserName] = usePersistentState('app.userName', 'Amir Hissein Abakar');
+  const [shoppingList, setShoppingList] = usePersistentState<ShoppingItem[]>('app.shoppingList', [
     { id: 's1', name: '3 zucchini', category: '🥬 Fruits & vegetables', checked: true },
     { id: 's2', name: '1 lb tomatoes', category: '🥬 Fruits & vegetables', checked: false },
     { id: 's3', name: '1 bunch of basil', category: '🥬 Fruits & vegetables', checked: false },
@@ -51,10 +57,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       category,
       checked: false,
     };
+    animateLayout();
     setShoppingList(prev => [...prev, newItem]);
   };
 
   const removeShoppingItem = (id: string) => {
+    animateLayout();
     setShoppingList(prev => prev.filter(item => item.id !== id));
   };
 
@@ -65,6 +73,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCheckedItems = () => {
+    animateLayout();
     setShoppingList(prev => prev.filter(item => !item.checked));
   };
 
@@ -74,6 +83,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       onboardingDone,
       setOnboardingDone,
       setPremium,
+      userName,
+      setUserName,
       shoppingList,
       addShoppingItem,
       removeShoppingItem,

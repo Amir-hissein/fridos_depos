@@ -12,110 +12,68 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { ThemeColors } from '../constants/colors';
+import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { PressableScale } from '../components/ui/PressableScale';
+import { ProgressBar } from '../components/ui/ProgressBar';
 import { haptic } from '../lib/haptics';
 import { usePlan, MealSlot } from '../context/PlanContext';
+import { useFeedback } from '../context/FeedbackContext';
+import { useFavorites } from '../context/FavoritesContext';
+import { useCustomRecipes } from '../context/CustomRecipesContext';
+import { useAllergens } from '../context/AllergenContext';
+import { RECIPES } from '../constants/recipes';
+import { filterRecipes, MealType } from '../services/recipeFilters';
+import { localizeRecipeName } from '../services/localizeRecipe';
+import { useTranslation } from 'react-i18next';
 
 interface MealRecipe {
   id: string;
   name: string;
   kcal: number;
   time: number;
-  image: string;
+  image?: string;
+  emoji?: string;
+  bgColor?: string;
 }
 
-const MOCK_RECIPES: Record<string, MealRecipe[]> = {
-  breakfast: [
-    {
-      id: 'r_bf_1',
-      name: 'Güzelleştiren Shake',
-      kcal: 503,
-      time: 10,
-      image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: '3', // maps to Tomato & basil omelette from RECIPES
-      name: 'Beyaz Peynirli Omlet',
-      kcal: 500,
-      time: 10,
-      image: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: 'r_bf_3',
-      name: 'Orman Meyveli Chia Lapa',
-      kcal: 500,
-      time: 2,
-      image: 'https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&w=400&q=80',
-    },
-  ],
-  lunch: [
-    {
-      id: '2', // maps to Curried veggie skillet
-      name: 'Köri Soslu Sebze Tava',
-      kcal: 500,
-      time: 20,
-      image: 'https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: '1', // maps to Zucchini & goat cheese gratin
-      name: 'Keçi Peynirli Kabak Graten',
-      kcal: 500,
-      time: 35,
-      image: 'https://images.unsplash.com/photo-1568600891621-50f697b9a1c7?auto=format&fit=crop&w=400&q=80',
-    },
-  ],
-  dinner: [
-    {
-      id: '4', // maps to Express Caprese salad
-      name: 'Akdeniz Caprese Salatası',
-      kcal: 500,
-      time: 10,
-      image: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: '1',
-      name: 'Keçi Peynirli Kabak Graten',
-      kcal: 500,
-      time: 35,
-      image: 'https://images.unsplash.com/photo-1568600891621-50f697b9a1c7?auto=format&fit=crop&w=400&q=80',
-    },
-  ],
-  snack: [
-    {
-      id: 'r_sn_1',
-      name: 'Orman Meyveli Yoğurt Kasesi',
-      kcal: 193,
-      time: 5,
-      image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=400&q=80',
-    },
-    {
-      id: 'r_sn_2',
-      name: 'Sağlıklı Karışık Kuruyemiş',
-      kcal: 150,
-      time: 2,
-      image: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&w=400&q=80',
-    },
-  ],
-};
+/** Thumbnail that shows the food photo, or an emoji-on-color fallback. */
+function RecipeThumb({
+  image, emoji, bgColor, style, emojiSize = 24,
+}: { image?: string; emoji?: string; bgColor?: string; style: any; emojiSize?: number }) {
+  const { colors } = useTheme();
+  if (image) return <Image source={{ uri: image }} style={style} resizeMode="cover" />;
+  return (
+    <View style={[style, { backgroundColor: bgColor ?? colors.backgroundAlt, alignItems: 'center', justifyContent: 'center' }]}>
+      <Text style={{ fontSize: emojiSize }}>{emoji ?? '🍽️'}</Text>
+    </View>
+  );
+}
 
-const MEAL_NAMES: Record<string, string> = {
-  breakfast: 'Kahvaltı',
-  lunch: 'Öğle',
-  dinner: 'Akşam Yemeği',
-  snack: 'Ara Öğün',
-};
+const TABS = [
+  { key: 'recommended', labelKey: 'mealDetail.tabs.recommended' },
+  { key: 'favorites', labelKey: 'mealDetail.tabs.favorites' },
+  { key: 'myRecipes', labelKey: 'mealDetail.tabs.myRecipes' },
+];
 
 export default function MealDetailScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { meal } = useLocalSearchParams<{ meal: string }>();
   const mealSlot = (meal as MealSlot) || 'breakfast';
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
-  const { intake, logMeal } = usePlan();
+  const { intake, addCustomKcal, toggleMealRecipe, isRecipeLogged } = usePlan();
+  const { toast } = useFeedback();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const { userAllergens } = useAllergens();
   const [showRecipes, setShowRecipes] = useState(true);
-  const [activeTab, setActiveTab] = useState('Önerilen Tarifler');
+  const [activeTab, setActiveTab] = useState<'recommended' | 'favorites' | 'myRecipes'>('recommended');
 
   // FAB overlay & Add custom food states
   const [isFabOpen, setIsFabOpen] = useState(false);
@@ -130,28 +88,25 @@ export default function MealDetailScreen() {
       return;
     }
     haptic.success();
-    logMeal(mealSlot, consumedKcal + kcalVal);
+    addCustomKcal(mealSlot, kcalVal);
+    toast(t('feedback.meal.added', { meal: mealName, kcal: kcalVal }));
     setCustomFoodName('');
     setCustomFoodCal('');
     setIsAddFoodOpen(false);
   };
 
-  // Kendi Tariflerim / Custom Recipes states
-  const [customRecipes, setCustomRecipes] = useState<MealRecipe[]>([
-    {
-      id: 'custom_1',
-      name: 'Ev Yapımı Granola',
-      kcal: 320,
-      time: 15,
-      image: 'https://images.unsplash.com/photo-1517881917430-e70dfb3610aa?auto=format&fit=crop&w=400&q=80',
-    }
-  ]);
-
-  const handleSaveRecipe = () => {
-    // This is now handled in /create-recipe
+  // Toggle a recipe on/off this meal + confirm with a contextual toast.
+  const handleToggleRecipe = (id: string, kcal: number) => {
+    const wasLogged = isRecipeLogged(mealSlot, id);
+    haptic.success();
+    toggleMealRecipe(mealSlot, id, kcal);
+    toast(t(wasLogged ? 'feedback.meal.removed' : 'feedback.meal.added', { meal: mealName, kcal }));
   };
 
-  const mealName = MEAL_NAMES[mealSlot] || 'Kahvaltı';
+  // Kendi Tariflerim — custom recipes come from the shared store.
+  const { customRecipes } = useCustomRecipes();
+
+  const mealName = t(`plan.meals.${mealSlot}`);
   const targetKcal = mealSlot === 'snack' ? 193 : 500;
   const consumedKcal = intake[mealSlot] ?? 0;
 
@@ -165,18 +120,31 @@ export default function MealDetailScreen() {
   const consumedFat = Math.round((consumedKcal * 0.25) / 9);
   const consumedCarbs = Math.round((consumedKcal * 0.50) / 4);
 
-  const mealRecipes = MOCK_RECIPES[mealSlot] || [];
+  // Recommended = real recipes matching this meal, closest to its kcal target,
+  // with the user's allergens filtered out.
+  const recommended = useMemo(() => {
+    const byMeal = filterRecipes(RECIPES, { meal: mealSlot as MealType, excludeAllergens: userAllergens });
+    const pool = byMeal.length >= 3 ? byMeal : filterRecipes(RECIPES, { excludeAllergens: userAllergens });
+    return [...pool]
+      .sort((a, b) => Math.abs(a.kcal - targetKcal) - Math.abs(b.kcal - targetKcal))
+      .slice(0, 8);
+  }, [mealSlot, targetKcal, userAllergens]);
+
+  // Pool of every recipe (real + custom), for the favourites tab.
+  const allKnownRecipes = useMemo(() => {
+    const map = new Map<string, MealRecipe>();
+    RECIPES.forEach(r =>
+      map.set(r.id, { id: r.id, name: r.name, kcal: r.kcal, time: r.time, image: r.image, emoji: r.emoji, bgColor: r.bgColor }),
+    );
+    customRecipes.forEach(r => map.set(r.id, r));
+    return Array.from(map.values());
+  }, [customRecipes]);
+  const favoriteRecipes = allKnownRecipes.filter(r => isFavorite(r.id));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* ══ HEADER ══════════════════════════════════════════ */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>{mealName}</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title={mealName} />
 
       <ScrollView
         style={styles.scroll}
@@ -184,32 +152,29 @@ export default function MealDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ══ AKTİF DEĞERLER (ACTIVE VALUES) CARD ═════════════════ */}
-        <Text style={styles.sectionLabel}>Aktif Değerler</Text>
+        <Text style={styles.sectionLabel}>{t('mealDetail.activeValues')}</Text>
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Kalori</Text>
+            <Text style={styles.cardTitle}>{t('plan.calorie')}</Text>
             <Text style={styles.cardValue}>{consumedKcal} / {targetKcal} kcal</Text>
           </View>
-          <View style={styles.progressBarBg}>
-            <View
-              style={[
-                styles.progressBarFill,
-                { width: `${Math.min((consumedKcal / targetKcal) * 100, 100)}%` as `${number}%` },
-              ]}
-            />
-          </View>
+          <ProgressBar
+            progress={consumedKcal / targetKcal}
+            color={colors.gold}
+            style={{ marginBottom: 20 }}
+          />
 
           <View style={styles.macrosRow}>
             <View style={styles.macroCol}>
-              <Text style={styles.macroLabel}>Protein</Text>
+              <Text style={styles.macroLabel}>{t('mealDetail.protein')}</Text>
               <Text style={styles.macroVal}>{consumedProtein}/{targetProtein}g</Text>
             </View>
             <View style={styles.macroCol}>
-              <Text style={styles.macroLabel}>Yağ</Text>
+              <Text style={styles.macroLabel}>{t('mealDetail.fat')}</Text>
               <Text style={styles.macroVal}>{consumedFat}/{targetFat}g</Text>
             </View>
             <View style={styles.macroCol}>
-              <Text style={styles.macroLabel}>Karb.</Text>
+              <Text style={styles.macroLabel}>{t('mealDetail.carbs')}</Text>
               <Text style={styles.macroVal}>{consumedCarbs}/{targetCarbs}g</Text>
             </View>
           </View>
@@ -218,19 +183,19 @@ export default function MealDetailScreen() {
         {/* ══ INFO BOX ════════════════════════════════════════ */}
         <View style={styles.infoBox}>
           <View style={styles.infoIconBox}>
-            <Ionicons name="information-circle-outline" size={24} color="#5BB5FF" />
+            <Ionicons name="information-circle-outline" size={22} color={colors.blue} />
           </View>
           <Text style={styles.infoText}>
-            Senin için, senin hedeflerine ve damak tadına en uygun tarifleri seçtik. Listeyi kaydırıp tümünü görebilirsin.
+            {t('mealDetail.infoText')}
           </Text>
         </View>
 
         {/* ══ ÖNERİLEN TARİFLER ══════════════════════════════ */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Önerilen Tarifler</Text>
-          <TouchableOpacity onPress={() => setShowRecipes(!showRecipes)} activeOpacity={0.7}>
-            <Text style={styles.hideText}>{showRecipes ? "Tarifleri Gizle" : "Tarifleri Göster"}</Text>
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>{t('mealDetail.recommendedRecipesTitle')}</Text>
+          <PressableScale haptic="light" onPress={() => setShowRecipes(!showRecipes)} activeOpacity={0.7}>
+            <Text style={styles.hideText}>{showRecipes ? t('mealDetail.hideRecipes') : t('mealDetail.showRecipes')}</Text>
+          </PressableScale>
         </View>
 
         {showRecipes && (
@@ -239,8 +204,8 @@ export default function MealDetailScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.recipesRow}
           >
-            {mealRecipes.map(r => {
-              const isLogged = consumedKcal === r.kcal;
+            {recommended.map(r => {
+              const isLogged = isRecipeLogged(mealSlot, r.id);
               return (
                 <PressableScale
                   key={r.id}
@@ -250,32 +215,43 @@ export default function MealDetailScreen() {
                   onPress={() => router.push(`/recipe/${r.id}`)}
                 >
                   {/* Photo */}
-                  <Image source={{ uri: r.image }} style={styles.recipeImg} resizeMode="cover" />
+                  <RecipeThumb image={r.image} emoji={r.emoji} bgColor={r.bgColor} style={styles.recipeImg} emojiSize={48} />
 
                   {/* Add Button Overlay */}
-                  <TouchableOpacity
+                  <PressableScale haptic="light"
                     style={[styles.addBtnOverlay, isLogged && styles.addBtnOverlayActive]}
                     activeOpacity={0.8}
                     onPress={(e) => {
                       e.stopPropagation(); // prevent navigating to recipe detail
-                      haptic.success();
-                      logMeal(mealSlot, isLogged ? 0 : r.kcal);
+                      handleToggleRecipe(r.id, r.kcal);
                     }}
                   >
-                    <Ionicons name={isLogged ? "checkmark-circle" : "add-circle-outline"} size={16} color="#fff" />
+                    <Ionicons name={isLogged ? "checkmark-circle" : "add-circle-outline"} size={16} color={colors.white} />
                     <Text style={styles.addBtnText}>
-                      {isLogged ? "Eklendi" : "+ Öğünüme Ekle"}
+                      {isLogged ? t('mealDetail.added') : t('mealDetail.addToMeal')}
                     </Text>
-                  </TouchableOpacity>
+                  </PressableScale>
+
+                  {/* Favourite toggle */}
+                  <PressableScale haptic="light"
+                    style={styles.bookmarkBtn}
+                    onPress={(e) => { e.stopPropagation(); toggleFavorite(r.id); }}
+                  >
+                    <Ionicons
+                      name={isFavorite(r.id) ? 'bookmark' : 'bookmark-outline'}
+                      size={16}
+                      color={isFavorite(r.id) ? colors.gold : colors.white}
+                    />
+                  </PressableScale>
 
                   {/* Info */}
                   <View style={styles.recipeInfo}>
-                    <Text style={styles.recipeName} numberOfLines={1}>{r.name}</Text>
+                    <Text style={styles.recipeName} numberOfLines={1}>{localizeRecipeName(r, t)}</Text>
                     <View style={styles.recipeMeta}>
-                      <Ionicons name="flame" size={12} color={Colors.orange} />
+                      <Ionicons name="flame" size={12} color={colors.orange} />
                       <Text style={styles.recipeMetaTxt}>{r.kcal} kcal</Text>
-                      <Ionicons name="time-outline" size={12} color={Colors.textMuted} />
-                      <Text style={styles.recipeMetaTxt}>{r.time} dk</Text>
+                      <Ionicons name="time-outline" size={12} color={colors.textMuted} />
+                      <Text style={styles.recipeMetaTxt}>{r.time} {t('plan.min')}</Text>
                     </View>
                   </View>
                 </PressableScale>
@@ -290,38 +266,77 @@ export default function MealDetailScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.bottomPillsRow}
         >
-          {['Önerilen Tarifler', 'Favorilerim', 'Kendi Tariflerim'].map((tab) => {
-            const isActive = activeTab === tab;
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
             return (
-              <TouchableOpacity
-                key={tab}
+              <PressableScale haptic="light"
+                key={tab.key}
                 style={[styles.bottomPill, isActive && styles.bottomPillActive]}
                 activeOpacity={0.8}
                 onPress={() => {
                   haptic.light();
-                  setActiveTab(tab);
+                  setActiveTab(tab.key as any);
                 }}
               >
                 <Text style={[styles.bottomPillText, isActive && styles.bottomPillTextActive]}>
-                  {tab}
+                  {t(tab.labelKey)}
                 </Text>
-              </TouchableOpacity>
+              </PressableScale>
             );
           })}
         </ScrollView>
 
-        {activeTab === 'Favorilerim' && (
-          <View style={styles.emptyStateCard}>
-            <Ionicons name="bookmark-outline" size={32} color={Colors.textMuted} />
-            <Text style={styles.emptyStateText}>Burada henüz bir tarif bulunmuyor.</Text>
-          </View>
+        {activeTab === 'favorites' && (
+          favoriteRecipes.length === 0 ? (
+            <View style={styles.emptyStateCard}>
+              <Ionicons name="bookmark-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.emptyStateText}>{t('mealDetail.emptyFavorites.title')}</Text>
+              <Text style={styles.emptyStateSub}>{t('mealDetail.emptyFavorites.subtitle')}</Text>
+            </View>
+          ) : (
+            <View style={styles.customRecipesContainer}>
+              {favoriteRecipes.map(r => {
+                const isLogged = isRecipeLogged(mealSlot, r.id);
+                return (
+                  <PressableScale
+                    key={r.id}
+                    style={styles.customRecipeItemCard}
+                    scaleTo={0.97}
+                    haptic="light"
+                    onPress={() => router.push(`/recipe/${r.id}`)}
+                  >
+                    <RecipeThumb image={r.image} emoji={r.emoji} bgColor={r.bgColor} style={styles.customRecipeImg} emojiSize={24} />
+                    <View style={styles.customRecipeInfo}>
+                      <Text style={styles.customRecipeName}>{r.name}</Text>
+                      <Text style={styles.customRecipeKcal}>{r.kcal} kcal</Text>
+                    </View>
+                    <PressableScale haptic="light"
+                      style={styles.favRemoveBtn}
+                      onPress={(e) => { e.stopPropagation(); toggleFavorite(r.id); }}
+                    >
+                      <Ionicons name="bookmark" size={20} color={colors.gold} />
+                    </PressableScale>
+                    <PressableScale haptic="light"
+                      style={[styles.customAddBtn, isLogged && styles.customAddBtnActive]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleToggleRecipe(r.id, r.kcal);
+                      }}
+                    >
+                      <Ionicons name={isLogged ? 'checkmark' : 'add'} size={18} color={colors.white} />
+                    </PressableScale>
+                  </PressableScale>
+                );
+              })}
+            </View>
+          )
         )}
 
-        {activeTab === 'Kendi Tariflerim' && (
+        {activeTab === 'myRecipes' && (
           <View style={styles.customRecipesContainer}>
             {/* Custom Recipes List */}
             {customRecipes.map(r => {
-              const isLogged = consumedKcal === r.kcal;
+              const isLogged = isRecipeLogged(mealSlot, r.id);
               return (
                 <PressableScale
                   key={r.id}
@@ -335,30 +350,29 @@ export default function MealDetailScreen() {
                     <Text style={styles.customRecipeName}>{r.name}</Text>
                     <Text style={styles.customRecipeKcal}>{r.kcal} kcal</Text>
                   </View>
-                  <TouchableOpacity
+                  <PressableScale haptic="light"
                     style={[styles.customAddBtn, isLogged && styles.customAddBtnActive]}
                     activeOpacity={0.8}
                     onPress={(e) => {
                       e.stopPropagation();
-                      haptic.success();
-                      logMeal(mealSlot, isLogged ? 0 : r.kcal);
+                      handleToggleRecipe(r.id, r.kcal);
                     }}
                   >
-                    <Ionicons name={isLogged ? "checkmark" : "add"} size={18} color="#fff" />
-                  </TouchableOpacity>
+                    <Ionicons name={isLogged ? "checkmark" : "add"} size={18} color={colors.white} />
+                  </PressableScale>
                 </PressableScale>
               );
             })}
 
             {/* Dotted border card to add custom recipe */}
-            <TouchableOpacity
+            <PressableScale haptic="light"
               style={styles.addOwnRecipeCard}
               activeOpacity={0.8}
               onPress={() => router.push('/create-recipe')}
             >
-              <Ionicons name="add" size={32} color={Colors.textSecondary} />
-              <Text style={styles.addOwnRecipeText}>Kendi Tarifini Ekle</Text>
-            </TouchableOpacity>
+              <Ionicons name="add" size={32} color={colors.textSecondary} />
+              <Text style={styles.addOwnRecipeText}>{t('mealDetail.addOwnRecipe')}</Text>
+            </PressableScale>
           </View>
         )}
 
@@ -375,9 +389,9 @@ export default function MealDetailScreen() {
 
       {/* FAB Menu Stack */}
       {isFabOpen && (
-        <View style={styles.fabMenuStack}>
+        <View style={[styles.fabMenuStack, { bottom: insets.bottom + 96 }]}>
           {/* Tarif Ekle */}
-          <TouchableOpacity
+          <PressableScale haptic="light"
             style={styles.fabMenuItemRow}
             activeOpacity={0.8}
             onPress={() => {
@@ -386,14 +400,14 @@ export default function MealDetailScreen() {
               router.push('/create-recipe');
             }}
           >
-            <Text style={styles.fabMenuLabel}>Tarif Ekle</Text>
+            <Text style={styles.fabMenuLabel}>{t('mealDetail.fab.addRecipe')}</Text>
             <View style={styles.fabMenuCircle}>
-              <MaterialCommunityIcons name={"room-service-outline" as any} size={20} color={Colors.green} />
+              <MaterialCommunityIcons name="silverware-fork-knife" size={20} color={colors.green} />
             </View>
-          </TouchableOpacity>
+          </PressableScale>
 
           {/* Besin Ekle */}
-          <TouchableOpacity
+          <PressableScale haptic="light"
             style={styles.fabMenuItemRow}
             activeOpacity={0.8}
             onPress={() => {
@@ -402,65 +416,41 @@ export default function MealDetailScreen() {
               setIsAddFoodOpen(true);
             }}
           >
-            <Text style={styles.fabMenuLabel}>Besin Ekle</Text>
+            <Text style={styles.fabMenuLabel}>{t('mealDetail.fab.addFood')}</Text>
             <View style={styles.fabMenuCircle}>
-              <MaterialCommunityIcons name={"banana" as any} size={20} color={Colors.green} />
+              <MaterialCommunityIcons name="food-apple-outline" size={20} color={colors.green} />
             </View>
-          </TouchableOpacity>
+          </PressableScale>
 
           {/* Tabağı Tara */}
-          <TouchableOpacity
+          <PressableScale haptic="light"
             style={styles.fabMenuItemRow}
             activeOpacity={0.8}
             onPress={() => {
               setIsFabOpen(false);
               haptic.light();
-              router.push('/scan/choose');
+              // We're already adding to this meal → go straight to the meal
+              // camera and carry the slot so the result logs to the right meal.
+              router.push({ pathname: '/scan/camera', params: { mode: 'meal', slot: mealSlot } });
             }}
           >
-            <Text style={styles.fabMenuLabel}>Tabağı Tara</Text>
+            <Text style={styles.fabMenuLabel}>{t('mealDetail.fab.scanPlate')}</Text>
             <View style={styles.fabMenuCircle}>
-              <MaterialCommunityIcons name={"qrcode-scan" as any} size={20} color={Colors.green} />
+              <MaterialCommunityIcons name="camera-outline" size={20} color={colors.green} />
             </View>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       )}
 
-      {/* Bottom bar with cloche and main FAB */}
-      <View style={styles.bottomRow} pointerEvents="box-none">
-        <View style={{ flex: 1 }} />
-        {/* Center Cloche Button */}
-        <TouchableOpacity
-          style={[styles.clocheBtn, isFabOpen && { opacity: 0.4 }]}
-          activeOpacity={0.8}
-          onPress={() => {
-            haptic.light();
-            router.push('/(tabs)/plan');
-          }}
-        >
-          <MaterialCommunityIcons name={"room-service" as any} size={24} color={Colors.gold} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }} />
-
-        {/* Floating Action Button (FAB) */}
-        <View style={styles.fabWrapper}>
-          <TouchableOpacity
-            style={[styles.fabButton, isFabOpen && styles.fabActiveButton]}
-            activeOpacity={0.8}
-            onPress={() => {
-              haptic.medium();
-              setIsFabOpen(!isFabOpen);
-            }}
-          >
-            <Ionicons
-              name={isFabOpen ? 'close' : 'add'}
-              size={28}
-              color={Colors.white}
-            />
-          </TouchableOpacity>
-          {!isFabOpen && <Text style={styles.fabLabel}>Ekle</Text>}
-        </View>
-      </View>
+      {/* Main FAB — clean circular button, bottom-right */}
+      <PressableScale
+        haptic="medium"
+        style={[styles.fab, { bottom: insets.bottom + 20 }, isFabOpen && styles.fabActive]}
+        activeOpacity={0.85}
+        onPress={() => { haptic.medium(); setIsFabOpen(!isFabOpen); }}
+      >
+        <Ionicons name={isFabOpen ? 'close' : 'add'} size={28} color={colors.white} />
+      </PressableScale>
 
       {/* ── Add Food Modal ── */}
       <Modal visible={isAddFoodOpen} transparent animationType="slide">
@@ -473,66 +463,69 @@ export default function MealDetailScreen() {
             activeOpacity={1}
             onPress={() => setIsAddFoodOpen(false)}
           />
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { paddingBottom: 24 + insets.bottom }]}>
             <View style={styles.modalHandle} />
-            <Text style={styles.modalSheetTitle}>Besin Ekle</Text>
+            <Text style={styles.modalSheetTitle}>{t('mealDetail.addFoodModal.title')}</Text>
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Besin Adı (örn: Muz, Yumurta)"
-              placeholderTextColor={Colors.textMuted}
+              placeholder={t('mealDetail.addFoodModal.namePlaceholder')}
+              placeholderTextColor={colors.textMuted}
               value={customFoodName}
               onChangeText={setCustomFoodName}
             />
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Kalori (kcal)"
-              placeholderTextColor={Colors.textMuted}
+              placeholder={t('mealDetail.addFoodModal.kcalPlaceholder')}
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               value={customFoodCal}
               onChangeText={setCustomFoodCal}
             />
 
-            <Text style={styles.quickLogTitle}>Hızlı Ekle</Text>
+            <Text style={styles.quickLogTitle}>{t('mealDetail.addFoodModal.quickAdd')}</Text>
             <View style={styles.quickGrid}>
               {[
-                { name: 'Muz', kcal: 90 },
-                { name: 'Yumurta', kcal: 75 },
-                { name: 'Yulaf Ezmesi', kcal: 150 },
-                { name: 'Süt', kcal: 120 },
-              ].map(item => (
-                <TouchableOpacity
-                  key={item.name}
-                  style={styles.quickItem}
-                  onPress={() => {
-                    setCustomFoodName(item.name);
-                    setCustomFoodCal(item.kcal.toString());
-                    haptic.light();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.quickItemText}>{item.name}</Text>
-                  <Text style={styles.quickItemKcal}>{item.kcal} kcal</Text>
-                </TouchableOpacity>
-              ))}
+                { key: 'banana', fallback: 'Muz', kcal: 90 },
+                { key: 'egg', fallback: 'Yumurta', kcal: 75 },
+                { key: 'oatmeal', fallback: 'Yulaf Ezmesi', kcal: 150 },
+                { key: 'milk', fallback: 'Süt', kcal: 120 },
+              ].map(item => {
+                const localizedName = t(`mealDetail.addFoodModal.quickItems.${item.key}`, item.fallback);
+                return (
+                  <PressableScale haptic="light"
+                    key={item.key}
+                    style={styles.quickItem}
+                    onPress={() => {
+                      setCustomFoodName(localizedName);
+                      setCustomFoodCal(item.kcal.toString());
+                      haptic.light();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.quickItemText}>{localizedName}</Text>
+                    <Text style={styles.quickItemKcal}>{item.kcal} kcal</Text>
+                  </PressableScale>
+                );
+              })}
             </View>
 
-            <TouchableOpacity
+            <PressableScale haptic="light"
               style={styles.modalSaveBtn}
               onPress={handleAddFood}
               activeOpacity={0.8}
             >
-              <Text style={styles.modalSaveBtnText}>Ekle</Text>
-            </TouchableOpacity>
+              <Text style={styles.modalSaveBtnText}>{t('common.add')}</Text>
+            </PressableScale>
 
-            <TouchableOpacity
+            <PressableScale haptic="light"
               style={styles.modalCloseBtn}
               onPress={() => setIsAddFoodOpen(false)}
               activeOpacity={0.8}
             >
-              <Text style={styles.modalCloseBtnText}>İptal</Text>
-            </TouchableOpacity>
+              <Text style={styles.modalCloseBtnText}>{t('common.cancel')}</Text>
+            </PressableScale>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -542,34 +535,10 @@ export default function MealDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.border,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  title: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 20,
-    color: Colors.textPrimary,
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
@@ -582,15 +551,15 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   card: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    padding: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: 16,
     marginBottom: 24,
   },
   cardHeader: {
@@ -602,24 +571,24 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontFamily: 'Inter_700Bold',
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   cardValue: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 16,
-    color: Colors.gold,
+    color: colors.gold,
   },
   progressBarBg: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: colors.separatorLight,
     overflow: 'hidden',
     marginBottom: 20,
   },
   progressBarFill: {
     height: '100%',
     borderRadius: 4,
-    backgroundColor: Colors.gold,
+    backgroundColor: colors.gold,
   },
   macrosRow: {
     flexDirection: 'row',
@@ -632,19 +601,19 @@ const styles = StyleSheet.create({
   macroLabel: {
     fontFamily: 'Inter_400Regular',
     fontSize: 12,
-    color: Colors.textMuted,
+    color: colors.textMuted,
     marginBottom: 4,
   },
   macroVal: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 14,
-    color: Colors.gold,
+    color: colors.gold,
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(91,181,255,0.08)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(91,181,255,0.18)',
+    backgroundColor: colors.blueLight,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.blueBorder,
     borderRadius: 18,
     padding: 16,
     alignItems: 'center',
@@ -655,7 +624,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(91,181,255,0.12)',
+    backgroundColor: colors.blueLight,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -663,7 +632,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     flex: 1,
     lineHeight: 18,
   },
@@ -676,12 +645,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 18,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   hideText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   recipesRow: {
     gap: 14,
@@ -690,10 +659,10 @@ const styles = StyleSheet.create({
   recipeCard: {
     width: 220,
     height: 220,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   recipeImg: {
@@ -707,18 +676,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: colors.overlayStrong,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   addBtnOverlayActive: {
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
   },
   addBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 11,
-    color: '#fff',
+    color: colors.textWhite,
   },
   recipeInfo: {
     padding: 12,
@@ -727,7 +696,7 @@ const styles = StyleSheet.create({
   recipeName: {
     fontFamily: 'Inter_700Bold',
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   recipeMeta: {
     flexDirection: 'row',
@@ -737,7 +706,7 @@ const styles = StyleSheet.create({
   recipeMetaTxt: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginRight: 6,
   },
   bottomPillsRow: {
@@ -749,26 +718,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     backgroundColor: 'transparent',
   },
   bottomPillActive: {
-    borderColor: Colors.white,
+    borderColor: colors.textPrimary,
   },
   bottomPillText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   bottomPillTextActive: {
-    color: Colors.white,
+    color: colors.textPrimary,
   },
   emptyStateCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 24,
     alignItems: 'center',
     gap: 10,
@@ -777,73 +746,62 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: colors.textMuted,
+  },
+  emptyStateSub: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
+  bookmarkBtn: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.overlayStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  favRemoveBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
 
   // Floating Actions
   fabOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: colors.overlayStrong,
     zIndex: 90,
   },
-  bottomRow: {
+  fab: {
     position: 'absolute',
-    bottom: 24,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-    paddingHorizontal: 24,
-  },
-  clocheBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(26,30,28,0.85)',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  fabWrapper: {
-    position: 'absolute',
-    right: 24,
-    alignItems: 'center',
-  },
-  fabButton: {
+    right: 20,
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 8,
+    zIndex: 100,
+    shadowColor: colors.shadowGreen,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  fabActiveButton: {
-    backgroundColor: Colors.greenDark,
-  },
-  fabLabel: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 4,
-    textAlign: 'center',
+  fabActive: {
+    backgroundColor: colors.greenDark,
   },
   fabMenuStack: {
     position: 'absolute',
-    bottom: 96,
-    right: 32,
+    right: 28,
     alignItems: 'flex-end',
     gap: 16,
     zIndex: 100,
@@ -856,25 +814,25 @@ const styles = StyleSheet.create({
   fabMenuLabel: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textPrimary,
-    backgroundColor: 'rgba(26,30,28,0.95)',
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   fabMenuCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.surface,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.shadowBlack,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -884,55 +842,55 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlayMedium,
   },
   modalSheet: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 40,
     gap: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   modalHandle: {
     width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.separator,
+    backgroundColor: colors.separator,
     alignSelf: 'center',
     marginBottom: 8,
   },
   modalSheetTitle: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 20,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   modalInput: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.surface,
     borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   modalSaveBtn: {
-    backgroundColor: Colors.green,
-    borderRadius: 14,
+    backgroundColor: colors.green,
+    borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: Colors.shadowGreen,
+    shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -941,25 +899,25 @@ const styles = StyleSheet.create({
   modalSaveBtnText: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.white,
+    color: colors.white,
   },
   modalCloseBtn: {
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
   },
   modalCloseBtnText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
   quickLogTitle: {
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     marginTop: 10,
     marginBottom: 4,
   },
@@ -972,10 +930,10 @@ const styles = StyleSheet.create({
   quickItem: {
     flexGrow: 1,
     width: '45%',
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: 'center',
@@ -985,12 +943,12 @@ const styles = StyleSheet.create({
   quickItemText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   quickItemKcal: {
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   // Kendi Tariflerim styling
   customRecipesContainer: {
@@ -1000,10 +958,10 @@ const styles = StyleSheet.create({
   customRecipeItemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 12,
     gap: 12,
   },
@@ -1011,7 +969,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 10,
-    backgroundColor: Colors.backgroundAlt,
+    backgroundColor: colors.backgroundAlt,
   },
   customRecipeInfo: {
     flex: 1,
@@ -1020,28 +978,28 @@ const styles = StyleSheet.create({
   customRecipeName: {
     fontFamily: 'Inter_700Bold',
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
   customRecipeKcal: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   customAddBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.green,
+    backgroundColor: colors.green,
     alignItems: 'center',
     justifyContent: 'center',
   },
   customAddBtnActive: {
-    backgroundColor: Colors.greenDark,
+    backgroundColor: colors.greenDark,
   },
   addOwnRecipeCard: {
     backgroundColor: 'transparent',
-    borderColor: 'rgba(255,255,255,0.22)',
-    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    borderWidth: StyleSheet.hairlineWidth,
     borderStyle: 'dashed',
     borderRadius: 16,
     height: 100,
@@ -1053,6 +1011,6 @@ const styles = StyleSheet.create({
   addOwnRecipeText: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
   },
 });

@@ -16,7 +16,7 @@ export interface Recipe {
   bgColor: string;
   emoji: string;
   /** Food photo (remote URL). Emoji + bgColor are the fallback. */
-  image?: string;
+  image?: any;
   filters: Array<string>;
   categories: Array<'sana-uygun' | 'bes-yildizli' | 'light-dinner' | 'breakfast-goodies' | 'high-protein' | 'fit-desserts' | 'high-calorie' | 'chef-recommended' | 'low-calorie' | 'practical' | 'breakfast-stars' | 'popular-bowls' | 'fruits' | 'keto' | 'gut-friendly' | 'vegan' | 'gluten-free'>;
   ingredients: Array<{ name: string; quantity: string; owned: boolean }>;
@@ -30,6 +30,148 @@ export interface RecipeStep {
 }
 
 export const RECIPES: Recipe[] = [
+
+  {
+    id: 'premium_1',
+    name: 'Şefin Izgara Somon Tabağı',
+    time: 25,
+    difficulty: 'Orta',
+    kcal: 480,
+    protein: 38,
+    carbs: 12,
+    fat: 28,
+    mealType: 'Ana Yemek',
+    servings: 1,
+    tag: 'complete',
+    missingCount: 0,
+    bgColor: '#1A1E1C',
+    emoji: '🐟',
+    image: require('../assets/images/recipes/recipe_salmon.png'),
+    filters: [],
+    categories: ["sana-uygun","bes-yildizli","chef-recommended","high-protein"],
+    ingredients: [
+      { name: "Norveç Somon Fileto", quantity: "200g", owned: true },
+      { name: "Taze Kuşkonmaz", quantity: "100g", owned: false },
+      { name: "Çeri Domates", quantity: "5-6 Adet", owned: true },
+      { name: "Sızma Zeytinyağı", quantity: "2 Yemek Kaşığı", owned: true },
+      { name: "Taze Kekik", quantity: "2 Dal", owned: false },
+      { name: "Deniz Tuzu", quantity: "1 Çay Kaşığı", owned: true },
+      { name: "Taze Çekilmiş Karabiber", quantity: "1 Çay Kaşığı", owned: true },
+      { name: "Limon", quantity: "Yarım", owned: true }
+    ],
+    steps: [
+      { text: "Somon filetoyu zeytinyağı, taze kekik, deniz tuzu ve karabiber ile marine edin. Oda sıcaklığında 10 dakika dinlendirin." },
+      { text: "Kuşkonmazların sert sap kısımlarını kesin. Çeri domateslerle birlikte fırın tepsisine dizin ve hafifçe yağlayın." },
+      { text: "Önceden ısıtılmış döküm tavada somonun deri kısmı alta gelecek şekilde 4 dakika mühürleyin, ardından ters çevirip 3 dakika daha pişirin." },
+      { text: "Sebzeleri 200 derece fırında 12 dakika közleyin. Somon ve sebzeleri geniş, şık bir tabakta birleştirip üzerine taze sıkılmış limon suyu gezdirin." }
+    ]
+  },
+  {
+    id: 'premium_2',
+    name: 'Trüf Mantarlı Artisan Makarna',
+    time: 30,
+    difficulty: 'Orta',
+    kcal: 520,
+    protein: 14,
+    carbs: 65,
+    fat: 22,
+    mealType: 'Ana Yemek',
+    servings: 2,
+    tag: 'complete',
+    missingCount: 1,
+    bgColor: '#1A1E1C',
+    emoji: '🍝',
+    image: require('../assets/images/recipes/recipe_pasta.png'),
+    filters: [],
+    categories: ["sana-uygun","bes-yildizli","chef-recommended"],
+    ingredients: [
+      { name: "Taze Tagliatelle", quantity: "250g", owned: true },
+      { name: "Kestane Mantarı", quantity: "200g", owned: true },
+      { name: "Trüf Yağı", quantity: "1 Tatlı Kaşığı", owned: false },
+      { name: "Taze Krema", quantity: "1 Çay Bardağı", owned: false },
+      { name: "Parmesan Peyniri", quantity: "50g (Rendelenmiş)", owned: true },
+      { name: "Sarımsak", quantity: "2 Diş", owned: true },
+      { name: "Tereyağı", quantity: "1 Yemek Kaşığı", owned: true },
+      { name: "Taze Maydanoz", quantity: "1 Tutam", owned: true }
+    ],
+    steps: [
+      { text: "Taze tagliatelle makarnayı bol tuzlu kaynar suda 3-4 dakika haşlayın. Suyundan yarım çay bardağı ayırıp makarnayı süzün." },
+      { text: "Geniş bir tavada tereyağını eritin. İnce dilimlenmiş sarımsak ve mantarları yüksek ateşte soteleyin." },
+      { text: "Mantarlar suyunu çekince kremayı, trüf yağını ve ayırdığınız makarna suyunu ekleyin. Sos hafifçe koyulaşana kadar 2 dakika kaynatın." },
+      { text: "Makarnaları sosa ekleyin, parmesan peyniriyle bağlayın. Üzerine taze maydanoz serpiştirerek sıcak servis yapın." }
+    ]
+  },
+  {
+    id: 'premium_3',
+    name: 'Orman Meyveli Fit Cheesecake',
+    time: 45,
+    difficulty: 'Zor',
+    kcal: 280,
+    protein: 12,
+    carbs: 24,
+    fat: 16,
+    mealType: 'Tatlı',
+    servings: 4,
+    tag: 'complete',
+    missingCount: 0,
+    bgColor: '#1A1E1C',
+    emoji: '🍰',
+    image: require('../assets/images/recipes/recipe_cheesecake.png'),
+    filters: [],
+    categories: ["sana-uygun","bes-yildizli","fit-desserts","gluten-free"],
+    ingredients: [
+      { name: "Yulaf Unu", quantity: "1 Su Bardağı", owned: true },
+      { name: "Çiğ Badem", quantity: "Yarım Su Bardağı", owned: true },
+      { name: "Hurma", quantity: "8 Adet", owned: true },
+      { name: "Labne Peyniri (Light)", quantity: "400g", owned: true },
+      { name: "Süzme Yoğurt", quantity: "2 Yemek Kaşığı", owned: true },
+      { name: "Yumurta", quantity: "2 Adet", owned: true },
+      { name: "Bal", quantity: "3 Yemek Kaşığı", owned: true },
+      { name: "Taze Orman Meyveleri", quantity: "1 Kase", owned: false }
+    ],
+    steps: [
+      { text: "Taban için: Yulaf unu, badem ve çekirdeksiz hurmaları mutfak robotundan geçirin. Karışımı kelepçeli kalıbın tabanına bastırarak yayın." },
+      { text: "İç dolgu için: Labne peyniri, süzme yoğurt ve balı pürüzsüz olana dek çırpın. Yumurtaları tek tek ekleyerek yavaşça karıştırın." },
+      { text: "Dolgu karışımını tabanın üzerine dökün. Önceden ısıtılmış 160 derece fırında, fırının tabanına bir kap su koyarak 35-40 dakika pişirin." },
+      { text: "Cheesecake soğuduktan sonra buzdolabında en az 4 saat dinlendirin. Servis etmeden önce üzerini taze orman meyveleriyle süsleyin." }
+    ]
+  },
+  {
+    id: 'premium_4',
+    name: 'Yeşil Canlandırıcı Detox',
+    time: 10,
+    difficulty: 'Kolay',
+    kcal: 110,
+    protein: 3,
+    carbs: 25,
+    fat: 0,
+    mealType: 'İçecek',
+    servings: 1,
+    tag: 'complete',
+    missingCount: 0,
+    bgColor: '#1A1E1C',
+    emoji: '🧃',
+    image: require('../assets/images/recipes/recipe_juice.png'),
+    filters: [],
+    categories: ["sana-uygun","bes-yildizli","vegan","gut-friendly"],
+    ingredients: [
+      { name: "Yeşil Elma", quantity: "1 Adet", owned: true },
+      { name: "Salatalık", quantity: "1 Adet", owned: true },
+      { name: "Kereviz Sapı", quantity: "2 Dal", owned: false },
+      { name: "Bebek Ispanak", quantity: "1 Avuç", owned: true },
+      { name: "Taze Zencefil", quantity: "1 Başparmak Büyüklüğünde", owned: true },
+      { name: "Limon", quantity: "Yarım (Suyu)", owned: true },
+      { name: "Taze Nane", quantity: "3-4 Yaprak", owned: true },
+      { name: "Buz", quantity: "1 Su Bardağı", owned: true }
+    ],
+    steps: [
+      { text: "Elma, salatalık ve kereviz saplarını bol suda yıkayıp iri parçalar halinde doğrayın." },
+      { text: "Doğranmış sebzeleri, ıspanak, soyulmuş zencefil ve limon suyuyla birlikte katı meyve sıkacağından veya güçlü bir blenderdan geçirin." },
+      { text: "Blender kullanıyorsanız karışımı ince bir süzgeç veya tülbent yardımıyla süzerek pürüzsüz bir su elde edin." },
+      { text: "Hazırladığınız detoks suyunu buz dolu şık bir uzun bardağa alın. Taze nane yaprakları ve limon dilimi ile süsleyerek hemen tüketin." }
+    ]
+  },
+
   {
     id: 'gf_1',
     name: 'Bademli Güç Pankeki',

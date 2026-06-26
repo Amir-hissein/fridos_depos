@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { usePersistentState } from '../lib/usePersistentState';
 
 /** Two ways to handle at-risk recipes. */
 export type AllergenMode = 'warn' | 'hide';
@@ -14,8 +15,8 @@ interface AllergenContextType {
 const AllergenContext = createContext<AllergenContextType | undefined>(undefined);
 
 export function AllergenProvider({ children }: { children: ReactNode }) {
-  const [userAllergens, setUserAllergens] = useState<string[]>(['peanut']);
-  const [mode, setMode] = useState<AllergenMode>('warn');
+  const [userAllergens, setUserAllergens] = usePersistentState<string[]>('allergens.list', ['peanut']);
+  const [mode, setMode] = usePersistentState<AllergenMode>('allergens.mode', 'warn');
 
   const toggleAllergen = (id: string) => {
     setUserAllergens(prev =>
