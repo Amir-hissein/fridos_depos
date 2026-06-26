@@ -667,7 +667,16 @@
         "text": "\"Enfin une application qui respecte mon régime. J'adore.\""
       }
     ],
-    "trialBanner": "Essai gratuit — {{days}} j restants"
+    "trialBanner": "Essai gratuit — {{days}} j restants",
+    "bestValue": "Meilleure offre",
+    "yearlyTotal": "35,88 $",
+    "yearlyBilled": "Facturé {{total}}/an",
+    "monthlyBilled": "Sans engagement",
+    "legal": {
+      "disclosure": "Abonnement à renouvellement automatique. Reconduit sauf annulation au moins 24 h avant la fin de la période. Gère ou résilie dans les réglages de ton compte.",
+      "terms": "Conditions",
+      "privacy": "Confidentialité"
+    }
   },
   "scan": {
     "choose": {

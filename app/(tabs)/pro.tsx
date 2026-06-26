@@ -6,6 +6,7 @@ import {
   ScrollView,
   Animated,
   Easing,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +16,6 @@ import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { Radii } from '../../constants/layout';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { FadeInItem } from '../../components/ui/FadeInItem';
-import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { haptic } from '../../lib/haptics';
 import { useApp } from '../../context/AppContext';
@@ -190,7 +190,7 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
 /* ── Main paywall screen ── */
 export default function ProScreen() {
   const { isPremium, isTrialActive, trialDaysLeft, setPremium } = useApp();
-  const { isConfigured, purchasePlan } = useSubscription();
+  const { isConfigured, purchasePlan, restore } = useSubscription();
   const { toast } = useFeedback();
   const [plan, setPlan] = useState<'monthly' | 'annual'>('annual');
   const [busy, setBusy] = useState(false);
@@ -216,6 +216,26 @@ export default function ProScreen() {
         t(e?.message === 'subscription_unavailable' ? 'pro.paywall.unavailable' : 'pro.paywall.purchaseError'),
         { variant: 'error' },
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (busy) return;
+    if (!isConfigured) {
+      setPremium(true);
+      toast(t('pro.paywall.restoreSuccess'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const ok = await restore();
+      toast(ok ? t('pro.paywall.restoreSuccess') : t('pro.paywall.restoreNone'), {
+        variant: ok ? 'success' : 'info',
+      });
+    } catch {
+      toast(t('pro.paywall.purchaseError'), { variant: 'error' });
     } finally {
       setBusy(false);
     }
@@ -291,47 +311,51 @@ export default function ProScreen() {
           </View>
         </FadeInItem>
 
-        {/* ── Plan selector ── */}
+        {/* ── Plan selector (full-width rows) ── */}
         <FadeInItem index={2}>
           <Text style={styles.sectionTitle}>{t('pro.choosePlan')}</Text>
-          <View style={styles.plans}>
-            {/* Monthly */}
+          <View style={styles.planList}>
+            {/* Annual — best value */}
             <PressableScale
-              style={[styles.planCard, plan === 'monthly' && styles.planCardActive]}
-              scaleTo={0.96}
-              onPress={() => { haptic.select(); setPlan('monthly'); }}
-            >
-              <Text style={[styles.planName, plan === 'monthly' && styles.planNameActive]}>{t('pro.monthly')}</Text>
-              <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, plan === 'monthly' && styles.planPriceActive]}>{t('pro.monthlyPrice', '$4.99')}</Text>
-                <Text style={styles.planPer}>{t('pro.perMonth', '/mo')}</Text>
-              </View>
-              <Text style={styles.planNote}>{t('pro.billedMonthly')}</Text>
-              {plan === 'monthly' && (
-                <View style={styles.planCheck}>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.green} />
-                </View>
-              )}
-            </PressableScale>
-
-            {/* Annual — highlighted */}
-            <PressableScale
-              style={[styles.planCard, styles.planCardBest, plan === 'annual' && styles.planCardActive]}
-              scaleTo={0.96}
+              style={[styles.planRow, plan === 'annual' && styles.planRowActive]}
+              scaleTo={0.98}
               onPress={() => { haptic.select(); setPlan('annual'); }}
             >
-              <Badge label={t('pro.save')} variant="orange" style={styles.savingBadge} />
-              <Text style={[styles.planName, plan === 'annual' && styles.planNameActive]}>{t('pro.yearly')}</Text>
-              <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, plan === 'annual' && styles.planPriceActive]}>{t('pro.yearlyPrice', '$2.99')}</Text>
-                <Text style={styles.planPer}>{t('pro.perMonth', '/mo')}</Text>
+              <View style={[styles.radio, plan === 'annual' && styles.radioOn]}>
+                {plan === 'annual' && <Ionicons name="checkmark" size={13} color={colors.white} />}
               </View>
-              <Text style={styles.planNote}>{t('pro.billedYearly')}</Text>
-              {plan === 'annual' && (
-                <View style={styles.planCheck}>
-                  <Ionicons name="checkmark-circle" size={18} color={colors.green} />
+              <View style={styles.planRowBody}>
+                <View style={styles.planRowTop}>
+                  <Text style={styles.planRowName}>{t('pro.yearly')}</Text>
+                  <View style={styles.bestBadge}>
+                    <Text style={styles.bestBadgeText}>{t('pro.bestValue')}</Text>
+                  </View>
                 </View>
-              )}
+                <Text style={styles.planRowSub}>{t('pro.yearlyBilled', { total: t('pro.yearlyTotal', '$35.88') })}</Text>
+              </View>
+              <View style={styles.planRowPrice}>
+                <Text style={styles.planRowAmount}>{t('pro.yearlyPrice', '$2.99')}</Text>
+                <Text style={styles.planRowPer}>{t('pro.perMonth', '/mo')}</Text>
+              </View>
+            </PressableScale>
+
+            {/* Monthly */}
+            <PressableScale
+              style={[styles.planRow, plan === 'monthly' && styles.planRowActive]}
+              scaleTo={0.98}
+              onPress={() => { haptic.select(); setPlan('monthly'); }}
+            >
+              <View style={[styles.radio, plan === 'monthly' && styles.radioOn]}>
+                {plan === 'monthly' && <Ionicons name="checkmark" size={13} color={colors.white} />}
+              </View>
+              <View style={styles.planRowBody}>
+                <Text style={styles.planRowName}>{t('pro.monthly')}</Text>
+                <Text style={styles.planRowSub}>{t('pro.monthlyBilled')}</Text>
+              </View>
+              <View style={styles.planRowPrice}>
+                <Text style={styles.planRowAmount}>{t('pro.monthlyPrice', '$4.99')}</Text>
+                <Text style={styles.planRowPer}>{t('pro.perMonth', '/mo')}</Text>
+              </View>
             </PressableScale>
           </View>
         </FadeInItem>
@@ -367,12 +391,19 @@ export default function ProScreen() {
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            <Ionicons name="star" size={20} color={colors.white} />
-            <Text style={styles.ctaText}>{t('pro.startTrial')}</Text>
+            {busy ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="star" size={20} color={colors.white} />
+                <Text style={styles.ctaText}>{t('pro.startTrial')}</Text>
+              </>
+            )}
           </PressableScale>
           <Text style={styles.ctaNote}>
             {t('pro.trialNote', { price })}
           </Text>
+
           <View style={styles.trustRow}>
             {(['shield-checkmark-outline', 'card-outline', 'refresh-circle-outline'] as IName[]).map((icon, i) => (
               <View key={i} style={styles.trustItem}>
@@ -382,6 +413,19 @@ export default function ProScreen() {
                 </Text>
               </View>
             ))}
+          </View>
+
+          {/* Restore + legal (App Store compliance) */}
+          <PressableScale style={styles.restoreBtn} haptic="light" onPress={handleRestore}>
+            <Text style={styles.restoreText}>{t('pro.paywall.restore')}</Text>
+          </PressableScale>
+
+          <Text style={styles.disclosure}>{t('pro.legal.disclosure')}</Text>
+
+          <View style={styles.legalRow}>
+            <Text style={styles.legalLink}>{t('pro.legal.terms')}</Text>
+            <Text style={styles.legalDot}>·</Text>
+            <Text style={styles.legalLink}>{t('pro.legal.privacy')}</Text>
           </View>
         </FadeInItem>
 
@@ -492,79 +536,79 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 14,
   },
-  plans: {
-    flexDirection: 'row',
+  planList: {
     gap: 12,
     marginBottom: 22,
   },
-  planCard: {
-    flex: 1,
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
     backgroundColor: colors.surface,
     borderRadius: Radii.card,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    paddingVertical: 20,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'visible',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
   },
-  planCardBest: {
-    borderColor: colors.goldBorder,
-    backgroundColor: colors.goldLight,
-  },
-  planCardActive: {
+  planRowActive: {
     borderColor: colors.green,
     backgroundColor: colors.greenLight,
   },
-  savingBadge: {
-    position: 'absolute',
-    top: -13,
-    backgroundColor: colors.orange,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.separator,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  savingText: {
+  radioOn: {
+    backgroundColor: colors.green,
+    borderColor: colors.green,
+  },
+  planRowBody: { flex: 1, gap: 3 },
+  planRowTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  planRowName: {
     fontFamily: 'Inter_700Bold',
-    fontSize: 11,
-    color: colors.white,
-  },
-  planCheck: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-  },
-  planName: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: colors.textMuted,
-    marginBottom: 8,
-  },
-  planNameActive: { color: colors.green },
-  planPriceRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 2,
-    marginBottom: 4,
-  },
-  planPrice: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 26,
+    fontSize: 16,
     color: colors.textPrimary,
   },
-  planPriceActive: { color: colors.green },
-  planPer: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 13,
-    color: colors.textMuted,
-    paddingBottom: 4,
+  bestBadge: {
+    backgroundColor: colors.orange,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 7,
   },
-  planNote: {
+  bestBadgeText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 10,
+    color: colors.white,
+    letterSpacing: 0.3,
+  },
+  planRowSub: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 11,
+    fontSize: 12.5,
     color: colors.textMuted,
-    textAlign: 'center',
+  },
+  planRowPrice: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 1,
+    flexShrink: 0,
+  },
+  planRowAmount: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 22,
+    color: colors.textPrimary,
+  },
+  planRowPer: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: colors.textMuted,
+    paddingBottom: 3,
   },
 
   // ── Reviews ────────────────────────────────────────────────────
@@ -641,6 +685,41 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'Inter_400Regular',
     fontSize: 11,
     color: colors.textMuted,
+  },
+  restoreBtn: {
+    alignSelf: 'center',
+    paddingVertical: 12,
+    marginTop: 14,
+  },
+  restoreText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: colors.green,
+  },
+  disclosure: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 10.5,
+    color: colors.textLight,
+    textAlign: 'center',
+    lineHeight: 15,
+    marginTop: 4,
+  },
+  legalRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  legalLink: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    color: colors.textMuted,
+    textDecorationLine: 'underline',
+  },
+  legalDot: {
+    color: colors.textLight,
+    fontSize: 12,
   },
 
   // ── Active / Premium screen ────────────────────────────────────

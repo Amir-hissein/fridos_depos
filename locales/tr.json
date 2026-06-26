@@ -667,7 +667,16 @@
         "text": "\"Sonunda diyetime saygı duyan bir uygulama. Çok sevdim.\""
       }
     ],
-    "trialBanner": "Ücretsiz deneme — {{days}} gün kaldı"
+    "trialBanner": "Ücretsiz deneme — {{days}} gün kaldı",
+    "bestValue": "En iyi teklif",
+    "yearlyTotal": "$35.88",
+    "yearlyBilled": "Yıllık {{total}}",
+    "monthlyBilled": "Taahhütsüz",
+    "legal": {
+      "disclosure": "Otomatik yenilenen abonelik. Dönem bitiminden en az 24 saat önce iptal edilmezse yenilenir. Hesap ayarlarından yönet veya iptal et.",
+      "terms": "Koşullar",
+      "privacy": "Gizlilik"
+    }
   },
   "scan": {
     "choose": {

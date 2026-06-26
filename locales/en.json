@@ -667,7 +667,16 @@
         "text": "\"Finally an app that respects my diet. Love it.\""
       }
     ],
-    "trialBanner": "Free trial — {{days}} days left"
+    "trialBanner": "Free trial — {{days}} days left",
+    "bestValue": "Best value",
+    "yearlyTotal": "$35.88",
+    "yearlyBilled": "Billed {{total}}/yr",
+    "monthlyBilled": "No commitment",
+    "legal": {
+      "disclosure": "Auto-renewing subscription. Renews unless canceled at least 24h before the period ends. Manage or cancel in your account settings.",
+      "terms": "Terms",
+      "privacy": "Privacy"
+    }
   },
   "scan": {
     "choose": {
