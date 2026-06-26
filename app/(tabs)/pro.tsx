@@ -19,6 +19,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { haptic } from '../../lib/haptics';
 import { useApp } from '../../context/AppContext';
+import { useSubscription } from '../../context/SubscriptionContext';
+import { useFeedback } from '../../context/FeedbackContext';
 import { useTranslation } from 'react-i18next';
 
 type IName = React.ComponentProps<typeof Ionicons>['name'];
@@ -188,14 +190,35 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
 /* ── Main paywall screen ── */
 export default function ProScreen() {
   const { isPremium, setPremium } = useApp();
+  const { isConfigured, purchasePlan } = useSubscription();
+  const { toast } = useFeedback();
   const [plan, setPlan] = useState<'monthly' | 'annual'>('annual');
+  const [busy, setBusy] = useState(false);
   const { t, i18n } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
 
-  const subscribe = () => {
-    haptic.success();
-    setPremium(true);
+  const subscribe = async () => {
+    if (busy) return;
+    // Dev / no-keys mode: unlock locally so the flow is testable.
+    if (!isConfigured) {
+      haptic.success();
+      setPremium(true);
+      return;
+    }
+    setBusy(true);
+    try {
+      const ok = await purchasePlan(plan);
+      if (ok) haptic.success();
+    } catch (e: any) {
+      haptic.medium();
+      toast(
+        t(e?.message === 'subscription_unavailable' ? 'pro.paywall.unavailable' : 'pro.paywall.purchaseError'),
+        { variant: 'error' },
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (isPremium) {

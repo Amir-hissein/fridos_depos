@@ -17,6 +17,7 @@ import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { Radii } from '../constants/layout';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../context/AppContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { haptic } from '../lib/haptics';
 import { useTranslation } from 'react-i18next';
@@ -35,22 +36,61 @@ export default function PaywallScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { setPremium } = useApp();
+  const { isConfigured, purchasePlan, restore } = useSubscription();
   const { toast } = useFeedback();
   const { t } = useTranslation();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'annual'>('annual');
+  const [busy, setBusy] = useState(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const handleSubscribe = () => {
-    haptic.success();
-    setPremium(true);
-    router.back();
+  const handleSubscribe = async () => {
+    // Dev / no-keys mode: just unlock locally so the flow is testable.
+    if (!isConfigured) {
+      haptic.success();
+      setPremium(true);
+      router.back();
+      return;
+    }
+    setBusy(true);
+    try {
+      const ok = await purchasePlan(selectedPlan);
+      if (ok) {
+        haptic.success();
+        router.back();
+      }
+    } catch (e: any) {
+      haptic.medium();
+      toast(
+        t(e?.message === 'subscription_unavailable' ? 'pro.paywall.unavailable' : 'pro.paywall.purchaseError'),
+        { variant: 'error' },
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const handleRestore = () => {
-    setPremium(true);
-    toast(t('pro.paywall.restoreSuccess'));
-    router.back();
+  const handleRestore = async () => {
+    if (!isConfigured) {
+      setPremium(true);
+      toast(t('pro.paywall.restoreSuccess'));
+      router.back();
+      return;
+    }
+    setBusy(true);
+    try {
+      const ok = await restore();
+      if (ok) {
+        toast(t('pro.paywall.restoreSuccess'));
+        router.back();
+      } else {
+        toast(t('pro.paywall.restoreNone'), { variant: 'info' });
+      }
+    } catch {
+      toast(t('pro.paywall.purchaseError'), { variant: 'error' });
+    } finally {
+      setBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -141,6 +181,8 @@ export default function PaywallScreen() {
             icon={<Ionicons name="star" size={18} color={colors.white} />}
             label={t('pro.paywall.cta')}
             onPress={handleSubscribe}
+            loading={busy}
+            disabled={busy}
             style={styles.subscribeBtnSpacing}
           />
 

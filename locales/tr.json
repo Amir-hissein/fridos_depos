@@ -607,7 +607,10 @@
       "trialAnnual": "7 gün ücretsiz, sonra $35.88/yıl. İstediğin zaman iptal et.",
       "trialMonthly": "7 gün ücretsiz, sonra $4.99/ay. İstediğin zaman iptal et.",
       "perMonth": "aylık",
-      "perMonthYearly": "aylık · $35.88/yıl"
+      "perMonthYearly": "aylık · $35.88/yıl",
+      "purchaseError": "Satın alma başarısız. Tekrar dene.",
+      "unavailable": "Abonelikler şu anda kullanılamıyor.",
+      "restoreNone": "Geri yüklenecek satın alma yok."
     },
     "heroTitle": "Fridos Premium'a Geç",
     "heroSub": "Sınırsızca yemek yapın, haftanızı planlayın,\nsıfır reklam — ücretsiz başlayın.",

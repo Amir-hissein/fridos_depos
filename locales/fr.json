@@ -607,7 +607,10 @@
       "trialAnnual": "7 jours gratuits, puis 35,88 $/an. Annulez à tout moment.",
       "trialMonthly": "7 jours gratuits, puis 4,99 $/mois. Annulez à tout moment.",
       "perMonth": "par mois",
-      "perMonthYearly": "par mois · 35,88 $/an"
+      "perMonthYearly": "par mois · 35,88 $/an",
+      "purchaseError": "Achat impossible. Réessaie.",
+      "unavailable": "Abonnements indisponibles pour le moment.",
+      "restoreNone": "Aucun achat à restaurer."
     },
     "heroTitle": "Passez à Fridos Premium",
     "heroSub": "Cuisinez sans limites, planifiez votre semaine,\nzéro publicité — essai gratuit.",

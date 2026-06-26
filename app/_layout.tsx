@@ -10,6 +10,7 @@ import { FridgeProvider } from '../context/FridgeContext';
 import { AppProvider } from '../context/AppContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
+import { SubscriptionProvider } from '../context/SubscriptionContext';
 import { ProfileProvider } from '../context/ProfileContext';
 import { Durations } from '../constants/animations';
 import { AllergenProvider } from '../context/AllergenContext';
@@ -48,6 +49,7 @@ export default function RootLayout() {
       <ThemeProvider>
       <AuthProvider>
       <AppProvider>
+        <SubscriptionProvider>
         <ProfileProvider>
         <FridgeProvider>
           <AllergenProvider>
@@ -65,6 +67,7 @@ export default function RootLayout() {
           </AllergenProvider>
         </FridgeProvider>
         </ProfileProvider>
+        </SubscriptionProvider>
       </AppProvider>
       </AuthProvider>
       </ThemeProvider>
