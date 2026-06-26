@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { animateLayout } from '../constants/animations';
 import { usePersistentState } from '../lib/usePersistentState';
 import { useAuth } from './AuthContext';
@@ -13,6 +13,10 @@ import {
 /** Free plan limits — premium unlocks everything. */
 export const FREE_RECIPE_LIMIT = 3; // recipes a free user can open per day
 
+/** Length of the free trial granted to every new account (no card required). */
+export const TRIAL_DAYS = 3;
+const DAY_MS = 86_400_000;
+
 /** Features gated behind premium. */
 export type PremiumFeature = 'scan' | 'mealPlan' | 'shoppingList' | 'dietFilters' | 'recipes';
 
@@ -24,9 +28,21 @@ export interface ShoppingItem {
 }
 
 interface AppContextType {
+  /** Effective access: active subscription OR ongoing free trial (OR dev override). */
   isPremium: boolean;
+  /** A paid subscription is active (RevenueCat entitlement). */
+  isSubscriptionActive: boolean;
+  /** The free trial is still running. */
+  isTrialActive: boolean;
+  /** Whole days left in the trial (0 once expired). */
+  trialDaysLeft: number;
+  /** Epoch ms when the trial ends, or null if unknown (not signed in). */
+  trialEndsAt: number | null;
+  /** Set by the subscription layer (RevenueCat). */
+  setSubscriptionActive: (active: boolean) => void;
   onboardingDone: boolean;
   setOnboardingDone: (done: boolean) => void;
+  /** Dev/testing override of premium access (null = no override). */
   setPremium: (premium: boolean) => void;
   /** Display name of the user — shared between profile & plan greeting. */
   userName: string;
@@ -44,12 +60,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const userId = session?.user?.id ?? '';
 
-  // These stay local for now: premium → RevenueCat later; onboarding/userName →
-  // profiles later. Shopping list is fully backed by Supabase.
-  const [isPremium, setIsPremium] = usePersistentState('app.isPremium', true);
+  // onboarding/userName stay local for now; shopping list is backed by Supabase.
   const [onboardingDone, setOnboardingDone] = usePersistentState('app.onboardingDone', false);
   const [userName, setUserName] = usePersistentState('app.userName', 'Amir Hissein Abakar');
   const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([]);
+
+  // ── Premium access = subscription OR free trial (with a dev override) ──
+  const [isSubscriptionActive, setSubscriptionActive] = useState(false);
+  const [devOverride, setDevOverride] = useState<boolean | null>(null);
+
+  // Trial runs for TRIAL_DAYS from the account's creation (server timestamp).
+  const trialEndsAt = useMemo(() => {
+    const created = session?.user?.created_at;
+    return created ? new Date(created).getTime() + TRIAL_DAYS * DAY_MS : null;
+  }, [session?.user?.created_at]);
+
+  const now = Date.now();
+  const isTrialActive = trialEndsAt != null && now < trialEndsAt;
+  const trialDaysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt - now) / DAY_MS)) : 0;
+
+  const isPremium =
+    devOverride !== null ? devOverride : isSubscriptionActive || isTrialActive;
 
   // Load the shopping list from Supabase on sign-in; clear on sign-out.
   useEffect(() => {
@@ -64,7 +95,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [userId]);
 
-  const setPremium = (premium: boolean) => setIsPremium(premium);
+  // Dev/testing toggle — forces premium on/off regardless of subscription/trial.
+  const setPremium = (premium: boolean) => setDevOverride(premium);
 
   const addShoppingItem = async (name: string, category: string) => {
     animateLayout();
@@ -99,6 +131,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       isPremium,
+      isSubscriptionActive,
+      isTrialActive,
+      trialDaysLeft,
+      trialEndsAt,
+      setSubscriptionActive,
       onboardingDone,
       setOnboardingDone,
       setPremium,

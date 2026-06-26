@@ -45,7 +45,7 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
-  const { setPremium } = useApp();
+  const { setSubscriptionActive } = useApp();
   const [isConfigured, setIsConfigured] = useState(false);
   const [loading, setLoading] = useState(!!API_KEY);
   const [prices, setPrices] = useState<{ monthly?: string; annual?: string }>({});
@@ -56,9 +56,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const applyInfo = useCallback(
     (info: CustomerInfo) => {
-      setPremium(!!info.entitlements.active[ENTITLEMENT_ID]);
+      setSubscriptionActive(!!info.entitlements.active[ENTITLEMENT_ID]);
     },
-    [setPremium],
+    [setSubscriptionActive],
   );
 
   useEffect(() => {

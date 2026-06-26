@@ -189,7 +189,7 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
 
 /* ── Main paywall screen ── */
 export default function ProScreen() {
-  const { isPremium, setPremium } = useApp();
+  const { isPremium, isTrialActive, trialDaysLeft, setPremium } = useApp();
   const { isConfigured, purchasePlan } = useSubscription();
   const { toast } = useFeedback();
   const [plan, setPlan] = useState<'monthly' | 'annual'>('annual');
@@ -221,7 +221,9 @@ export default function ProScreen() {
     }
   };
 
-  if (isPremium) {
+  // Subscribed (or dev override outside a trial) → "active" screen.
+  // During the free trial we still show the paywall so the user can convert.
+  if (isPremium && !isTrialActive) {
     return <ActiveScreen onDowngrade={() => setPremium(false)} />;
   }
 
@@ -262,6 +264,12 @@ export default function ProScreen() {
             </View>
             <Text style={styles.heroTitle}>{t('pro.heroTitle')}</Text>
             <Text style={styles.heroSub}>{t('pro.heroSub')}</Text>
+            {isTrialActive && (
+              <View style={styles.trialPill}>
+                <Ionicons name="time-outline" size={14} color={colors.gold} />
+                <Text style={styles.trialPillText}>{t('pro.trialBanner', { days: trialDaysLeft })}</Text>
+              </View>
+            )}
           </LinearGradient>
         </FadeInItem>
 
@@ -422,6 +430,21 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
+  },
+  trialPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.goldLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    marginTop: 12,
+  },
+  trialPillText: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 12.5,
+    color: colors.goldDark,
   },
 
   // ── Features ───────────────────────────────────────────────────

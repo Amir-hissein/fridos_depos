@@ -462,7 +462,10 @@
         "Ton plan de nutrition personnalisé",
         "Accès à plus de 1000 recettes",
         "Expérience sans publicité"
-      ]
+      ],
+      "trialTitle": "Essai Premium",
+      "trialActive": "Essai gratuit · {{days}} j restants",
+      "subscribeCta": "S’abonner"
     },
     "bmi": {
       "sub": "(Indice de Masse Corporelle)",
@@ -663,7 +666,8 @@
         "name": "Amal R.",
         "text": "\"Enfin une application qui respecte mon régime. J'adore.\""
       }
-    ]
+    ],
+    "trialBanner": "Essai gratuit — {{days}} j restants"
   },
   "scan": {
     "choose": {

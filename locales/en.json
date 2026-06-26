@@ -462,7 +462,10 @@
         "Your personalized nutrition plan",
         "Access to over 1000 recipes",
         "Ad-free experience"
-      ]
+      ],
+      "trialTitle": "Premium trial",
+      "trialActive": "Free trial · {{days}} days left",
+      "subscribeCta": "Subscribe"
     },
     "bmi": {
       "sub": "(Body Mass Index)",
@@ -663,7 +666,8 @@
         "name": "Amal R.",
         "text": "\"Finally an app that respects my diet. Love it.\""
       }
-    ]
+    ],
+    "trialBanner": "Free trial — {{days}} days left"
   },
   "scan": {
     "choose": {

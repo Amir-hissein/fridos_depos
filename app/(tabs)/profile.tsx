@@ -116,7 +116,7 @@ export default function ProfileScreen() {
     { color: colors.orange, key: 'overweight' },
     { color: colors.bmiObese, key: 'obese' },
   ];
-  const { isPremium, setPremium, userName } = useApp();
+  const { isPremium, isSubscriptionActive, isTrialActive, trialDaysLeft, setPremium, userName } = useApp();
   const { signOut } = useAuth();
   const { email, userId, displayName, updateName } = useProfile();
   const { t, i18n } = useTranslation();
@@ -266,24 +266,41 @@ export default function ProfileScreen() {
 
         {/* Subscription card */}
         <FadeInItem index={1}>
-          {isPremium ? (
+          {isSubscriptionActive || isTrialActive ? (
             <View style={s.premiumActiveCard}>
               <View style={s.subRow}>
                 <View style={s.subIconWrap}>
                   <MaterialCommunityIcons name="crown" size={22} color={colors.goldDark} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.subTitle}>Fridos Premium</Text>
-                  <Text style={s.subSub}>{t('profile.premium.activeSub')}</Text>
+                  <Text style={s.subTitle}>
+                    {isSubscriptionActive ? 'Fridos Premium' : t('profile.premium.trialTitle')}
+                  </Text>
+                  <Text style={s.subSub}>
+                    {isSubscriptionActive
+                      ? t('profile.premium.activeSub')
+                      : t('profile.premium.trialActive', { days: trialDaysLeft })}
+                  </Text>
                 </View>
-                <PressableScale
-                  style={s.manageBtn}
-                  scaleTo={0.95}
-                  haptic="light"
-                  onPress={() => { haptic.select(); setPremium(false); }}
-                >
-                  <Text style={s.manageText}>{t('profile.premium.manage')}</Text>
-                </PressableScale>
+                {isSubscriptionActive ? (
+                  <PressableScale
+                    style={s.manageBtn}
+                    scaleTo={0.95}
+                    haptic="light"
+                    onPress={() => { haptic.select(); setPremium(false); }}
+                  >
+                    <Text style={s.manageText}>{t('profile.premium.manage')}</Text>
+                  </PressableScale>
+                ) : (
+                  <PressableScale
+                    style={s.subscribeBtn}
+                    scaleTo={0.95}
+                    haptic="light"
+                    onPress={() => router.push('/(tabs)/pro')}
+                  >
+                    <Text style={s.subscribeBtnText}>{t('profile.premium.subscribeCta')}</Text>
+                  </PressableScale>
+                )}
               </View>
             </View>
           ) : (
@@ -727,6 +744,19 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
     color: colors.textSecondary,
+  },
+  subscribeBtn: {
+    backgroundColor: colors.green,
+    paddingHorizontal: 16,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subscribeBtnText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 13,
+    color: colors.white,
   },
 
   // ── Quick actions ─────────────────────────────────────────────

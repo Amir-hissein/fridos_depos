@@ -462,7 +462,10 @@
         "Sana özel beslenme planı",
         "1000'den fazla tarife erişim",
         "Reklamsız kullanım"
-      ]
+      ],
+      "trialTitle": "Premium deneme",
+      "trialActive": "Ücretsiz deneme · {{days}} gün kaldı",
+      "subscribeCta": "Abone ol"
     },
     "bmi": {
       "sub": "(Vücut Kitle İndeksi)",
@@ -663,7 +666,8 @@
         "name": "Amal R.",
         "text": "\"Sonunda diyetime saygı duyan bir uygulama. Çok sevdim.\""
       }
-    ]
+    ],
+    "trialBanner": "Ücretsiz deneme — {{days}} gün kaldı"
   },
   "scan": {
     "choose": {
