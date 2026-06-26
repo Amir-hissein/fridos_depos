@@ -1,5 +1,16 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { usePersistentState } from '../lib/usePersistentState';
+// AllergenContext — the user's allergens + warn/hide mode, backed by Supabase
+// (user_allergens table + profiles.allergen_mode). Public API unchanged.
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
+import {
+  listAllergens,
+  addAllergen,
+  removeAllergen,
+  setAllergens as apiSetAllergens,
+  getAllergenMode,
+  setAllergenMode,
+} from '../lib/api/allergens';
 
 /** Two ways to handle at-risk recipes. */
 export type AllergenMode = 'warn' | 'hide';
@@ -15,16 +26,41 @@ interface AllergenContextType {
 const AllergenContext = createContext<AllergenContextType | undefined>(undefined);
 
 export function AllergenProvider({ children }: { children: ReactNode }) {
-  const [userAllergens, setUserAllergens] = usePersistentState<string[]>('allergens.list', ['peanut']);
-  const [mode, setMode] = usePersistentState<AllergenMode>('allergens.mode', 'warn');
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? '';
+  const [userAllergens, setUserAllergens] = useState<string[]>([]);
+  const [mode, setModeState] = useState<AllergenMode>('warn');
+
+  useEffect(() => {
+    if (!userId) {
+      setUserAllergens([]);
+      setModeState('warn');
+      return;
+    }
+    let active = true;
+    listAllergens().then(ids => active && setUserAllergens(ids));
+    getAllergenMode().then(m => active && m && setModeState(m));
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   const toggleAllergen = (id: string) => {
-    setUserAllergens(prev =>
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
+    const has = userAllergens.includes(id);
+    setUserAllergens(prev => (has ? prev.filter(a => a !== id) : [...prev, id]));
+    if (has) removeAllergen(id);
+    else addAllergen(id);
   };
 
-  const setAllergens = (ids: string[]) => setUserAllergens(ids);
+  const setAllergens = (ids: string[]) => {
+    setUserAllergens(ids);
+    apiSetAllergens(ids);
+  };
+
+  const setMode = (next: AllergenMode) => {
+    setModeState(next);
+    setAllergenMode(next);
+  };
 
   return (
     <AllergenContext.Provider value={{ userAllergens, mode, toggleAllergen, setAllergens, setMode }}>

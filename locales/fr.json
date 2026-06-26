@@ -45,7 +45,8 @@
       "haveAccount": "Tu as déjà un compte ? ",
       "loginLink": "Se connecter",
       "errName": "Saisis ton nom",
-      "errMismatch": "Les mots de passe ne correspondent pas"
+      "errMismatch": "Les mots de passe ne correspondent pas",
+      "confirm": "Compte créé ! Vérifie tes e-mails pour confirmer ton adresse."
     },
     "forgot": {
       "title": "Mot de passe oublié ?",
@@ -54,7 +55,10 @@
       "sentTitle": "Vérifie tes e-mails",
       "sentSubtitle": "Nous avons envoyé un lien de réinitialisation à {{email}}.",
       "backToLogin": "Retour à la connexion"
-    }
+    },
+    "errInvalidCredentials": "E-mail ou mot de passe incorrect",
+    "errEmailTaken": "Cet e-mail est déjà utilisé",
+    "errGeneric": "Une erreur est survenue, réessaie"
   },
   "onboarding": {
     "energy": "ÉNERGIE",
@@ -579,7 +583,8 @@
       },
       "emptyHistoryTitle": "Aucune recette pour l'instant",
       "emptyHistorySub": "Les recettes ajoutées à ton plan de repas apparaîtront ici."
-    }
+    },
+    "saved": "Profil mis à jour"
   },
   "pro": {
     "active": {

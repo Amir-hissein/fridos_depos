@@ -9,6 +9,8 @@ import { StyleSheet } from 'react-native';
 import { FridgeProvider } from '../context/FridgeContext';
 import { AppProvider } from '../context/AppContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { AuthProvider } from '../context/AuthContext';
+import { ProfileProvider } from '../context/ProfileContext';
 import { Durations } from '../constants/animations';
 import { AllergenProvider } from '../context/AllergenContext';
 import { PlanProvider } from '../context/PlanContext';
@@ -44,7 +46,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <ErrorBoundary>
       <ThemeProvider>
+      <AuthProvider>
       <AppProvider>
+        <ProfileProvider>
         <FridgeProvider>
           <AllergenProvider>
            <PlanProvider>
@@ -60,7 +64,9 @@ export default function RootLayout() {
            </PlanProvider>
           </AllergenProvider>
         </FridgeProvider>
+        </ProfileProvider>
       </AppProvider>
+      </AuthProvider>
       </ThemeProvider>
       </ErrorBoundary>
     </GestureHandlerRootView>

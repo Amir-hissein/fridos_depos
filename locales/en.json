@@ -45,7 +45,8 @@
       "haveAccount": "Already have an account? ",
       "loginLink": "Sign In",
       "errName": "Enter your name",
-      "errMismatch": "Passwords don't match"
+      "errMismatch": "Passwords don't match",
+      "confirm": "Account created! Check your email to confirm your address."
     },
     "forgot": {
       "title": "Forgot Password?",
@@ -54,7 +55,10 @@
       "sentTitle": "Check Your Email",
       "sentSubtitle": "We sent a reset link to {{email}}.",
       "backToLogin": "Back to Login"
-    }
+    },
+    "errInvalidCredentials": "Wrong email or password",
+    "errEmailTaken": "This email is already in use",
+    "errGeneric": "Something went wrong, please try again"
   },
   "onboarding": {
     "energy": "ENERGY",
@@ -579,7 +583,8 @@
       },
       "emptyHistoryTitle": "No recipes yet",
       "emptyHistorySub": "Recipes you add to your meal plan will show up here."
-    }
+    },
+    "saved": "Profile updated"
   },
   "pro": {
     "active": {

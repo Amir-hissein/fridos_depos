@@ -17,6 +17,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useFeedback } from '../../context/FeedbackContext';
+import { resetPassword } from '../../lib/api/auth';
 import { useTranslation } from 'react-i18next';
 import { haptic } from '../../lib/haptics';
 
@@ -31,18 +32,20 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!EMAIL_RE.test(email.trim())) {
       haptic.medium();
       return toast(t('auth.errEmail'), { variant: 'error' });
     }
-    // TODO(backend): brancher supabase.auth.resetPasswordForEmail ici.
-    haptic.success();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSent(true);
-    }, 600);
+    const res = await resetPassword(email);
+    setLoading(false);
+    if (!res.ok) {
+      haptic.medium();
+      return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
+    }
+    haptic.success();
+    setSent(true);
   };
 
   return (

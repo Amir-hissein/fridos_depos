@@ -1,6 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { animateLayout } from '../constants/animations';
 import { usePersistentState } from '../lib/usePersistentState';
+import { useAuth } from './AuthContext';
+import {
+  listShopping,
+  addShoppingItem as apiAddShopping,
+  setShoppingChecked,
+  removeShoppingItem as apiRemoveShopping,
+  clearCheckedShopping,
+} from '../lib/api/shopping';
 
 /** Free plan limits — premium unlocks everything. */
 export const FREE_RECIPE_LIMIT = 3; // recipes a free user can open per day
@@ -33,48 +41,59 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // Default to PREMIUM for testing — set to false to test the gate/paywall flow.
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? '';
+
+  // These stay local for now: premium → RevenueCat later; onboarding/userName →
+  // profiles later. Shopping list is fully backed by Supabase.
   const [isPremium, setIsPremium] = usePersistentState('app.isPremium', true);
   const [onboardingDone, setOnboardingDone] = usePersistentState('app.onboardingDone', false);
   const [userName, setUserName] = usePersistentState('app.userName', 'Amir Hissein Abakar');
-  const [shoppingList, setShoppingList] = usePersistentState<ShoppingItem[]>('app.shoppingList', [
-    { id: 's1', name: '3 zucchini', category: '🥬 Fruits & vegetables', checked: true },
-    { id: 's2', name: '1 lb tomatoes', category: '🥬 Fruits & vegetables', checked: false },
-    { id: 's3', name: '1 bunch of basil', category: '🥬 Fruits & vegetables', checked: false },
-    { id: 's4', name: '4 oz goat cheese', category: '🧀 Dairy', checked: false },
-    { id: 's5', name: 'Heavy cream', category: '🧀 Dairy', checked: true },
-    { id: 's6', name: '1 ball of mozzarella', category: '🧀 Dairy', checked: false },
-    { id: 's7', name: 'Basmati rice', category: '🛒 Pantry', checked: true },
-    { id: 's8', name: 'Olive oil', category: '🛒 Pantry', checked: false },
-  ]);
+  const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([]);
+
+  // Load the shopping list from Supabase on sign-in; clear on sign-out.
+  useEffect(() => {
+    if (!userId) {
+      setShoppingList([]);
+      return;
+    }
+    let active = true;
+    listShopping().then(rows => active && setShoppingList(rows));
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   const setPremium = (premium: boolean) => setIsPremium(premium);
 
-  const addShoppingItem = (name: string, category: string) => {
-    const newItem: ShoppingItem = {
-      id: `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name,
-      category,
-      checked: false,
-    };
+  const addShoppingItem = async (name: string, category: string) => {
     animateLayout();
-    setShoppingList(prev => [...prev, newItem]);
+    const row = await apiAddShopping(name, category);
+    if (row) setShoppingList(prev => [...prev, row]);
   };
 
   const removeShoppingItem = (id: string) => {
     animateLayout();
     setShoppingList(prev => prev.filter(item => item.id !== id));
+    apiRemoveShopping(id);
   };
 
   const toggleShoppingItem = (id: string) => {
+    let nextChecked = false;
     setShoppingList(prev =>
-      prev.map(item => (item.id === id ? { ...item, checked: !item.checked } : item))
+      prev.map(item => {
+        if (item.id !== id) return item;
+        nextChecked = !item.checked;
+        return { ...item, checked: nextChecked };
+      }),
     );
+    setShoppingChecked(id, nextChecked);
   };
 
   const clearCheckedItems = () => {
     animateLayout();
     setShoppingList(prev => prev.filter(item => !item.checked));
+    clearCheckedShopping();
   };
 
   return (

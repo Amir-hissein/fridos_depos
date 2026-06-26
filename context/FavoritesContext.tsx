@@ -1,6 +1,10 @@
-import React, { createContext, useContext, ReactNode } from 'react';
+// FavoritesContext — favourite recipe ids, backed by Supabase. Public API
+// unchanged; loads on sign-in, mutations are optimistic + written through.
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { animateLayout } from '../constants/animations';
-import { usePersistentState } from '../lib/usePersistentState';
+import { useAuth } from './AuthContext';
+import { listFavorites, addFavorite, removeFavorite } from '../lib/api/favorites';
 
 interface FavoritesContextType {
   favorites: string[];
@@ -10,17 +14,31 @@ interface FavoritesContextType {
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
-/** In-memory favourites (recipe ids). Shared by the recipe detail & meal screens. */
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favorites, setFavorites] = usePersistentState<string[]>('favorites.list', []);
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? '';
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!userId) {
+      setFavorites([]);
+      return;
+    }
+    let active = true;
+    listFavorites().then(ids => active && setFavorites(ids));
+    return () => {
+      active = false;
+    };
+  }, [userId]);
 
   const isFavorite = (id: string) => favorites.includes(id);
 
   const toggleFavorite = (id: string) => {
+    const has = favorites.includes(id);
     animateLayout();
-    setFavorites(prev =>
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id],
-    );
+    setFavorites(prev => (has ? prev.filter(f => f !== id) : [...prev, id]));
+    if (has) removeFavorite(id);
+    else addFavorite(id);
   };
 
   return (

@@ -1,6 +1,6 @@
-// NotificationsContext — owns the user's reminder preferences, persists them
-// (AsyncStorage), keeps OS permission state, and (re)schedules the local
-// reminders whenever prefs or the app language change.
+// NotificationsContext — reminder preferences backed by Supabase
+// (notification_prefs). Loads on sign-in, persists on change, and (re)schedules
+// the local reminders whenever prefs or the app language change.
 
 import React, {
   createContext,
@@ -11,8 +11,8 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import i18n from '../lib/i18n';
+import { useAuth } from './AuthContext';
 import {
   NotifPrefs,
   NotifCategory,
@@ -23,62 +23,55 @@ import {
   requestPermission,
   rescheduleReminders,
 } from '../services/notifications';
-
-const STORAGE_KEY = 'app.notifications';
+import { getNotifPrefs, saveNotifPrefs } from '../lib/api/notificationPrefs';
 
 interface NotificationsContextType {
   prefs: NotifPrefs;
-  /** True once stored prefs + permission status have loaded. */
   ready: boolean;
-  /** OS-level permission was granted. */
   permissionGranted: boolean;
-  /** Flip the master switch — requests OS permission when turning on. */
   setEnabled: (on: boolean) => Promise<void>;
-  /** Toggle a single reminder category. */
   toggleCategory: (cat: NotifCategory) => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const { session } = useAuth();
+  const userId = session?.user?.id ?? '';
   const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF_PREFS);
   const [ready, setReady] = useState(false);
   const [permissionGranted, setPermissionGranted] = useState(false);
 
-  // Configure the foreground handler once, up front.
+  // Configure the foreground handler + channel once.
   useEffect(() => {
     configureNotificationHandler();
     ensureAndroidChannel();
+    getPermissionStatus().then(status => setPermissionGranted(status === 'granted'));
   }, []);
 
-  // Load persisted prefs + current permission status on mount.
+  // Load prefs from the backend on sign-in.
   useEffect(() => {
+    if (!userId) {
+      setPrefs(DEFAULT_NOTIF_PREFS);
+      setReady(false);
+      return;
+    }
     let active = true;
-    (async () => {
-      const [saved, status] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEY).catch(() => null),
-        getPermissionStatus(),
-      ]);
+    setReady(false);
+    getNotifPrefs().then(p => {
       if (!active) return;
-      if (saved) {
-        try {
-          setPrefs({ ...DEFAULT_NOTIF_PREFS, ...JSON.parse(saved) });
-        } catch {
-          // ignore malformed storage
-        }
-      }
-      setPermissionGranted(status === 'granted');
+      if (p) setPrefs({ ...DEFAULT_NOTIF_PREFS, ...p });
       setReady(true);
-    })();
+    });
     return () => {
       active = false;
     };
-  }, []);
+  }, [userId]);
 
-  // Persist + reschedule whenever prefs change (after initial load).
+  // Persist + reschedule whenever prefs change (after load).
   useEffect(() => {
     if (!ready) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prefs)).catch(() => {});
+    saveNotifPrefs(prefs);
     rescheduleReminders(prefs);
   }, [prefs, ready]);
 

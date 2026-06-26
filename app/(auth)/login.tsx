@@ -18,6 +18,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useFeedback } from '../../context/FeedbackContext';
+import { signIn } from '../../lib/api/auth';
 import { useTranslation } from 'react-i18next';
 import { haptic } from '../../lib/haptics';
 
@@ -33,7 +34,7 @@ export default function LoginScreen() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (!EMAIL_RE.test(email.trim())) {
       haptic.medium();
       return toast(t('auth.errEmail'), { variant: 'error' });
@@ -42,13 +43,15 @@ export default function LoginScreen() {
       haptic.medium();
       return toast(t('auth.errPassword'), { variant: 'error' });
     }
-    // TODO(backend): brancher supabase.auth.signInWithPassword ici.
-    haptic.success();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      router.replace('/(onboarding)');
-    }, 600);
+    const res = await signIn(email, password);
+    setLoading(false);
+    if (!res.ok) {
+      haptic.medium();
+      return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
+    }
+    haptic.success();
+    router.replace('/(tabs)/plan');
   };
 
   const soon = () => toast(t('common.soon'), { variant: 'info' });

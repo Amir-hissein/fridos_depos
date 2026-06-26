@@ -18,6 +18,7 @@ import { Button } from '../../components/ui/Button';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useApp } from '../../context/AppContext';
 import { useFeedback } from '../../context/FeedbackContext';
+import { signUp } from '../../lib/api/auth';
 import { useTranslation } from 'react-i18next';
 import { haptic } from '../../lib/haptics';
 
@@ -36,7 +37,7 @@ export default function SignupScreen() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     if (name.trim().length < 2) {
       haptic.medium();
       return toast(t('auth.signup.errName'), { variant: 'error' });
@@ -53,14 +54,22 @@ export default function SignupScreen() {
       haptic.medium();
       return toast(t('auth.signup.errMismatch'), { variant: 'error' });
     }
-    // TODO(backend): brancher supabase.auth.signUp ici.
+    setLoading(true);
+    const res = await signUp(email, password, name);
+    setLoading(false);
+    if (!res.ok) {
+      haptic.medium();
+      return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
+    }
     setUserName(name.trim());
     haptic.success();
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    if (res.needsConfirm) {
+      // Email confirmation required — no session yet, send them back to login.
+      toast(t('auth.signup.confirm'), { variant: 'info', duration: 4000 });
+      router.replace('/(auth)/login');
+    } else {
       router.replace('/(onboarding)');
-    }, 600);
+    }
   };
 
   return (

@@ -45,7 +45,8 @@
       "haveAccount": "Zaten hesabın var mı? ",
       "loginLink": "Giriş Yap",
       "errName": "Adını gir",
-      "errMismatch": "Şifreler eşleşmiyor"
+      "errMismatch": "Şifreler eşleşmiyor",
+      "confirm": "Hesap oluşturuldu! Adresini doğrulamak için e-postanı kontrol et."
     },
     "forgot": {
       "title": "Şifreni mi Unuttun?",
@@ -54,7 +55,10 @@
       "sentTitle": "E-postanı Kontrol Et",
       "sentSubtitle": "{{email}} adresine bir sıfırlama bağlantısı gönderdik.",
       "backToLogin": "Girişe Dön"
-    }
+    },
+    "errInvalidCredentials": "E-posta veya şifre hatalı",
+    "errEmailTaken": "Bu e-posta zaten kullanımda",
+    "errGeneric": "Bir hata oluştu, tekrar dene"
   },
   "onboarding": {
     "energy": "ENERJİ",
@@ -579,7 +583,8 @@
       },
       "emptyHistoryTitle": "Henüz tarif yok",
       "emptyHistorySub": "Öğün planına eklediğin tarifler burada görünecek."
-    }
+    },
+    "saved": "Profil güncellendi"
   },
   "pro": {
     "active": {
