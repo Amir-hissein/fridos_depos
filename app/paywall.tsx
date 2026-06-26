@@ -16,7 +16,7 @@ import { Colors, ThemeColors } from '../constants/colors';
 import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { Radii } from '../constants/layout';
 import { Button } from '../components/ui/Button';
-import { useApp } from '../context/AppContext';
+import { useApp, TRIAL_DAYS } from '../context/AppContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { haptic } from '../lib/haptics';
@@ -188,8 +188,8 @@ export default function PaywallScreen() {
 
           <Text style={styles.footnote}>
             {selectedPlan === 'annual'
-              ? t('pro.paywall.trialAnnual')
-              : t('pro.paywall.trialMonthly')}
+              ? t('pro.paywall.trialAnnual', { days: TRIAL_DAYS })
+              : t('pro.paywall.trialMonthly', { days: TRIAL_DAYS })}
           </Text>
 
           <PressableScale haptic="light" style={styles.restoreBtn} onPress={handleRestore} activeOpacity={0.7}>

@@ -18,7 +18,7 @@ import { PressableScale } from '../../components/ui/PressableScale';
 import { FadeInItem } from '../../components/ui/FadeInItem';
 import { Card } from '../../components/ui/Card';
 import { haptic } from '../../lib/haptics';
-import { useApp } from '../../context/AppContext';
+import { useApp, TRIAL_DAYS } from '../../context/AppContext';
 import { useSubscription } from '../../context/SubscriptionContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { useTranslation } from 'react-i18next';
@@ -396,7 +396,7 @@ export default function ProScreen() {
             ) : (
               <>
                 <Ionicons name="star" size={20} color={colors.white} />
-                <Text style={styles.ctaText}>{t('pro.startTrial')}</Text>
+                <Text style={styles.ctaText}>{t('pro.startTrial', { days: TRIAL_DAYS })}</Text>
               </>
             )}
           </PressableScale>
