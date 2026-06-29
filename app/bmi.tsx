@@ -79,7 +79,7 @@ export default function BMIScreen() {
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
-      <ScreenHeader title="BMI" />
+      <ScreenHeader title={t('profile.bmiPage.header')} />
 
       <ScrollView
         style={s.scroll}

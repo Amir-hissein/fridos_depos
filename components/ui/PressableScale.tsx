@@ -22,6 +22,11 @@ interface PressableScaleProps {
   hitSlop?: number | { top?: number; left?: number; bottom?: number; right?: number };
   /** Accepté pour compatibilité (migration depuis TouchableOpacity) — ignoré. */
   activeOpacity?: number;
+  /** Libellé lu par les lecteurs d'écran (indispensable sur les boutons icône-seule). */
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  /** Rôle d'accessibilité (défaut « button » dès qu'un onPress est fourni). */
+  accessibilityRole?: 'button' | 'link' | 'none' | 'image' | 'text';
 }
 
 /**
@@ -37,6 +42,9 @@ export function PressableScale({
   haptic: hapticKind,
   disabled,
   hitSlop,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole,
 }: PressableScaleProps) {
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -100,6 +108,11 @@ export function PressableScale({
       disabled={disabled}
       hitSlop={hitSlop}
       style={layoutStyle}
+      accessible
+      accessibilityRole={accessibilityRole ?? (onPress ? 'button' : undefined)}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled: !!disabled }}
     >
       <Animated.View style={[innerSizing, innerStyle, { transform: [{ scale }] }]}>
         {children}

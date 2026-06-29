@@ -50,6 +50,7 @@ export function Button({
       disabled={disabled || loading}
       scaleTo={0.97}
       haptic={disabled || loading ? undefined : 'light'}
+      accessibilityLabel={label}
     >
       {loading
         ? <ActivityIndicator color="#fff" />

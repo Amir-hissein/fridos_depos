@@ -19,6 +19,7 @@ import React, {
 import { Platform } from 'react-native';
 import type { PurchasesOffering, CustomerInfo } from 'react-native-purchases';
 import { useApp } from './AppContext';
+import { useAuth } from './AuthContext';
 
 /** Entitlement identifier configured in the RevenueCat dashboard. */
 const ENTITLEMENT_ID = 'premium';
@@ -46,6 +47,7 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { setSubscriptionActive } = useApp();
+  const { user } = useAuth();
   const [isConfigured, setIsConfigured] = useState(false);
   const [loading, setLoading] = useState(!!API_KEY);
   const [prices, setPrices] = useState<{ monthly?: string; annual?: string }>({});
@@ -112,6 +114,27 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [applyInfo]);
+
+  // Link the RevenueCat identity to the Supabase user so webhook events carry
+  // `app_user_id = <supabase user id>` (server can map purchases to the account).
+  useEffect(() => {
+    const Purchases = purchasesRef.current;
+    if (!isConfigured || !Purchases) return;
+    let mounted = true;
+    (async () => {
+      try {
+        if (user?.id) {
+          const { customerInfo } = await Purchases.logIn(user.id);
+          if (mounted) applyInfo(customerInfo);
+        } else {
+          await Purchases.logOut();
+        }
+      } catch (e) {
+        if (__DEV__) console.log('[subscription] identity link failed:', e);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [isConfigured, user?.id, applyInfo]);
 
   const purchasePlan = useCallback(
     async (plan: Plan): Promise<boolean> => {

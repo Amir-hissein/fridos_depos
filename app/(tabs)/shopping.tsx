@@ -8,6 +8,7 @@ import {
   Animated,
   TextInput,
   Keyboard,
+  Share,
 } from 'react-native';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, ThemeColors } from '../../constants/colors';
 import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { Radii } from '../../constants/layout';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ShopItem } from '../../components/ui/ShopItem';
 import { FadeInItem } from '../../components/ui/FadeInItem';
 import { PremiumGate } from '../../components/ui/PremiumGate';
@@ -93,6 +95,36 @@ export default function ShoppingScreen() {
     }
   };
 
+  // Partage natif réel : compose un texte lisible (groupé par catégorie) et
+  // ouvre la feuille de partage du système (Messages, Notes, WhatsApp…).
+  const handleShare = async () => {
+    haptic.light();
+    const isTobuy = activeTab === 'tobuy';
+    const items: { name: string; category: string; quantity?: string; checked?: boolean }[] =
+      isTobuy ? derivedMissing : shoppingList;
+    if (items.length === 0) {
+      toast(t('shopping.shareEmpty'), { variant: 'error' });
+      return;
+    }
+    const cats = Array.from(new Set(items.map(it => it.category)));
+    const blocks = cats.map(cat => {
+      const lines = items
+        .filter(it => it.category === cat)
+        .map(it => {
+          const qty = it.quantity ? ` (${it.quantity})` : '';
+          const mark = !isTobuy && it.checked ? '☑' : '•';
+          return `  ${mark} ${it.name}${qty}`;
+        });
+      return `${getCategoryLabel(cat, t)}\n${lines.join('\n')}`;
+    });
+    const message = `🛒 ${t('shopping.title')}\n\n${blocks.join('\n\n')}`;
+    try {
+      await Share.share({ message, title: t('shopping.title') });
+    } catch {
+      // partage annulé / indisponible — sans effet
+    }
+  };
+
   const totalItems = shoppingList.length;
   const doneItems = shoppingList.filter(item => item.checked).length;
   const progress = totalItems > 0 ? doneItems / totalItems : 0;
@@ -147,44 +179,40 @@ export default function ShoppingScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <PressableScale
-            haptic="light"
-            style={styles.backBtn}
-            onPress={() => (router.canGoBack() ? router.back() : router.push('/(tabs)/profile'))}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
-          </PressableScale>
-          <View style={styles.headerTitleBlock}>
-            <Text style={styles.title}>{t('shopping.title')}</Text>
-            <Text style={styles.sub}>
-              {activeTab === 'myitems'
-                ? t('shopping.itemsStatus', { total: totalItems, done: doneItems })
-                : t('shopping.missingCount', { count: derivedMissing.length })}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.headerActions}>
-          {doneItems > 0 && (
+      {/* Header (uniforme app — ScreenHeader) */}
+      <ScreenHeader
+        title={t('shopping.title')}
+        align="left"
+        onBack={() => router.replace('/(tabs)/profile')}
+        right={
+          <View style={styles.headerActions}>
+            {doneItems > 0 && (
+              <PressableScale haptic="light"
+                style={[styles.headerActionBtn, { backgroundColor: colors.orangeLight, marginRight: 8 }]}
+                onPress={handleClearChecked}
+                activeOpacity={0.8}
+                accessibilityLabel={t('shopping.clearConfirmDone')}
+              >
+                <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.orange} />
+              </PressableScale>
+            )}
             <PressableScale haptic="light"
-              style={[styles.headerActionBtn, { backgroundColor: colors.orangeLight, marginRight: 8 }]}
-              onPress={handleClearChecked}
+              style={styles.headerActionBtn}
+              onPress={handleShare}
               activeOpacity={0.8}
+              accessibilityLabel={t('a11y.share')}
             >
-              <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.orange} />
+              <MaterialCommunityIcons name="share-variant-outline" size={20} color={colors.green} />
             </PressableScale>
-          )}
-          <PressableScale haptic="light" style={styles.headerActionBtn} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="share-variant-outline" size={20} color={colors.green} />
-          </PressableScale>
-        </View>
-      </View>
+          </View>
+        }
+      />
 
-      {/* Description */}
-      <Text style={styles.desc}>
-        {t('shopping.desc')}
+      {/* Sous-titre dynamique */}
+      <Text style={styles.sub}>
+        {activeTab === 'myitems'
+          ? t('shopping.itemsStatus', { total: totalItems, done: doneItems })
+          : t('shopping.missingCount', { count: derivedMissing.length })}
       </Text>
 
       {/* Tabs */}
@@ -380,63 +408,23 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120 },
 
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  title: {
-    fontFamily: 'Poppins_700Bold',
-    fontSize: 26,
-    color: colors.textPrimary,
-    lineHeight: 34,
-    marginBottom: 2,
-  },
   sub: {
     fontFamily: 'Inter_400Regular',
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  desc: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 13,
-    color: colors.textSecondary,
     paddingHorizontal: 20,
-    paddingBottom: 14,
-    lineHeight: 19,
+    marginTop: -4,
+    marginBottom: 10,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
   },
   headerActionBtn: {
     width: 40,
     height: 40,
     borderRadius: 12,
     backgroundColor: colors.greenLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  headerTitleBlock: {
-    flex: 1,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },

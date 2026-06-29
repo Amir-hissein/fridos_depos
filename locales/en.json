@@ -1,4 +1,17 @@
 {
+  "a11y": {
+    "back": "Back",
+    "close": "Close",
+    "bookmark": "Add to favorites",
+    "capturePhoto": "Take photo",
+    "toggleFlash": "Toggle flash",
+    "share": "Share",
+    "editName": "Edit name",
+    "copyId": "Copy ID",
+    "openFilters": "Open filters",
+    "search": "Search",
+    "addMeal": "Add to meal"
+  },
   "common": {
     "continue": "Continue",
     "cancel": "Cancel",
@@ -400,6 +413,7 @@
     "clearConfirmDone": "Clear",
     "toastUpdated": "List updated",
     "toastAdded": "Added to list",
+    "shareEmpty": "Your list is empty — nothing to share.",
     "tabs": {
       "myItems": "My Items",
       "toBuy": "To Buy"
@@ -439,6 +453,13 @@
     "copied": "Copied ✓",
     "logout": "Log Out",
     "deleteAccount": "Delete Account",
+    "deleteConfirm": {
+      "title": "Delete account?",
+      "message": "This is permanent. Your account and all your data (profile, tracking, recipes, favorites) will be deleted and cannot be recovered.",
+      "confirm": "Delete",
+      "deleting": "Deleting…",
+      "error": "Deletion failed. Please try again."
+    },
     "fridge": "My Fridge",
     "settings": {
       "personalInfo": "Personal Information",
@@ -544,11 +565,12 @@
       "targetWeight": "Target Weight",
       "goal": "Goal",
       "rate": "Pace",
-      "rateValue": "Fast (1 kg/week)",
+      "rateValue": "{{pace}} ({{rate}} kg/week)",
       "duration": "Estimated Time",
       "durationValue": "{{count}} months"
     },
     "bmiPage": {
+      "header": "BMI",
       "title": "BMI (Body Mass Index)",
       "whatIsBmi": "What is BMI?",
       "description": "Body Mass Index is a measurement that shows whether your body weight is in a healthy range relative to your height and weight. It is widely used to evaluate general health status.",
@@ -696,11 +718,22 @@
     "camera": {
       "permission": {
         "title": "Enable the camera",
-        "desc": "Fridos needs access to your camera to scan the food in your fridge and suggest recipes.",
+        "desc": "Fridos uses your camera to scan your food and turn it into calories, macros and recipe ideas.",
+        "features": {
+          "scan": "Scan your fridge or your meals in seconds",
+          "insights": "Instant calories, macros and recipe ideas",
+          "privacy": "Photos are analyzed privately and never stored"
+        },
         "allow": "Allow camera access",
         "settings": "Open settings",
         "later": "Maybe later",
         "galleryDenied": "Photo access denied. Enable it in settings."
+      },
+      "galleryPermission": {
+        "title": "Allow photo access",
+        "desc": "Fridos reads a photo from your library to turn your meal into calories, macros and recipe ideas.",
+        "pick": "Pick a photo of your fridge or your meal",
+        "allow": "Allow photo access"
       },
       "hints": {
         "meal": "Frame your plate in the viewfinder",
@@ -744,6 +777,7 @@
       "retry": "Try again"
     },
     "mealResult": {
+      "loadingTitle": "Analyzing your meal",
       "loadingText": "Estimating calories…",
       "detected": "Detected",
       "confidence": "{{confidence}}% sure",
@@ -778,6 +812,7 @@
   },
   "mealDetail": {
     "activeValues": "Active Values",
+    "remaining": "Remaining",
     "protein": "Protein",
     "fat": "Fat",
     "carbs": "Carbs",
@@ -795,6 +830,10 @@
     "emptyFavorites": {
       "title": "No favorite recipes yet.",
       "subtitle": "Tap the bookmark icon 🔖 on any recipe to add it here."
+    },
+    "emptyMyRecipes": {
+      "title": "No personal recipes yet.",
+      "subtitle": "Use the + button at the bottom right to create your own recipe."
     },
     "addOwnRecipe": "Add Your Own Recipe",
     "fab": {
@@ -1061,6 +1100,7 @@
     }
   },
   "theme": {
+    "title": "Theme",
     "changed": "Theme: {{mode}}",
     "modes": {
       "light": "Light",

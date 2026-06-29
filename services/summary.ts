@@ -1,19 +1,13 @@
-// Summary service — turns raw daily/weekly intake into the progress figures the
-// UI shows (consumed vs goal, remaining, %, weight trend, adherence).
-// Pure & deterministic. Screens consume these instead of computing inline.
 
 import { PlanTargets } from './plan';
 import { MacroSet, scaleMacros } from './nutrition';
 
-/** A single value measured against a goal. */
+
 export interface Progress {
   value: number;
   goal: number;
-  /** goal − value, clamped to ≥ 0. */
   remaining: number;
-  /** value / goal, clamped to 0..1 (for progress bars). */
   ratio: number;
-  /** Raw percentage (can exceed 100). */
   percent: number;
   reached: boolean;
 }
@@ -31,7 +25,7 @@ export function progress(value: number, goal: number): Progress {
   };
 }
 
-/** Minimal daily inputs (avoids depending on the context's DailyIntake type). */
+
 export interface DayInputs {
   consumedKcal: number;
   waterMl: number;
@@ -42,7 +36,6 @@ export interface DaySummary {
   kcal: Progress;
   water: Progress;
   steps: Progress;
-  /** Macros consumed, estimated by scaling target macros to the consumed kcal. */
   consumedMacros: MacroSet;
   targetMacros: MacroSet;
 }
@@ -54,11 +47,7 @@ const targetMacroSet = (t: PlanTargets): MacroSet => ({
   fat: t.fat,
 });
 
-/**
- * Estimate macros consumed from the day's kcal. Meals are logged as kcal only,
- * so we distribute them along the planned macro ratio. (When real per-meal
- * macros become available, swap this for an exact sum.)
- */
+
 export function estimateConsumedMacros(consumedKcal: number, targets: PlanTargets): MacroSet {
   const ratio = targets.kcal > 0 ? consumedKcal / targets.kcal : 0;
   return scaleMacros(targetMacroSet(targets), ratio);
@@ -78,14 +67,11 @@ export function computeDaySummary(
   };
 }
 
-/* ── Weekly aggregates ──────────────────────────────────────────────────── */
 
 export interface WeightTrend {
   start: number;
   current: number;
-  /** current − start (negative = loss). */
   delta: number;
-  /** Weight series across the week (one entry per logged day). */
   series: number[];
 }
 
@@ -102,10 +88,8 @@ export function computeWeightTrend(weights: number[]): WeightTrend {
 }
 
 export interface WeeklyStats {
-  /** Days with any logged kcal. */
   daysLogged: number;
   avgKcal: number;
-  /** Days whose kcal landed within ±10% of the target. */
   daysOnTarget: number;
   adherencePercent: number;
   totalWaterMl: number;

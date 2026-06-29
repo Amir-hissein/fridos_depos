@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { darkColors as c } from '../constants/colors';
 import i18n from '../lib/i18n';
+import { reportError } from '../lib/sentry';
 
 interface Props {
   children: React.ReactNode;
@@ -26,8 +27,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Last-resort logging — surfaces in Metro/console; later: report to backend.
+    // Last-resort logging — surfaces in Metro/console.
     console.error('Uncaught error in tree:', error, info.componentStack);
+    // Report to Sentry (no-op without a DSN / native module).
+    reportError(error, { componentStack: info.componentStack });
   }
 
   reset = () => this.setState({ hasError: false, error: null });

@@ -1,4 +1,17 @@
 {
+  "a11y": {
+    "back": "Retour",
+    "close": "Fermer",
+    "bookmark": "Ajouter aux favoris",
+    "capturePhoto": "Prendre la photo",
+    "toggleFlash": "Activer/désactiver le flash",
+    "share": "Partager",
+    "editName": "Modifier le nom",
+    "copyId": "Copier l'identifiant",
+    "openFilters": "Ouvrir les filtres",
+    "search": "Rechercher",
+    "addMeal": "Ajouter au repas"
+  },
   "common": {
     "continue": "Continuer",
     "cancel": "Annuler",
@@ -400,6 +413,7 @@
     "clearConfirmDone": "Vider",
     "toastUpdated": "Liste mise à jour",
     "toastAdded": "Ajouté à la liste",
+    "shareEmpty": "Ta liste est vide — rien à partager.",
     "tabs": {
       "myItems": "Mes articles",
       "toBuy": "À acheter"
@@ -439,6 +453,13 @@
     "copied": "Copié ✓",
     "logout": "Se déconnecter",
     "deleteAccount": "Supprimer le compte",
+    "deleteConfirm": {
+      "title": "Supprimer le compte ?",
+      "message": "Cette action est définitive. Ton compte et toutes tes données (profil, suivi, recettes, favoris) seront supprimés et ne pourront pas être récupérés.",
+      "confirm": "Supprimer",
+      "deleting": "Suppression…",
+      "error": "La suppression a échoué. Réessaie."
+    },
     "fridge": "Mon Frigo",
     "settings": {
       "personalInfo": "Informations personnelles",
@@ -544,11 +565,12 @@
       "targetWeight": "Poids Cible",
       "goal": "Objectif",
       "rate": "Rythme",
-      "rateValue": "Rapide (1 kg/semaine)",
+      "rateValue": "{{pace}} ({{rate}} kg/semaine)",
       "duration": "Durée Estimée",
       "durationValue": "{{count}} mois"
     },
     "bmiPage": {
+      "header": "IMC",
       "title": "IMC (Indice de masse corporelle)",
       "whatIsBmi": "Qu'est-ce que l'IMC ?",
       "description": "L'indice de masse corporelle est une mesure qui indique si votre poids corporel est dans une fourchette saine par rapport à votre taille et votre poids. Il est largement utilisé pour évaluer l'état de santé général.",
@@ -696,11 +718,22 @@
     "camera": {
       "permission": {
         "title": "Activer la caméra",
-        "desc": "Fridos a besoin d'accéder à votre caméra pour scanner les aliments de votre frigo et vous suggérer des recettes.",
+        "desc": "Fridos utilise votre caméra pour scanner vos aliments et les transformer en calories, macros et idées de recettes.",
+        "features": {
+          "scan": "Scannez votre frigo ou vos repas en quelques secondes",
+          "insights": "Calories, macros et idées de recettes instantanées",
+          "privacy": "Les photos sont analysées en privé, jamais stockées"
+        },
         "allow": "Autoriser l'accès à la caméra",
         "settings": "Ouvrir les réglages",
         "later": "Plus tard",
         "galleryDenied": "Accès aux photos refusé. Active-le dans les réglages."
+      },
+      "galleryPermission": {
+        "title": "Autoriser l'accès aux photos",
+        "desc": "Fridos lit une photo de votre galerie pour transformer votre repas en calories, macros et idées de recettes.",
+        "pick": "Choisissez une photo de votre frigo ou de votre repas",
+        "allow": "Autoriser l'accès aux photos"
       },
       "hints": {
         "meal": "Cadrez votre assiette dans le viseur",
@@ -744,6 +777,7 @@
       "retry": "Réessayer"
     },
     "mealResult": {
+      "loadingTitle": "Analyse de ton repas",
       "loadingText": "Estimation des calories…",
       "detected": "Détecté",
       "confidence": "sûr à {{confidence}}%",
@@ -778,6 +812,7 @@
   },
   "mealDetail": {
     "activeValues": "Valeurs Actives",
+    "remaining": "Restant",
     "protein": "Protéines",
     "fat": "Lipides",
     "carbs": "Glucides",
@@ -795,6 +830,10 @@
     "emptyFavorites": {
       "title": "Aucune recette favorite pour le moment.",
       "subtitle": "Appuyez sur l'icône 🔖 de n'importe quelle recette pour l'ajouter ici."
+    },
+    "emptyMyRecipes": {
+      "title": "Aucune recette personnelle pour le moment.",
+      "subtitle": "Utilisez le bouton + en bas à droite pour créer votre propre recette."
     },
     "addOwnRecipe": "Ajouter votre propre recette",
     "fab": {
@@ -1061,6 +1100,7 @@
     }
   },
   "theme": {
+    "title": "Thème",
     "changed": "Thème : {{mode}}",
     "modes": {
       "light": "Clair",

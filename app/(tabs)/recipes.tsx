@@ -247,6 +247,7 @@ export default function RecipesScreen() {
               <PressableScale haptic="light"
                 style={styles.headerIconBtn}
                 onPress={() => { haptic.light(); setFilterVisible(true); }}
+                accessibilityLabel={t('a11y.openFilters')}
               >
                 <Ionicons name="options-outline" size={22} color={colors.textPrimary} />
                 {anyFilterActive && <View style={styles.iconBadge} />}
@@ -259,11 +260,13 @@ export default function RecipesScreen() {
             styles.searchBarContainer,
             searchOpen ? { width: contentWidth - 75 - 12, marginRight: 12 } : { width: 44, marginRight: 0 }
           ]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               activeOpacity={0.85}
               style={styles.searchBarPressable}
               onPress={openSearch}
               disabled={searchOpen}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.search')}
             >
               <View style={[
                 styles.searchBarInner,
@@ -542,7 +545,7 @@ export default function RecipesScreen() {
             
             <View style={styles.modalTitleRow}>
               <Text style={styles.modalTitle}>{t('recipes.filterModal.title')}</Text>
-              <PressableScale haptic="light" style={styles.modalCloseBtn} onPress={() => setFilterVisible(false)}>
+              <PressableScale haptic="light" style={styles.modalCloseBtn} onPress={() => setFilterVisible(false)} accessibilityLabel={t('a11y.close')}>
                 <Ionicons name="close" size={20} color={colors.textPrimary} />
               </PressableScale>
             </View>

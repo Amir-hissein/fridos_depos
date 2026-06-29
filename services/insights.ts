@@ -1,29 +1,19 @@
-// Insights engine — turns the day's tracking data into prioritized, contextual
-// alerts ("your hydration is behind", "calorie goal exceeded", …).
-//
-// Pure & deterministic: no Date, no i18n, no UI. The current hour is passed in
-// so the function stays testable, and messages are returned as i18n keys + params
-// so the UI layer localizes them. Screens render the top N by `priority`.
+
 
 export type InsightSeverity = 'success' | 'warning' | 'info' | 'tip';
 
 export interface Insight {
-  /** Stable identifier (also the i18n sub-key under `insights`). */
+
   id: string;
   severity: InsightSeverity;
-  /** Ionicon name. */
   icon: string;
-  /** i18n keys, e.g. `insights.hydrationBehind.title`. */
   titleKey: string;
   messageKey: string;
-  /** Interpolation values for the message. */
   params?: Record<string, string | number>;
-  /** Higher = more important. UI shows the top few. */
   priority: number;
 }
 
 export interface InsightInput {
-  /** Hour of day, 0..23 — drives time-aware nudges. */
   hour: number;
   consumedKcal: number;
   targetKcal: number;
@@ -34,7 +24,6 @@ export interface InsightInput {
   steps: number;
   stepsGoal: number;
   meals: { breakfast: number; lunch: number; dinner: number; snack: number };
-  /** Weekly weight change in kg (negative = loss). Optional. */
   weightDeltaKg?: number;
 }
 
@@ -43,10 +32,6 @@ const keys = (id: string) => ({
   messageKey: `insights.${id}.message`,
 });
 
-/**
- * Build the list of insights relevant right now, sorted by descending priority.
- * Each rule contributes at most one insight; the screen slices the top results.
- */
 export function buildInsights(input: InsightInput): Insight[] {
   const {
     hour,

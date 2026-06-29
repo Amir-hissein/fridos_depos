@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeColors } from '../../constants/colors';
 import { useTheme, useThemedStyles } from '../../context/ThemeContext';
-import { Recipe } from '../../constants/recipes';
+import { Recipe, recipeImageSource } from '../../constants/recipes';
 import { PressableScale } from './PressableScale';
 import { useFridge } from '../../context/FridgeContext';
 import { recipeOwnership } from '../../services/shoppingList';
@@ -67,7 +67,7 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
         <Text style={styles.heroEmoji}>{recipe.emoji}</Text>
         {showImage && (
           <Image
-            source={{ uri: recipe.image }}
+            source={recipeImageSource(recipe.image)}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
             onError={() => setImgFailed(true)}
@@ -96,7 +96,7 @@ export function RecipeCardA({ recipe, onPress, onBookmark, bookmarked, locked, w
       </View>
 
       {/* Bookmark */}
-      <TouchableOpacity style={styles.bookmark} onPress={onBookmark} activeOpacity={0.8}>
+      <TouchableOpacity style={styles.bookmark} onPress={onBookmark} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('a11y.bookmark')}>
         <Ionicons
           name={bookmarked ? 'bookmark' : 'bookmark-outline'}
           size={20}
@@ -345,7 +345,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     left: 0,
     right: 0,
     padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   nameC: {
     fontFamily: 'Inter_600SemiBold',
@@ -366,7 +365,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   metaTextC: {
     fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.88)',
   },
   cardD: {
     width: width * 0.65,
@@ -417,7 +416,7 @@ export function RecipeCardB({ recipe, onPress, warnAllergen }: RecipeCardProps) 
         <Text style={{ fontSize: 50 }}>{recipe.emoji}</Text>
         {showImage && (
           <Image
-            source={{ uri: recipe.image }}
+            source={recipeImageSource(recipe.image)}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
             onError={() => setImgFailed(true)}
@@ -472,7 +471,7 @@ export function RecipeCardC({ recipe, onPress, warnAllergen }: RecipeCardProps) 
         <Text style={{ fontSize: 60 }}>{recipe.emoji}</Text>
         {showImage && (
           <Image
-            source={{ uri: recipe.image }}
+            source={recipeImageSource(recipe.image)}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
             onError={() => setImgFailed(true)}
@@ -480,15 +479,21 @@ export function RecipeCardC({ recipe, onPress, warnAllergen }: RecipeCardProps) 
         )}
       </View>
 
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.82)']}
+        style={StyleSheet.absoluteFillObject}
+        locations={[0.45, 1]}
+      />
+
       <View style={styles.bottomC}>
         <Text style={styles.nameC} numberOfLines={1}>{localizeRecipeName(recipe, t)}</Text>
         <View style={styles.metaC}>
           <View style={styles.metaItemC}>
-            <Ionicons name="flame" size={14} color={colors.textSecondary} />
+            <Ionicons name="flame" size={14} color="rgba(255,255,255,0.8)" />
             <Text style={styles.metaTextC}>{recipe.kcal} kcal</Text>
           </View>
           <View style={styles.metaItemC}>
-            <Ionicons name="time" size={14} color={colors.textSecondary} />
+            <Ionicons name="time" size={14} color="rgba(255,255,255,0.8)" />
             <Text style={styles.metaTextC}>{recipe.time} {t('plan.min')}</Text>
           </View>
         </View>
@@ -521,7 +526,7 @@ export function RecipeCardD({ recipe, onPress, warnAllergen }: RecipeCardProps) 
         <Text style={{ fontSize: 70 }}>{recipe.emoji}</Text>
         {showImage && (
           <Image
-            source={{ uri: recipe.image }}
+            source={recipeImageSource(recipe.image)}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
             onError={() => setImgFailed(true)}

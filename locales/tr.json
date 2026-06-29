@@ -1,4 +1,17 @@
 {
+  "a11y": {
+    "back": "Geri",
+    "close": "Kapat",
+    "bookmark": "Favorilere ekle",
+    "capturePhoto": "Fotoğraf çek",
+    "toggleFlash": "Flaşı aç/kapat",
+    "share": "Paylaş",
+    "editName": "İsmi düzenle",
+    "copyId": "Kimliği kopyala",
+    "openFilters": "Filtreleri aç",
+    "search": "Ara",
+    "addMeal": "Öğüne ekle"
+  },
   "common": {
     "continue": "Devam Et",
     "cancel": "Vazgeç",
@@ -400,6 +413,7 @@
     "clearConfirmDone": "Temizle",
     "toastUpdated": "Liste güncellendi",
     "toastAdded": "Listeye eklendi",
+    "shareEmpty": "Listen boş — paylaşacak bir şey yok.",
     "tabs": {
       "myItems": "Ürünlerim",
       "toBuy": "Alınacaklar"
@@ -439,6 +453,13 @@
     "copied": "Kopyalandı ✓",
     "logout": "Çıkış Yap",
     "deleteAccount": "Hesabı Sil",
+    "deleteConfirm": {
+      "title": "Hesap silinsin mi?",
+      "message": "Bu işlem kalıcıdır. Hesabın ve tüm verilerin (profil, takip, tarifler, favoriler) silinecek ve geri alınamayacak.",
+      "confirm": "Sil",
+      "deleting": "Siliniyor…",
+      "error": "Silme başarısız oldu. Lütfen tekrar dene."
+    },
     "fridge": "Buzdolabım",
     "settings": {
       "personalInfo": "Kişisel Bilgiler",
@@ -544,11 +565,12 @@
       "targetWeight": "Hedef Kilo",
       "goal": "Hedef",
       "rate": "Hız",
-      "rateValue": "Hızlı (Haftada 1 kg)",
+      "rateValue": "{{pace}} (haftada {{rate}} kg)",
       "duration": "Tahmini Süre",
       "durationValue": "{{count}} ay"
     },
     "bmiPage": {
+      "header": "BMI",
       "title": "BMI (Vücut kitle endeksi)",
       "whatIsBmi": "BMI Nedir?",
       "description": "Vücut Kitle İndeksi, boy ve kilonuzun oranına göre vücut ağırlığınızın sağlıklı bir aralıkta olup olmadığını gösteren bir ölçümdür. Genel sağlık durumunu değerlendirmek için yaygın olarak kullanılır.",
@@ -696,11 +718,22 @@
     "camera": {
       "permission": {
         "title": "Kamerayı etkinleştir",
-        "desc": "Fridos, buzdolabındaki yiyecekleri taramak ve yemek tarifleri önermek için kameranıza erişmelidir.",
+        "desc": "Fridos, yiyeceklerini tarayıp kaloriye, makrolara ve tarif fikirlerine dönüştürmek için kameranı kullanır.",
+        "features": {
+          "scan": "Buzdolabını veya yemeklerini saniyeler içinde tara",
+          "insights": "Anında kalori, makro ve tarif fikirleri",
+          "privacy": "Fotoğraflar gizlice analiz edilir, asla saklanmaz"
+        },
         "allow": "Kamera erişimine izin ver",
         "settings": "Ayarları aç",
         "later": "Belki daha sonra",
         "galleryDenied": "Fotoğraf erişimi reddedildi. Ayarlardan etkinleştir."
+      },
+      "galleryPermission": {
+        "title": "Fotoğraf erişimine izin ver",
+        "desc": "Fridos, yemeğini kaloriye, makrolara ve tarif fikirlerine dönüştürmek için galerinden bir fotoğraf okur.",
+        "pick": "Buzdolabının veya yemeğinin bir fotoğrafını seç",
+        "allow": "Fotoğraf erişimine izin ver"
       },
       "hints": {
         "meal": "Tabağınızı vizörün içine yerleştirin",
@@ -744,6 +777,7 @@
       "retry": "Tekrar dene"
     },
     "mealResult": {
+      "loadingTitle": "Öğünün analiz ediliyor",
       "loadingText": "Kalori tahmin ediliyor…",
       "detected": "Tespit edildi",
       "confidence": "%{{confidence}} emin",
@@ -778,6 +812,7 @@
   },
   "mealDetail": {
     "activeValues": "Aktif Değerler",
+    "remaining": "Kalan",
     "protein": "Protein",
     "fat": "Yağ",
     "carbs": "Karb.",
@@ -795,6 +830,10 @@
     "emptyFavorites": {
       "title": "Henüz favori tarifin yok.",
       "subtitle": "Bir tarifin 🔖 simgesine dokunarak favorilere ekle."
+    },
+    "emptyMyRecipes": {
+      "title": "Henüz kişisel tarifin yok.",
+      "subtitle": "Kendi tarifini oluşturmak için sağ alttaki + butonunu kullan."
     },
     "addOwnRecipe": "Kendi Tarifini Ekle",
     "fab": {
@@ -1061,6 +1100,7 @@
     }
   },
   "theme": {
+    "title": "Tema",
     "changed": "Tema: {{mode}}",
     "modes": {
       "light": "Açık",

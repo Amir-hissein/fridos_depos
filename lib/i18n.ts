@@ -20,11 +20,24 @@ export const LANGUAGES = [
 export type LanguageCode = (typeof LANGUAGES)[number]['code'];
 
 const STORAGE_KEY = 'app.language';
+const FALLBACK_LANG: LanguageCode = 'tr';
 const SUPPORTED: string[] = LANGUAGES.map(l => l.code);
 
+/**
+ * Langue de l'appareil : on parcourt TOUTES les langues préférées du téléphone
+ * (l'utilisateur peut en avoir plusieurs, ex. [es, en]) et on retient la première
+ * que l'app supporte. Sinon on retombe sur le turc.
+ */
+function detectDeviceLanguage(): string {
+  for (const locale of Localization.getLocales()) {
+    const code = locale.languageCode?.toLowerCase();
+    if (code && SUPPORTED.includes(code)) return code;
+  }
+  return FALLBACK_LANG;
+}
+
 /** Langue de départ = langue de l'appareil si supportée, sinon turc. */
-const deviceLang = Localization.getLocales()[0]?.languageCode ?? 'tr';
-const initialLang = SUPPORTED.includes(deviceLang) ? deviceLang : 'tr';
+const initialLang = detectDeviceLanguage();
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -33,7 +46,7 @@ i18n.use(initReactI18next).init({
     fr: { translation: fr },
   },
   lng: initialLang,
-  fallbackLng: 'tr',
+  fallbackLng: FALLBACK_LANG,
   interpolation: { escapeValue: false },
 });
 

@@ -19,6 +19,10 @@ Voici un transcript technique détaillé pour développer le frontend de Fridos 
 - **Auth** : Supabase JS client (`@supabase/supabase-js`)
 
 
+
+
+
+
 ---
 
 ## 2. Design system (tokens)

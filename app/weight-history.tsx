@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { PressableScale } from '../components/ui/PressableScale';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -17,10 +18,18 @@ import { Colors, ThemeColors } from '../constants/colors';
 import { useTheme, useThemedStyles } from '../context/ThemeContext';
 import { haptic } from '../lib/haptics';
 import { usePlan } from '../context/PlanContext';
+import { getStartWeight } from '../lib/api/tracking';
+import { weeksToGoal, weeklyRateKg } from '../services/plan';
 import { ScreenHeader } from '../components/ui/ScreenHeader';
 import { useTranslation } from 'react-i18next';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+// Anneau de progression (SVG)
+const RING_SIZE = 132;
+const RING_STROKE = 11;
+const RING_R = (RING_SIZE - RING_STROKE) / 2;
+const RING_C = 2 * Math.PI * RING_R;
 
 /* ─── Edit Modal ─────────────────────────────────────────────── */
 function EditModal({
@@ -102,28 +111,45 @@ export default function WeightHistoryScreen() {
   const [editModal, setEditModal] = useState<string | null>(null);
   const [tempWeight, setTempWeight] = useState(profile.weight);
   const [tempTargetWeight, setTempTargetWeight] = useState(profile.targetWeight);
+  const [startWeightDb, setStartWeightDb] = useState<number | null>(null);
 
   const openModal = (key: string) => { haptic.light(); setEditModal(key); };
   const closeModal = () => { haptic.light(); setEditModal(null); };
 
-  // Computed values
-  const startWeight = profile.weight; // On considère que le poids actuel = poids de départ si pas d'historique
+  // Poids de départ = plus ancien weigh-in enregistré (historique = daily_logs).
+  // Tant qu'aucune pesée n'existe, on retombe sur le poids actuel → 0 % (pas
+  // encore de progression possible).
+  useEffect(() => {
+    let alive = true;
+    getStartWeight().then(w => { if (alive) setStartWeightDb(w); });
+    return () => { alive = false; };
+  }, [profile.weight]);
+
   const currentWeight = profile.weight;
   const targetWeight = profile.targetWeight;
+  const startWeight = startWeightDb ?? currentWeight;
+
   const remaining = Math.abs(currentWeight - targetWeight);
-  const totalToLose = Math.abs(startWeight - targetWeight);
-  const progressPct = totalToLose > 0
-    ? Math.round(((totalToLose - remaining) / totalToLose) * 100)
-    : 0;
-  // Hız: 1 kg/semaine → estimation
-  const weeklyRate = 1;
-  const estimatedMonths = remaining > 0 ? (remaining / (weeklyRate * 4.33)).toFixed(1) : '0';
+  const totalChange = Math.abs(startWeight - targetWeight);
+  // Ratio signé : part du chemin parcourue de départ → cible (borné 0–1, donc
+  // une reprise de poids ne fait pas reculer la barre sous 0, ni dépasser 100 %).
+  const progressRatio =
+    totalChange < 0.1
+      ? (remaining < 0.1 ? 1 : 0)
+      : Math.max(0, Math.min(1, (startWeight - currentWeight) / (startWeight - targetWeight)));
+  const progressPct = Math.round(progressRatio * 100);
+
+  // Rythme & durée : branchés sur la logique réelle de l'app (goalPace).
+  const weeks = weeksToGoal(profile);
+  const estimatedMonths = weeks > 0 ? (weeks / 4.33).toFixed(1) : '0';
+  const rateKg = weeklyRateKg(profile.goalPace);
+  const paceLabel = t(`setup.paces.${profile.goalPace}`);
 
   const goalLabel =
     currentWeight > targetWeight ? t('profile.personalInfo.goals.lose') :
     currentWeight < targetWeight ? t('profile.personalInfo.goals.gain') : t('profile.personalInfo.goals.maintain');
 
-  const speedLabel = t('profile.weightHistoryPage.rateValue');
+  const speedLabel = t('profile.weightHistoryPage.rateValue', { pace: paceLabel, rate: rateKg.toFixed(1) });
 
   return (
     <SafeAreaView style={s.safe} edges={['top']}>
@@ -138,15 +164,28 @@ export default function WeightHistoryScreen() {
         <View style={s.progressCard}>
           <View style={s.progressInner}>
             <View style={s.circleWrap}>
-              {/* Outer ring */}
-              <View style={s.ringBg} />
-              {/* Progress fill — visual only, based on % */}
-              <View style={[s.ringFill, {
-                borderTopColor: progressPct > 0 ? colors.orange : 'transparent',
-                borderRightColor: progressPct > 25 ? colors.orange : 'transparent',
-                borderBottomColor: progressPct > 50 ? colors.orange : 'transparent',
-                borderLeftColor: progressPct > 75 ? colors.orange : 'transparent',
-              }]} />
+              <Svg width={RING_SIZE} height={RING_SIZE}>
+                <Circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_R}
+                  stroke={colors.separator}
+                  strokeWidth={RING_STROKE}
+                  fill="none"
+                />
+                <Circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_R}
+                  stroke={colors.orange}
+                  strokeWidth={RING_STROKE}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={RING_C}
+                  strokeDashoffset={RING_C * (1 - progressRatio)}
+                  transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                />
+              </Svg>
               <View style={s.circleCenter}>
                 <Text style={s.circlePct}>{progressPct}%</Text>
                 <Text style={s.circleLabel}>{t('profile.weightHistoryPage.progress')}</Text>
@@ -287,32 +326,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 20,
   },
   circleWrap: {
-    width: 120,
-    height: 120,
+    width: RING_SIZE,
+    height: RING_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
-  ringBg: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 8,
-    borderColor: colors.backgroundAlt,
-  },
-  ringFill: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 8,
-    borderColor: 'transparent',
-    borderTopColor: colors.orange,
-    transform: [{ rotate: '-90deg' }],
-  },
   circleCenter: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   circlePct: {
     fontFamily: 'Poppins_700Bold',

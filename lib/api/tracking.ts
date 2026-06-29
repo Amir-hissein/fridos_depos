@@ -64,6 +64,26 @@ export async function getWeek(
   };
 }
 
+/**
+ * Earliest recorded weigh-in (the "starting weight" for progress).
+ * Weight history = `daily_logs` ordered by `log_date`; the first non-null
+ * `weight_kg` is the baseline. Returns null when the user has no weigh-in yet.
+ */
+export async function getStartWeight(): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('daily_logs')
+    .select('weight_kg')
+    .not('weight_kg', 'is', null)
+    .order('log_date', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    if (__DEV__) console.log('[tracking] getStartWeight:', error.message);
+    return null;
+  }
+  return (data?.weight_kg ?? null) as number | null;
+}
+
 /** Upsert water/steps/weight for a date. */
 export async function upsertDayLog(
   date: string,

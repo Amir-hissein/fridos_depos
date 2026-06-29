@@ -3,6 +3,8 @@ import {
   UserProfile,
   PlanTargets,
   computeTargets,
+  computeMealTargets,
+  MealTarget,
 } from '../services/plan';
 import { MacroSet, EMPTY_MACROS, addMacros } from '../services/nutrition';
 import { useAuth } from './AuthContext';
@@ -36,6 +38,8 @@ const DEFAULT_PROFILE: UserProfile = {
 interface PlanContextType {
   profile: UserProfile;
   targets: PlanTargets;
+  /** Per-meal kcal + macro targets, derived from `targets` (30/35/25/10 split). */
+  mealTargets: Record<MealSlot, MealTarget>;
   intake: DailyIntake;
   consumedKcal: number;
   consumedMacros: MacroSet;
@@ -184,6 +188,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   }, [userId, weekISO]);
 
   const targets = useMemo(() => computeTargets(profile), [profile]);
+  const mealTargets = useMemo(() => computeMealTargets(targets), [targets]);
 
   const loggedRecipeIds = useMemo(() => {
     const ids = new Set<string>();
@@ -365,6 +370,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       value={{
         profile,
         targets,
+        mealTargets,
         intake,
         consumedKcal,
         consumedMacros,

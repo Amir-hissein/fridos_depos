@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeColors } from '../constants/colors';
 import { useTheme, useThemedStyles } from '../context/ThemeContext';
-import { RECIPES } from '../constants/recipes';
+import { RECIPES, recipeImageSource } from '../constants/recipes';
 import { localizeRecipeName } from '../services/localizeRecipe';
 import { RecipeCardB } from '../components/ui/RecipeCard';
 import { haptic } from '../lib/haptics';
@@ -149,7 +149,7 @@ export default function CalorieRecipesScreen() {
                       <Text style={styles.featuredEmoji}>{featuredRecipe.emoji}</Text>
                       {featuredRecipe.image && (
                         <Image
-                          source={{ uri: featuredRecipe.image }}
+                          source={recipeImageSource(featuredRecipe.image)}
                           style={StyleSheet.absoluteFill}
                           resizeMode="cover"
                         />

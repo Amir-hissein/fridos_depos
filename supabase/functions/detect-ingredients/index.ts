@@ -7,7 +7,7 @@
 // Deploy:  supabase functions deploy detect-ingredients
 // Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
 
-import Anthropic from 'npm:@anthropic-ai/sdk@^2';
+import Anthropic from 'npm:@anthropic-ai/sdk@0.106.0';
 
 const MODEL = 'claude-opus-4-8';
 
@@ -54,6 +54,38 @@ function json(body: unknown, status: number) {
   });
 }
 
+// Minimal Sentry reporter via the HTTP envelope API — no SDK dependency, so it
+// can't break the bundle. No-op unless the SENTRY_DSN secret is set.
+async function reportToSentry(fn: string, err: unknown) {
+  const dsn = Deno.env.get('SENTRY_DSN');
+  if (!dsn) return;
+  try {
+    const m = dsn.match(/^https:\/\/([^@]+)@([^/]+)\/(\d+)$/);
+    if (!m) return;
+    const [, key, host, projectId] = m;
+    const id = crypto.randomUUID().replace(/-/g, '');
+    const item = {
+      event_id: id,
+      timestamp: Date.now() / 1000,
+      platform: 'javascript',
+      level: 'error',
+      tags: { fn },
+      exception: { values: [{ type: (err as Error)?.name ?? 'Error', value: String((err as Error)?.message ?? err) }] },
+    };
+    const envelope =
+      JSON.stringify({ event_id: id, sent_at: new Date().toISOString() }) + '\n' +
+      JSON.stringify({ type: 'event' }) + '\n' +
+      JSON.stringify(item);
+    await fetch(`https://${host}/api/${projectId}/envelope/?sentry_key=${key}&sentry_version=7`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-sentry-envelope' },
+      body: envelope,
+    });
+  } catch {
+    // never let reporting break the function
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
@@ -88,6 +120,7 @@ Deno.serve(async (req: Request) => {
     const parsed = JSON.parse(text);
     return json(parsed, 200);
   } catch (e) {
+    await reportToSentry('detect-ingredients', e);
     return json({ error: String((e as Error)?.message ?? e) }, 500);
   }
 });

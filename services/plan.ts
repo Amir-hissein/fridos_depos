@@ -1,32 +1,26 @@
-// Nutrition plan service — derives calorie & macro targets from a user profile.
-// Pure & deterministic (Mifflin-St Jeor BMR + activity TDEE + goal deficit).
-// Later this is where a Supabase `user_plans` row would be read/written.
-
 export type Sex = 'male' | 'female';
 export type Activity = 'sedentary' | 'active' | 'cardio';
 export type GoalPace = 'easy' | 'medium' | 'hard';
 export type DietPref = 'healthy' | 'keto' | 'vegan' | 'glutenfree' | 'vegetarian';
-
 export interface UserProfile {
   sex: Sex;
-  height: number; // cm
+  height: number; 
   age: number;
-  weight: number; // kg
-  targetWeight: number; // kg
+  weight: number; 
+  targetWeight: number; 
   activity: Activity;
   goalPace: GoalPace;
   dailySteps: number;
   diet?: DietPref;
 }
-
 export interface PlanTargets {
   bmr: number;
   tdee: number;
   deficit: number;
   kcal: number;
-  protein: number; // g
-  carbs: number; // g
-  fat: number; // g
+  protein: number; 
+  carbs: number; 
+  fat: number; 
   waterMl: number;
 }
 
@@ -42,7 +36,7 @@ const PACE_DEFICIT: Record<GoalPace, number> = {
   hard: 750,
 };
 
-/** Répartition des macros (protéine / glucides / lipides) selon la diète choisie. */
+
 const MACRO_SPLIT: Record<DietPref, { p: number; c: number; f: number }> = {
   healthy:    { p: 0.25, c: 0.50, f: 0.25 },
   keto:       { p: 0.25, c: 0.05, f: 0.70 },
@@ -51,31 +45,29 @@ const MACRO_SPLIT: Record<DietPref, { p: number; c: number; f: number }> = {
   vegetarian: { p: 0.22, c: 0.53, f: 0.25 },
 };
 
-/** Mifflin-St Jeor basal metabolic rate. */
+
 export function computeBMR(profile: UserProfile): number {
   const base = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age;
   return profile.sex === 'male' ? base + 5 : base - 161;
 }
 
-/** Total daily energy expenditure (BMR × activity). */
+
 export function computeTDEE(profile: UserProfile): number {
   return computeBMR(profile) * ACTIVITY_FACTOR[profile.activity];
 }
 
-/** Full calorie + macro targets. Macro split 25% protein / 50% carbs / 25% fat. */
 export function computeTargets(profile: UserProfile): PlanTargets {
   const bmr = computeBMR(profile);
   const tdee = computeTDEE(profile);
   const losing = profile.targetWeight < profile.weight;
   const deficit = losing ? PACE_DEFICIT[profile.goalPace] : 0;
-  // Never go below 1.1× BMR for safety.
   const kcal = Math.max(Math.round(tdee - deficit), Math.round(bmr * 1.1));
 
   const split = MACRO_SPLIT[profile.diet ?? 'healthy'] ?? MACRO_SPLIT.healthy;
   const protein = Math.round((kcal * split.p) / 4);
   const carbs = Math.round((kcal * split.c) / 4);
   const fat = Math.round((kcal * split.f) / 9);
-  const waterMl = Math.round((profile.weight * 35) / 50) * 50; // ~35 ml/kg, rounded
+  const waterMl = Math.round((profile.weight * 35) / 50) * 50; 
 
   return {
     bmr: Math.round(bmr),
@@ -89,7 +81,7 @@ export function computeTargets(profile: UserProfile): PlanTargets {
   };
 }
 
-/** Estimated number of weeks to reach the target weight at the chosen pace. */
+
 export function weeksToGoal(profile: UserProfile): number {
   const diff = Math.abs(profile.weight - profile.targetWeight);
   if (diff < 0.1) return 0;
@@ -103,7 +95,6 @@ export type BMICategory = 'Underweight' | 'Healthy' | 'Overweight' | 'Obese';
 export interface BMIResult {
   value: number;
   category: BMICategory;
-  /** Position 0–1 along the underweight→obese scale, for the UI gauge. */
   position: number;
 }
 
@@ -115,7 +106,7 @@ export function computeBMI(weightKg: number, heightCm: number): BMIResult {
   else if (value < 25) category = 'Healthy';
   else if (value < 30) category = 'Overweight';
   else category = 'Obese';
-  // Map 15→0 and 40→1 for the gauge.
+
   const position = Math.min(1, Math.max(0, (value - 15) / 25));
   return { value: Math.round(value * 10) / 10, category, position };
 }

@@ -38,7 +38,10 @@ const brand = {
   brown: '#8E6B3E',
   beige: '#F3E1C7',
 
-  // Macros / nutrition
+  // Macros / nutrition (semantic — use these on icons so meaning stays consistent
+  // app-wide). Calorie = orange/flame, kept distinct from the gold "fat" macro.
+  calorie: '#FF8A5C',
+  calorieLight: 'rgba(255,138,92,0.16)',
   protein: '#4AAEEA',
   carbs: '#8CD743',
   fat: '#F4B740',

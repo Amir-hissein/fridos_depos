@@ -14,6 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.fridos.app",
+      "usesAppleSignIn": true,
       "splash": {
         "image": "./assets/fridos.png",
         "resizeMode": "contain",
@@ -21,6 +23,7 @@
       }
     },
     "android": {
+      "package": "com.fridos.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -38,6 +41,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-apple-authentication",
       "expo-router",
       "expo-font",
       [
@@ -59,7 +63,9 @@
           "color": "#14B8A6"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@sentry/react-native",
+      "expo-web-browser"
     ]
   }
 }

@@ -11,7 +11,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { PressableScale } from '../../components/ui/PressableScale';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
@@ -20,7 +20,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ThemeColors } from '../../constants/colors';
 import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { haptic } from '../../lib/haptics';
-import { useFeedback } from '../../context/FeedbackContext';
 import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -33,7 +32,6 @@ export default function CameraScreen() {
   const { mode, slot } = useLocalSearchParams<{ mode?: string; slot?: string }>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
-  const { toast } = useFeedback();
   const isMeal = mode === 'meal';
   const resultPath = isMeal ? '/scan/meal-result' : '/scan/result';
   const [permission, requestPermission] = useCameraPermissions();
@@ -42,6 +40,8 @@ export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [analyzing, setAnalyzing] = useState(false);
   const [ready, setReady] = useState(false);
+  const [galleryPermVisible, setGalleryPermVisible] = useState(false);
+  const [galleryCanAskAgain, setGalleryCanAskAgain] = useState(true);
 
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const shutterAnim = useRef(new Animated.Value(0)).current;
@@ -93,14 +93,7 @@ export default function CameraScreen() {
     }, 1400);
   };
 
-  const handlePickImage = async () => {
-    if (analyzing) return;
-    haptic.light();
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      toast(t('scan.camera.permission.galleryDenied'), { variant: 'error' });
-      return;
-    }
+  const launchGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.6,
@@ -116,10 +109,99 @@ export default function CameraScreen() {
     }
   };
 
+  const handlePickImage = async () => {
+    if (analyzing) return;
+    haptic.light();
+    const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (perm.granted) {
+      launchGallery();
+      return;
+    }
+    if (perm.canAskAgain) {
+      const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (req.granted) {
+        launchGallery();
+        return;
+      }
+      setGalleryCanAskAgain(req.canAskAgain);
+    } else {
+      setGalleryCanAskAgain(false);
+    }
+    setGalleryPermVisible(true);
+  };
+
+  const handleGalleryAllow = async () => {
+    if (galleryCanAskAgain) {
+      const req = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (req.granted) {
+        setGalleryPermVisible(false);
+        launchGallery();
+        return;
+      }
+      setGalleryCanAskAgain(req.canAskAgain);
+    } else {
+      Linking.openSettings();
+    }
+  };
+
   const onCapturePressIn = () =>
     Animated.spring(captureScale, { toValue: 0.9, useNativeDriver: true, friction: 6, tension: 120 }).start();
   const onCapturePressOut = () =>
     Animated.spring(captureScale, { toValue: 1, useNativeDriver: true, friction: 6, tension: 120 }).start();
+
+  // ── Écran d'autorisation (réutilisé : caméra & galerie) ──
+  type IconName = keyof typeof Ionicons.glyphMap;
+  const renderPermission = (cfg: {
+    icon: IconName;
+    title: string;
+    desc: string;
+    features: { icon: IconName; text: string }[];
+    primaryIcon: IconName;
+    primaryLabel: string;
+    onPrimary: () => void;
+    secondaryLabel: string;
+    onSecondary: () => void;
+  }) => (
+    <View style={styles.container}>
+      <View style={[styles.permClose, { paddingTop: Math.max(insets.top, 12) + 4 }]}>
+        <PressableScale haptic="light" style={styles.iconBtn} onPress={cfg.onSecondary} accessibilityLabel={t('a11y.close')}>
+          <Ionicons name="close" size={22} color={colors.white} />
+        </PressableScale>
+      </View>
+
+      <View style={styles.permBody}>
+        <View style={styles.permIconWrap}>
+          <Ionicons name={cfg.icon} size={44} color={colors.green} />
+        </View>
+        <Text style={styles.permTitle}>{cfg.title}</Text>
+        <Text style={styles.permDesc}>{cfg.desc}</Text>
+
+        <View style={styles.permFeatures}>
+          {cfg.features.map((f) => (
+            <View key={f.icon} style={styles.permFeatureRow}>
+              <View style={styles.permFeatureIcon}>
+                <Ionicons name={f.icon} size={18} color={colors.green} />
+              </View>
+              <Text style={styles.permFeatureText}>{f.text}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.permFooter, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
+        <PressableScale haptic="light" style={styles.permBtn} onPress={cfg.onPrimary} activeOpacity={0.85}>
+          <Ionicons name={cfg.primaryIcon} size={20} color={colors.white} />
+          <Text style={styles.permBtnText}>{cfg.primaryLabel}</Text>
+        </PressableScale>
+        <PressableScale haptic="light" style={styles.permSecondary} onPress={cfg.onSecondary} activeOpacity={0.7}>
+          <Text style={styles.permSecondaryText}>{cfg.secondaryLabel}</Text>
+        </PressableScale>
+      </View>
+    </View>
+  );
+
+  const insightsFeature = { icon: 'sparkles-outline' as IconName, text: t('scan.camera.permission.features.insights') };
+  const privacyFeature = { icon: 'lock-closed-outline' as IconName, text: t('scan.camera.permission.features.privacy') };
 
   // ── Autorisation en cours de chargement ──
   if (!permission) {
@@ -132,39 +214,23 @@ export default function CameraScreen() {
 
   // ── Autorisation refusée / pas encore accordée ──
   if (!permission.granted) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <SafeAreaView style={styles.permClose} edges={['top']}>
-          <PressableScale haptic="light" style={styles.iconBtn} onPress={() => router.back()}>
-            <Ionicons name="close" size={22} color={colors.white} />
-          </PressableScale>
-        </SafeAreaView>
-
-        <View style={styles.permIconWrap}>
-          <Ionicons name="camera" size={42} color={colors.green} />
-        </View>
-        <Text style={styles.permTitle}>{t('scan.camera.permission.title')}</Text>
-        <Text style={styles.permDesc}>
-          {t('scan.camera.permission.desc')}
-        </Text>
-
-        {permission.canAskAgain ? (
-          <PressableScale haptic="light" style={styles.permBtn} onPress={requestPermission} activeOpacity={0.85}>
-            <Ionicons name="checkmark-circle" size={20} color={colors.white} />
-            <Text style={styles.permBtnText}>{t('scan.camera.permission.allow')}</Text>
-          </PressableScale>
-        ) : (
-          <PressableScale haptic="light" style={styles.permBtn} onPress={() => Linking.openSettings()} activeOpacity={0.85}>
-            <Ionicons name="settings-outline" size={19} color={colors.white} />
-            <Text style={styles.permBtnText}>{t('scan.camera.permission.settings')}</Text>
-          </PressableScale>
-        )}
-
-        <PressableScale haptic="light" style={styles.permSecondary} onPress={() => router.back()} activeOpacity={0.7}>
-          <Text style={styles.permSecondaryText}>{t('scan.camera.permission.later')}</Text>
-        </PressableScale>
-      </View>
-    );
+    return renderPermission({
+      icon: 'camera',
+      title: t('scan.camera.permission.title'),
+      desc: t('scan.camera.permission.desc'),
+      features: [
+        { icon: 'scan-outline', text: t('scan.camera.permission.features.scan') },
+        insightsFeature,
+        privacyFeature,
+      ],
+      primaryIcon: permission.canAskAgain ? 'checkmark-circle' : 'settings-outline',
+      primaryLabel: permission.canAskAgain
+        ? t('scan.camera.permission.allow')
+        : t('scan.camera.permission.settings'),
+      onPrimary: permission.canAskAgain ? requestPermission : () => Linking.openSettings(),
+      secondaryLabel: t('scan.camera.permission.later'),
+      onSecondary: () => router.back(),
+    });
   }
 
   // ── Caméra autorisée ──
@@ -189,7 +255,7 @@ export default function CameraScreen() {
               {!analyzing && (
                 <Animated.View style={[styles.scanBeam, { transform: [{ translateY: scanLineAnim }] }]}>
                   <LinearGradient
-                    colors={['rgba(95,214,140,0)', 'rgba(95,214,140,0.32)']}
+                    colors={['rgba(95,214,140,0)', 'rgba(95,214,140,0.28)']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 0, y: 1 }}
                     style={styles.scanGlow}
@@ -214,13 +280,14 @@ export default function CameraScreen() {
       </View>
 
       {/* Header */}
-      <SafeAreaView style={styles.headerBar} edges={['top']}>
-        <PressableScale haptic="light" style={styles.iconBtn} onPress={() => router.back()}>
+      <View style={[styles.headerBar, { paddingTop: Math.max(insets.top, 12) + 4 }]}>
+        <PressableScale haptic="light" style={styles.iconBtn} onPress={() => router.back()} accessibilityLabel={t('a11y.close')}>
           <Ionicons name="close" size={22} color={colors.white} />
         </PressableScale>
         <Text style={styles.headerTitle}>{isMeal ? t('scan.camera.headers.meal') : t('scan.camera.headers.fridge')}</Text>
         <PressableScale haptic="light"
           style={[styles.iconBtn, torch && styles.iconBtnActive]}
+          accessibilityLabel={t('a11y.toggleFlash')}
           onPress={() => {
             haptic.light();
             setTorch(t => !t);
@@ -228,7 +295,7 @@ export default function CameraScreen() {
         >
           <Ionicons name={torch ? 'flash' : 'flash-outline'} size={20} color={torch ? colors.scanBg : colors.white} />
         </PressableScale>
-      </SafeAreaView>
+      </View>
 
       {/* Controls */}
       <View style={[styles.controlsWrap, { paddingBottom: Math.max(insets.bottom, 16) }]}>
@@ -244,6 +311,8 @@ export default function CameraScreen() {
               onPressOut={onCapturePressOut}
               activeOpacity={1}
               disabled={analyzing}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.capturePhoto')}
             >
               <View style={styles.captureBtnInner} />
             </TouchableOpacity>
@@ -277,6 +346,29 @@ export default function CameraScreen() {
           </View>
         </View>
       )}
+
+      {/* Overlay autorisation galerie */}
+      {galleryPermVisible && (
+        <View style={styles.permOverlay}>
+          {renderPermission({
+            icon: 'images',
+            title: t('scan.camera.galleryPermission.title'),
+            desc: t('scan.camera.galleryPermission.desc'),
+            features: [
+              { icon: 'image-outline', text: t('scan.camera.galleryPermission.pick') },
+              insightsFeature,
+              privacyFeature,
+            ],
+            primaryIcon: galleryCanAskAgain ? 'checkmark-circle' : 'settings-outline',
+            primaryLabel: galleryCanAskAgain
+              ? t('scan.camera.galleryPermission.allow')
+              : t('scan.camera.permission.settings'),
+            onPrimary: handleGalleryAllow,
+            secondaryLabel: t('scan.camera.permission.later'),
+            onSecondary: () => setGalleryPermVisible(false),
+          })}
+        </View>
+      )}
     </View>
   );
 }
@@ -286,26 +378,37 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   centered: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
 
   /* ── Écran d'autorisation ── */
+  permOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.scanBg,
+    zIndex: 30,
+  },
   permClose: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingTop: 24,
+    zIndex: 1,
+  },
+  permBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
   },
   permIconWrap: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: colors.greenLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 26,
+    marginBottom: 28,
   },
   permTitle: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 24,
+    fontSize: 25,
     color: colors.white,
     marginBottom: 12,
     textAlign: 'center',
@@ -313,10 +416,38 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   permDesc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 15,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.68)',
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 34,
+    marginBottom: 32,
+  },
+  permFeatures: {
+    alignSelf: 'stretch',
+    gap: 16,
+  },
+  permFeatureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  permFeatureIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.greenLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  permFeatureText: {
+    flex: 1,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14.5,
+    color: 'rgba(255,255,255,0.88)',
+    lineHeight: 20,
+  },
+  permFooter: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
   permBtn: {
     flexDirection: 'row',
@@ -324,7 +455,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.green,
-    height: 52,
+    height: 54,
     borderRadius: 16,
     alignSelf: 'stretch',
     shadowColor: colors.shadowGreen,
@@ -339,8 +470,9 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.white,
   },
   permSecondary: {
-    paddingVertical: 16,
-    marginTop: 6,
+    paddingVertical: 14,
+    marginTop: 4,
+    alignItems: 'center',
   },
   permSecondaryText: {
     fontFamily: 'Inter_500Medium',
@@ -395,7 +527,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 24,
+    paddingBottom: 4,
     zIndex: 10,
   },
   headerTitle: {
@@ -440,16 +572,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   scanCore: {
     position: 'absolute',
-    left: 0,
-    right: 0,
+    left: 12,
+    right: 12,
     bottom: 0,
-    height: 2.5,
+    height: 2,
     borderRadius: 2,
     backgroundColor: colors.green,
     shadowColor: colors.shadowGreen,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,
-    shadowRadius: 12,
+    shadowRadius: 10,
   },
   controlsWrap: {
     position: 'absolute',

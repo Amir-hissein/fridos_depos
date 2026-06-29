@@ -26,7 +26,7 @@ import { useFeedback } from '../context/FeedbackContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { useCustomRecipes } from '../context/CustomRecipesContext';
 import { useAllergens } from '../context/AllergenContext';
-import { RECIPES } from '../constants/recipes';
+import { RECIPES, recipeImageSource } from '../constants/recipes';
 import { filterRecipes, MealType } from '../services/recipeFilters';
 import { localizeRecipeName } from '../services/localizeRecipe';
 import { useTranslation } from 'react-i18next';
@@ -55,7 +55,6 @@ function RecipeThumb({
 }
 
 const TABS = [
-  { key: 'recommended', labelKey: 'mealDetail.tabs.recommended' },
   { key: 'favorites', labelKey: 'mealDetail.tabs.favorites' },
   { key: 'myRecipes', labelKey: 'mealDetail.tabs.myRecipes' },
 ];
@@ -68,12 +67,12 @@ export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
-  const { intake, addCustomKcal, toggleMealRecipe, isRecipeLogged } = usePlan();
+  const { intake, mealTargets, addCustomKcal, toggleMealRecipe, isRecipeLogged } = usePlan();
   const { toast } = useFeedback();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { userAllergens } = useAllergens();
   const [showRecipes, setShowRecipes] = useState(true);
-  const [activeTab, setActiveTab] = useState<'recommended' | 'favorites' | 'myRecipes'>('recommended');
+  const [activeTab, setActiveTab] = useState<'favorites' | 'myRecipes'>('favorites');
 
   // FAB overlay & Add custom food states
   const [isFabOpen, setIsFabOpen] = useState(false);
@@ -107,18 +106,27 @@ export default function MealDetailScreen() {
   const { customRecipes } = useCustomRecipes();
 
   const mealName = t(`plan.meals.${mealSlot}`);
-  const targetKcal = mealSlot === 'snack' ? 193 : 500;
+  // Per-meal targets derived from the user's personalised daily plan.
+  const mt = mealTargets[mealSlot];
+  const targetKcal = mt.kcal;
   const consumedKcal = intake[mealSlot] ?? 0;
 
-  // Macros targets
-  const targetProtein = Math.round((targetKcal * 0.25) / 4);
-  const targetFat = Math.round((targetKcal * 0.25) / 9);
-  const targetCarbs = Math.round((targetKcal * 0.50) / 4);
+  // Macros targets (this meal's share of the daily macro goals)
+  const targetProtein = mt.protein;
+  const targetFat = mt.fat;
+  const targetCarbs = mt.carbs;
 
   // Macros consumed (approximate based on intake calories)
   const consumedProtein = Math.round((consumedKcal * 0.25) / 4);
   const consumedFat = Math.round((consumedKcal * 0.25) / 9);
   const consumedCarbs = Math.round((consumedKcal * 0.50) / 4);
+
+  const remainingKcal = Math.max(0, targetKcal - consumedKcal);
+  const macros = [
+    { key: 'protein', label: t('mealDetail.protein'), consumed: consumedProtein, target: targetProtein, color: colors.protein },
+    { key: 'carbs',   label: t('mealDetail.carbs'),   consumed: consumedCarbs,   target: targetCarbs,   color: colors.carbs },
+    { key: 'fat',     label: t('mealDetail.fat'),     consumed: consumedFat,     target: targetFat,     color: colors.fat },
+  ];
 
   // Recommended = real recipes matching this meal, closest to its kcal target,
   // with the user's allergens filtered out.
@@ -154,36 +162,59 @@ export default function MealDetailScreen() {
         {/* ══ AKTİF DEĞERLER (ACTIVE VALUES) CARD ═════════════════ */}
         <Text style={styles.sectionLabel}>{t('mealDetail.activeValues')}</Text>
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>{t('plan.calorie')}</Text>
-            <Text style={styles.cardValue}>{consumedKcal} / {targetKcal} kcal</Text>
+          {/* Calorie hero */}
+          <View style={styles.kcalHeader}>
+            <View style={styles.kcalIconWrap}>
+              <Ionicons name="flame" size={22} color={colors.calorie} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.kcalLabel}>{t('plan.calorie')}</Text>
+              <Text style={styles.kcalValue}>
+                {consumedKcal}
+                <Text style={styles.kcalTarget}> / {targetKcal} kcal</Text>
+              </Text>
+            </View>
+            <View style={styles.remainingPill}>
+              <Text style={styles.remainingNum}>{remainingKcal}</Text>
+              <Text style={styles.remainingLabel}>{t('mealDetail.remaining')}</Text>
+            </View>
           </View>
+
           <ProgressBar
             progress={consumedKcal / targetKcal}
-            color={colors.gold}
-            style={{ marginBottom: 20 }}
+            color={colors.calorie}
+            height={10}
+            style={{ marginTop: 16 }}
           />
 
+          <View style={styles.macroDivider} />
+
+          {/* Macros — one colour-coded column each */}
           <View style={styles.macrosRow}>
-            <View style={styles.macroCol}>
-              <Text style={styles.macroLabel}>{t('mealDetail.protein')}</Text>
-              <Text style={styles.macroVal}>{consumedProtein}/{targetProtein}g</Text>
-            </View>
-            <View style={styles.macroCol}>
-              <Text style={styles.macroLabel}>{t('mealDetail.fat')}</Text>
-              <Text style={styles.macroVal}>{consumedFat}/{targetFat}g</Text>
-            </View>
-            <View style={styles.macroCol}>
-              <Text style={styles.macroLabel}>{t('mealDetail.carbs')}</Text>
-              <Text style={styles.macroVal}>{consumedCarbs}/{targetCarbs}g</Text>
-            </View>
+            {macros.map(m => (
+              <View key={m.key} style={styles.macroCol}>
+                <View style={styles.macroHead}>
+                  <View style={[styles.macroDot, { backgroundColor: m.color }]} />
+                  <Text style={styles.macroLabel}>{m.label}</Text>
+                </View>
+                <Text style={styles.macroVal}>
+                  {m.consumed}<Text style={styles.macroTarget}>/{m.target}g</Text>
+                </Text>
+                <ProgressBar
+                  progress={m.target ? m.consumed / m.target : 0}
+                  color={m.color}
+                  height={5}
+                  style={{ marginTop: 7, width: '100%' }}
+                />
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* ══ INFO BOX ════════════════════════════════════════ */}
+        {/* ══ INFO BOX — curated selection ═══════════════════════ */}
         <View style={styles.infoBox}>
           <View style={styles.infoIconBox}>
-            <Ionicons name="information-circle-outline" size={22} color={colors.blue} />
+            <Ionicons name="sparkles" size={18} color={colors.white} />
           </View>
           <Text style={styles.infoText}>
             {t('mealDetail.infoText')}
@@ -236,6 +267,7 @@ export default function MealDetailScreen() {
                   <PressableScale haptic="light"
                     style={styles.bookmarkBtn}
                     onPress={(e) => { e.stopPropagation(); toggleFavorite(r.id); }}
+                    accessibilityLabel={t('a11y.bookmark')}
                   >
                     <Ionicons
                       name={isFavorite(r.id) ? 'bookmark' : 'bookmark-outline'}
@@ -248,7 +280,7 @@ export default function MealDetailScreen() {
                   <View style={styles.recipeInfo}>
                     <Text style={styles.recipeName} numberOfLines={1}>{localizeRecipeName(r, t)}</Text>
                     <View style={styles.recipeMeta}>
-                      <Ionicons name="flame" size={12} color={colors.orange} />
+                      <Ionicons name="flame" size={12} color={colors.calorie} />
                       <Text style={styles.recipeMetaTxt}>{r.kcal} kcal</Text>
                       <Ionicons name="time-outline" size={12} color={colors.textMuted} />
                       <Text style={styles.recipeMetaTxt}>{r.time} {t('plan.min')}</Text>
@@ -313,6 +345,7 @@ export default function MealDetailScreen() {
                     <PressableScale haptic="light"
                       style={styles.favRemoveBtn}
                       onPress={(e) => { e.stopPropagation(); toggleFavorite(r.id); }}
+                      accessibilityLabel={t('a11y.bookmark')}
                     >
                       <Ionicons name="bookmark" size={20} color={colors.gold} />
                     </PressableScale>
@@ -322,6 +355,7 @@ export default function MealDetailScreen() {
                         e.stopPropagation();
                         handleToggleRecipe(r.id, r.kcal);
                       }}
+                      accessibilityLabel={t('a11y.addMeal')}
                     >
                       <Ionicons name={isLogged ? 'checkmark' : 'add'} size={18} color={colors.white} />
                     </PressableScale>
@@ -333,47 +367,46 @@ export default function MealDetailScreen() {
         )}
 
         {activeTab === 'myRecipes' && (
-          <View style={styles.customRecipesContainer}>
-            {/* Custom Recipes List */}
-            {customRecipes.map(r => {
-              const isLogged = isRecipeLogged(mealSlot, r.id);
-              return (
-                <PressableScale
-                  key={r.id}
-                  style={styles.customRecipeItemCard}
-                  scaleTo={0.97}
-                  haptic="light"
-                  onPress={() => router.push(`/recipe/${r.id}`)}
-                >
-                  <Image source={{ uri: r.image }} style={styles.customRecipeImg} />
-                  <View style={styles.customRecipeInfo}>
-                    <Text style={styles.customRecipeName}>{r.name}</Text>
-                    <Text style={styles.customRecipeKcal}>{r.kcal} kcal</Text>
-                  </View>
-                  <PressableScale haptic="light"
-                    style={[styles.customAddBtn, isLogged && styles.customAddBtnActive]}
-                    activeOpacity={0.8}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleToggleRecipe(r.id, r.kcal);
-                    }}
+          customRecipes.length === 0 ? (
+            <View style={styles.emptyStateCard}>
+              <Ionicons name="restaurant-outline" size={32} color={colors.textMuted} />
+              <Text style={styles.emptyStateText}>{t('mealDetail.emptyMyRecipes.title')}</Text>
+              <Text style={styles.emptyStateSub}>{t('mealDetail.emptyMyRecipes.subtitle')}</Text>
+            </View>
+          ) : (
+            <View style={styles.customRecipesContainer}>
+              {/* Only the recipes the user created manually. */}
+              {customRecipes.map(r => {
+                const isLogged = isRecipeLogged(mealSlot, r.id);
+                return (
+                  <PressableScale
+                    key={r.id}
+                    style={styles.customRecipeItemCard}
+                    scaleTo={0.97}
+                    haptic="light"
+                    onPress={() => router.push(`/recipe/${r.id}`)}
                   >
-                    <Ionicons name={isLogged ? "checkmark" : "add"} size={18} color={colors.white} />
+                    <Image source={recipeImageSource(r.image)} style={styles.customRecipeImg} />
+                    <View style={styles.customRecipeInfo}>
+                      <Text style={styles.customRecipeName}>{r.name}</Text>
+                      <Text style={styles.customRecipeKcal}>{r.kcal} kcal</Text>
+                    </View>
+                    <PressableScale haptic="light"
+                      style={[styles.customAddBtn, isLogged && styles.customAddBtnActive]}
+                      activeOpacity={0.8}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleToggleRecipe(r.id, r.kcal);
+                      }}
+                      accessibilityLabel={t('a11y.addMeal')}
+                    >
+                      <Ionicons name={isLogged ? "checkmark" : "add"} size={18} color={colors.white} />
+                    </PressableScale>
                   </PressableScale>
-                </PressableScale>
-              );
-            })}
-
-            {/* Dotted border card to add custom recipe */}
-            <PressableScale haptic="light"
-              style={styles.addOwnRecipeCard}
-              activeOpacity={0.8}
-              onPress={() => router.push('/create-recipe')}
-            >
-              <Ionicons name="add" size={32} color={colors.textSecondary} />
-              <Text style={styles.addOwnRecipeText}>{t('mealDetail.addOwnRecipe')}</Text>
-            </PressableScale>
-          </View>
+                );
+              })}
+            </View>
+          )
         )}
 
       </ScrollView>
@@ -448,6 +481,7 @@ export default function MealDetailScreen() {
         style={[styles.fab, { bottom: insets.bottom + 20 }, isFabOpen && styles.fabActive]}
         activeOpacity={0.85}
         onPress={() => { haptic.medium(); setIsFabOpen(!isFabOpen); }}
+        accessibilityLabel={isFabOpen ? t('a11y.close') : t('mealDetail.fab.main')}
       >
         <Ionicons name={isFabOpen ? 'close' : 'add'} size={28} color={colors.white} />
       </PressableScale>
@@ -559,55 +593,95 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    padding: 16,
+    padding: 18,
     marginBottom: 24,
   },
-  cardHeader: {
+  kcalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
   },
-  cardTitle: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 16,
+  kcalIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: colors.calorieLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kcalLabel: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  kcalValue: {
+    fontFamily: 'Poppins_700Bold',
+    fontSize: 21,
     color: colors.textPrimary,
   },
-  cardValue: {
+  kcalTarget: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 14,
+    color: colors.textMuted,
+  },
+  remainingPill: {
+    alignItems: 'center',
+    backgroundColor: colors.calorieLight,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  remainingNum: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 16,
-    color: colors.gold,
+    color: colors.calorie,
   },
-  progressBarBg: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.separatorLight,
-    overflow: 'hidden',
-    marginBottom: 20,
+  remainingLabel: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 9,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-    backgroundColor: colors.gold,
+  macroDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginVertical: 18,
   },
   macrosRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 16,
   },
   macroCol: {
-    alignItems: 'center',
     flex: 1,
+    alignItems: 'flex-start',
+  },
+  macroHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  macroDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   macroLabel: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Inter_500Medium',
     fontSize: 12,
-    color: colors.textMuted,
-    marginBottom: 4,
+    color: colors.textSecondary,
   },
   macroVal: {
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 14,
-    color: colors.gold,
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  macroTarget: {
+    fontFamily: 'Inter_500Medium',
+    fontSize: 12,
+    color: colors.textMuted,
   },
   infoBox: {
     flexDirection: 'row',
@@ -615,16 +689,16 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.blueBorder,
     borderRadius: 18,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
     gap: 12,
     marginBottom: 24,
   },
   infoIconBox: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 12,
-    backgroundColor: colors.blueLight,
+    backgroundColor: colors.blue,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -995,22 +1069,5 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   customAddBtnActive: {
     backgroundColor: colors.greenDark,
-  },
-  addOwnRecipeCard: {
-    backgroundColor: 'transparent',
-    borderColor: colors.borderStrong,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderStyle: 'dashed',
-    borderRadius: 16,
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginVertical: 12,
-  },
-  addOwnRecipeText: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: colors.textSecondary,
   },
 });

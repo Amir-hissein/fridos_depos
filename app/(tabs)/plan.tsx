@@ -30,7 +30,7 @@ import { useAllergens } from '../../context/AllergenContext';
 import { recommendRecipes } from '../../services/recipeFilters';
 import { localizeRecipeName } from '../../services/localizeRecipe';
 import { useTranslation } from 'react-i18next';
-import { RECIPES } from '../../constants/recipes';
+import { RECIPES, recipeImageSource } from '../../constants/recipes';
 import { CalorieRing } from '../../components/ui/CalorieRing';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -43,34 +43,35 @@ interface MealSlotDef {
   key: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   label: string;
   image: any;
-  targetKcal: number;
   color: string;
 }
 
 // Une couleur d'accent par repas (tokens du thème) — barre + tinte de l'icône.
 const MEALS: MealSlotDef[] = [
-  { key: 'breakfast', label: 'plan.meals.breakfast', image: require('../../assets/images/breakfast_icon.png'), targetKcal: 500, color: Colors.gold },
-  { key: 'lunch',     label: 'plan.meals.lunch',     image: require('../../assets/images/lunch_icon.png'),     targetKcal: 500, color: Colors.green },
-  { key: 'dinner',    label: 'plan.meals.dinner',    image: require('../../assets/images/dinner_icon.png'),    targetKcal: 500, color: Colors.blue },
-  { key: 'snack',     label: 'plan.meals.snack',     image: require('../../assets/images/snack_icon.png'),     targetKcal: 193, color: Colors.orange },
+  { key: 'breakfast', label: 'plan.meals.breakfast', image: require('../../assets/images/breakfast_icon.png'), color: Colors.gold },
+  { key: 'lunch',     label: 'plan.meals.lunch',     image: require('../../assets/images/lunch_icon.png'),     color: Colors.green },
+  { key: 'dinner',    label: 'plan.meals.dinner',    image: require('../../assets/images/dinner_icon.png'),    color: Colors.blue },
+  { key: 'snack',     label: 'plan.meals.snack',     image: require('../../assets/images/snack_icon.png'),     color: Colors.orange },
 ];
 
 /* ─── Meal card ───────────────────────────────────────────────── */
 function MealCard({
   slot,
   consumed,
+  targetKcal,
   active,
   onPress,
 }: {
   slot: MealSlotDef;
   consumed: number;
+  targetKcal: number;
   active: boolean;
   onPress: () => void;
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const mc = useThemedStyles(makeMcStyles);
-  const pct = Math.min(consumed / slot.targetKcal, 1);
+  const pct = targetKcal > 0 ? Math.min(consumed / targetKcal, 1) : 0;
   const mealColor = colors[slot.key === 'breakfast' ? 'gold' : slot.key === 'lunch' ? 'green' : slot.key === 'dinner' ? 'blue' : 'orange'];
 
   return (
@@ -91,7 +92,7 @@ function MealCard({
       {/* Kcal */}
       <View style={mc.kcalRow}>
         <Text style={mc.kcalNum}>{consumed}</Text>
-        <Text style={mc.kcalOf}>/{slot.targetKcal} Kcal</Text>
+        <Text style={mc.kcalOf}>/{targetKcal} Kcal</Text>
       </View>
 
       {/* Progress bar — couleur propre au repas */}
@@ -280,6 +281,7 @@ export default function PlanScreen() {
   const {
     profile,
     targets,
+    mealTargets,
     intake,
     consumedKcal,
     consumedMacros,
@@ -780,9 +782,9 @@ export default function PlanScreen() {
             {/* top section */}
             <View style={styles.calorieTop}>
               <View style={styles.calorieLeft}>
-                {/* orange label row */}
+                {/* calorie label row */}
                 <View style={styles.calorieLabelRow}>
-                  <Flame size={17} color={colors.orange} strokeWidth={2.2} />
+                  <Flame size={17} color={colors.calorie} strokeWidth={2.2} />
                   <Text style={styles.calorieLabel}>{t('plan.calorie')}</Text>
                 </View>
                 {/* big number */}
@@ -877,6 +879,7 @@ export default function PlanScreen() {
                 key={slot.key}
                 slot={slot}
                 consumed={intake[slot.key] ?? 0}
+                targetKcal={mealTargets[slot.key].kcal}
                 active={false}
                 onPress={() => {
                   haptic.select();
@@ -944,7 +947,7 @@ export default function PlanScreen() {
               >
                 {/* photo */}
                 {r.image
-                  ? <Image source={{ uri: r.image }} style={styles.recipeImg} resizeMode="cover" />
+                  ? <Image source={recipeImageSource(r.image)} style={styles.recipeImg} resizeMode="cover" />
                   : (
                     <View style={[styles.recipeImg, styles.recipeImgFallback]}>
                       <Text style={{ fontSize: 38 }}>{r.emoji}</Text>
@@ -955,7 +958,7 @@ export default function PlanScreen() {
                 <View style={styles.recipeInfo}>
                   <Text style={styles.recipeName} numberOfLines={2}>{localizeRecipeName(r, t)}</Text>
                   <View style={styles.recipeMeta}>
-                    <Flame size={12} color={colors.orange} strokeWidth={2.2} />
+                    <Flame size={12} color={colors.calorie} strokeWidth={2.2} />
                     <Text style={styles.recipeMetaTxt}>{r.kcal} kcal</Text>
                     <Clock size={12} color={colors.textMuted} strokeWidth={2.2} />
                     <Text style={styles.recipeMetaTxt}>{r.time} {t('plan.min')}</Text>

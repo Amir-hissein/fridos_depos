@@ -6,6 +6,7 @@ import {
   ScrollView,
   Animated,
   Easing,
+  Share,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +18,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { ThemeColors } from '../../constants/colors';
 import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { Radii } from '../../constants/layout';
-import { RECIPES, isRecipeLockedForFree } from '../../constants/recipes';
+import { RECIPES, isRecipeLockedForFree, recipeImageSource } from '../../constants/recipes';
 import { getRecipeMacrosForPortions } from '../../services/nutrition';
 import { haptic } from '../../lib/haptics';
 import { useApp, FREE_RECIPE_LIMIT } from '../../context/AppContext';
@@ -71,6 +72,26 @@ export default function RecipeDetailScreen() {
   // Contenu localisé (nom/ingrédients/étapes) ; `recipe` reste brut pour la logique.
   const loc = localizeRecipe(recipe, t);
 
+  // Partage natif réel : compose la recette (macros + ingrédients + étapes) et
+  // ouvre la feuille de partage du système.
+  const handleShare = async () => {
+    haptic.light();
+    const macroLine = `⏱ ${recipe.time} ${t('plan.min')} · ${recipe.kcal} kcal · P ${recipe.protein}g · C ${recipe.carbs}g · F ${recipe.fat}g`;
+    const ingredients = loc.ingredients
+      .map(ing => `• ${ing.name}${ing.quantity ? ` — ${ing.quantity}` : ''}`)
+      .join('\n');
+    const steps = loc.steps.map((s, i) => `${i + 1}. ${s.text}`).join('\n');
+    const message =
+      `🍳 ${loc.name}\n${macroLine}\n\n` +
+      `🧂 ${t('recipes.details.ingredients')}\n${ingredients}\n\n` +
+      `👨‍🍳 ${t('recipes.details.preparation')}\n${steps}`;
+    try {
+      await Share.share({ message, title: loc.name });
+    } catch {
+      // partage annulé / indisponible — sans effet
+    }
+  };
+
   // Modal State
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState('breakfast');
@@ -106,7 +127,7 @@ export default function RecipeDetailScreen() {
           <Animated.Text style={[styles.heroEmoji, { transform: [{ scale: heroScale }] }]}>{recipe.emoji}</Animated.Text>
           {showImage && (
             <Animated.Image
-              source={{ uri: recipe.image }}
+              source={recipeImageSource(recipe.image)}
               style={[StyleSheet.absoluteFill, { transform: [{ scale: heroScale }] }]}
               resizeMode="cover"
               onError={() => setImgFailed(true)}
@@ -133,8 +154,8 @@ export default function RecipeDetailScreen() {
         {/* Macros Row */}
         <View style={styles.macrosRow}>
           <View style={styles.macroCard}>
-            <View style={[styles.macroIconWrap, { backgroundColor: colors.orange + '16' }]}>
-              <MaterialCommunityIcons name="fire" size={20} color={colors.orange} />
+            <View style={[styles.macroIconWrap, { backgroundColor: colors.calorie + '16' }]}>
+              <MaterialCommunityIcons name="fire" size={20} color={colors.calorie} />
             </View>
             <Text style={styles.macroValue} numberOfLines={1} adjustsFontSizeToFit>
               {recipe.kcal} <Text style={styles.macroUnit}>kcal</Text>
@@ -319,7 +340,8 @@ export default function RecipeDetailScreen() {
         <PressableScale
           haptic="light"
           style={styles.shareButton}
-          onPress={() => haptic.light()}
+          onPress={handleShare}
+          accessibilityLabel={t('recipes.details.shareRecipe')}
         >
           <Ionicons name="paper-plane-outline" size={20} color={colors.textPrimary} />
         </PressableScale>
@@ -340,7 +362,7 @@ export default function RecipeDetailScreen() {
         {/* Mini Macros Row */}
         <View style={styles.modalMacros}>
           <View style={styles.modalMacroItem}>
-            <MaterialCommunityIcons name="fire" size={16} color={colors.orange} />
+            <MaterialCommunityIcons name="fire" size={16} color={colors.calorie} />
             <Text style={styles.modalMacroText}>{portionMacros.kcal}</Text>
           </View>
           <View style={styles.modalMacroItem}>

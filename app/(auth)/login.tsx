@@ -7,6 +7,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -18,12 +19,18 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { useFeedback } from '../../context/FeedbackContext';
-import { signIn } from '../../lib/api/auth';
+import { signIn, signInWithGoogle, signInWithApple } from '../../lib/api/auth';
 import { getMyProfile } from '../../lib/api/profile';
 import { useTranslation } from 'react-i18next';
 import { haptic } from '../../lib/haptics';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Apple Sign-In is fully wired (signInWithApple + entitlement + Supabase),
+// but it needs a PAID Apple Developer account to register the App ID capability
+// and to ship. Until then the button stays hidden. Flip to `true` once the
+// paid account + Supabase Apple provider are configured, then rebuild.
+const APPLE_LOGIN_ENABLED = false;
 
 export default function LoginScreen() {
   const { colors } = useTheme();
@@ -34,6 +41,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const submit = async () => {
     if (!EMAIL_RE.test(email.trim())) {
@@ -57,7 +66,35 @@ export default function LoginScreen() {
     router.replace(profile?.onboarding_done ? '/(tabs)/plan' : '/(onboarding)');
   };
 
-  const soon = () => toast(t('common.soon'), { variant: 'info' });
+  const handleGoogle = async () => {
+    if (googleLoading) return;
+    setGoogleLoading(true);
+    const res = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (res.cancelled) return;
+    if (!res.ok) {
+      haptic.medium();
+      return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
+    }
+    haptic.success();
+    const profile = await getMyProfile();
+    router.replace(profile?.onboarding_done ? '/(tabs)/plan' : '/(onboarding)');
+  };
+
+  const handleApple = async () => {
+    if (appleLoading) return;
+    setAppleLoading(true);
+    const res = await signInWithApple();
+    setAppleLoading(false);
+    if (res.cancelled) return;
+    if (!res.ok) {
+      haptic.medium();
+      return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
+    }
+    haptic.success();
+    const profile = await getMyProfile();
+    router.replace(profile?.onboarding_done ? '/(tabs)/plan' : '/(onboarding)');
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -111,16 +148,30 @@ export default function LoginScreen() {
             <View style={styles.divider} />
           </View>
 
-          {/* Connexions sociales (UI — à brancher) */}
+          {/* Connexions sociales — Google branché (OAuth Supabase) */}
           <View style={styles.socialRow}>
-            <PressableScale haptic="light" style={styles.socialBtn} onPress={soon}>
-              <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
-              <Text style={styles.socialText}>Google</Text>
+            <PressableScale haptic="light" style={styles.socialBtn} onPress={handleGoogle} disabled={googleLoading}>
+              {googleLoading ? (
+                <ActivityIndicator size="small" color={colors.textPrimary} />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={20} color={colors.textPrimary} />
+                  <Text style={styles.socialText}>Google</Text>
+                </>
+              )}
             </PressableScale>
-            <PressableScale haptic="light" style={styles.socialBtn} onPress={soon}>
-              <Ionicons name="logo-apple" size={22} color={colors.textPrimary} />
-              <Text style={styles.socialText}>Apple</Text>
-            </PressableScale>
+            {Platform.OS === 'ios' && APPLE_LOGIN_ENABLED && (
+              <PressableScale haptic="light" style={styles.socialBtn} onPress={handleApple} disabled={appleLoading}>
+                {appleLoading ? (
+                  <ActivityIndicator size="small" color={colors.textPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-apple" size={22} color={colors.textPrimary} />
+                    <Text style={styles.socialText}>Apple</Text>
+                  </>
+                )}
+              </PressableScale>
+            )}
           </View>
         </ScrollView>
 

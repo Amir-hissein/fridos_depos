@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Dimensions,
-  ActivityIndicator,
   Image,
 } from 'react-native';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { PressableScale } from '../../components/ui/PressableScale';
+import { ScanAnalyzingLoader, FRIDGE_ICONS } from '../../components/ui/ScanAnalyzingLoader';
 import { Button } from '../../components/ui/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -21,13 +21,11 @@ import { useAllergens } from '../../context/AllergenContext';
 import { DetectedItem } from '../../components/ui/DetectedItem';
 import { haptic } from '../../lib/haptics';
 import { detectIngredients, DetectedIngredient } from '../../services/vision';
-import { RECIPES } from '../../constants/recipes';
+import { RECIPES, recipeImageSource } from '../../constants/recipes';
 import { recommendRecipes } from '../../services/recipeFilters';
 import { recipeOwnership } from '../../services/shoppingList';
 import { localizeRecipeName } from '../../services/localizeRecipe';
 import { useTranslation } from 'react-i18next';
-
-const { height } = Dimensions.get('window');
 
 const itemKey = (name: string) => name.toLowerCase().replace(/ /g, '_');
 
@@ -125,37 +123,23 @@ export default function ScanResultScreen() {
   const checkedCount = checked.size;
 
   return (
-    <View style={styles.container}>
-      {/* Background */}
-      <View style={styles.bgPhoto}>
-        <Text style={styles.bgEmoji1}>🥦</Text>
-        <Text style={styles.bgEmoji2}>🍅</Text>
-        <Text style={styles.bgEmoji3}>🥕</Text>
+    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
+      <PressableScale haptic="light" style={styles.closeBtn} onPress={() => router.dismissAll()} activeOpacity={0.7}>
+        <Ionicons name="close" size={22} color={colors.textPrimary} />
+      </PressableScale>
+
+      <View style={styles.header}>
+        <Text style={styles.title}>
+          {loading ? t('scan.results.loadingTitle') : t('scan.results.title', { count: detected.length })}
+        </Text>
+        <Text style={styles.desc}>
+          {loading ? t('scan.results.loadingDesc') : t('scan.results.desc')}
+        </Text>
       </View>
-
-      {/* Close */}
-      <View style={[styles.headerBar, { top: insets.top + 6 }]}>
-        <PressableScale haptic="light" style={styles.closeBtn} onPress={() => router.dismissAll()} activeOpacity={0.7}>
-          <Ionicons name="close" size={22} color={colors.white} />
-        </PressableScale>
-      </View>
-
-      {/* Bottom Sheet */}
-      <View style={styles.sheet}>
-        <View style={styles.sheetHandle} />
-
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>
-            {loading ? t('scan.results.loadingTitle') : t('scan.results.title', { count: detected.length })}
-          </Text>
-          <Text style={styles.sheetDesc}>
-            {loading ? t('scan.results.loadingDesc') : t('scan.results.desc')}
-          </Text>
-        </View>
 
         {loading ? (
           <View style={styles.stateWrap}>
-            <ActivityIndicator size="large" color={colors.green} />
+            <ScanAnalyzingLoader tint={colors.green} tintSoft={colors.greenLight} pool={FRIDGE_ICONS} />
             <Text style={styles.stateText}>{t('scan.results.loadingText')}</Text>
           </View>
         ) : error ? (
@@ -178,21 +162,22 @@ export default function ScanResultScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           >
-            {detected.map(d => (
-              <DetectedItem
-                key={d.id}
-                emoji={d.emoji}
-                name={t(`scan.results.items.${itemKey(d.name)}`, d.name)}
-                confidence={d.confidence}
-                bgColor={d.bg}
-                checked={checked.has(d.id)}
-                onToggle={() => toggle(d.id)}
-              />
+            {detected.map((d, i) => (
+              <Animated.View key={d.id} entering={FadeInDown.delay(i * 55).duration(360)}>
+                <DetectedItem
+                  emoji={d.emoji}
+                  name={t(`scan.results.items.${itemKey(d.name)}`, d.name)}
+                  confidence={d.confidence}
+                  bgColor={d.bg}
+                  checked={checked.has(d.id)}
+                  onToggle={() => toggle(d.id)}
+                />
+              </Animated.View>
             ))}
 
             {/* AI meal ideas based on what's detected + the user's profile */}
             {suggestions.length > 0 && (
-              <View style={styles.ideas}>
+              <Animated.View entering={FadeInDown.delay(detected.length * 55 + 60).duration(380)} style={styles.ideas}>
                 <View style={styles.ideasHead}>
                   <Ionicons name="sparkles" size={16} color={colors.green} />
                   <Text style={styles.ideasTitle}>{t('scan.results.mealIdeas.title')}</Text>
@@ -213,7 +198,7 @@ export default function ScanResultScreen() {
                   >
                     <View style={[styles.ideaThumb, { backgroundColor: recipe.bgColor }]}>
                       {recipe.image ? (
-                        <Image source={{ uri: recipe.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                        <Image source={recipeImageSource(recipe.image)} style={StyleSheet.absoluteFill} resizeMode="cover" />
                       ) : (
                         <Text style={styles.ideaEmoji}>{recipe.emoji}</Text>
                       )}
@@ -225,7 +210,7 @@ export default function ScanResultScreen() {
                         <Ionicons name="time-outline" size={13} color={colors.textMuted} />
                         <Text style={styles.ideaMetaText}>{recipe.time} {t('plan.min')}</Text>
                         <Text style={styles.ideaDot}>·</Text>
-                        <Ionicons name="flame-outline" size={13} color={colors.textMuted} />
+                        <Ionicons name="flame-outline" size={13} color={colors.calorie} />
                         <Text style={styles.ideaMetaText}>{recipe.kcal} kcal</Text>
                       </View>
                       <View style={[styles.matchBadge, own.tag === 'complete' ? styles.matchGreen : styles.matchOrange]}>
@@ -245,12 +230,12 @@ export default function ScanResultScreen() {
                     <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
                   </PressableScale>
                 ))}
-              </View>
+              </Animated.View>
             )}
           </ScrollView>
         )}
 
-        <View style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <Animated.View entering={FadeIn.delay(150).duration(400)} style={[styles.actions, { paddingBottom: Math.max(insets.bottom, 12) }]}>
           <Button
             variant="primary"
             icon={<Ionicons name="checkmark-circle" size={20} color={colors.white} />}
@@ -264,73 +249,37 @@ export default function ScanResultScreen() {
             <Ionicons name="add-circle-outline" size={17} color={colors.green} />
             <Text style={styles.manualBtnText}>{t('scan.results.addManually')}</Text>
           </PressableScale>
-        </View>
-      </View>
+        </Animated.View>
     </View>
   );
 }
 
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.scanBg },
-  bgPhoto: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bgEmoji1: { position: 'absolute', fontSize: 100, opacity: 0.12, top: '20%', left: '10%', transform: [{ rotate: '15deg' }] },
-  bgEmoji2: { position: 'absolute', fontSize: 90, opacity: 0.12, top: '40%', right: '8%', transform: [{ rotate: '-25deg' }] },
-  bgEmoji3: { position: 'absolute', fontSize: 85, opacity: 0.12, bottom: '28%', left: '15%', transform: [{ rotate: '10deg' }] },
-  headerBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    zIndex: 10,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
   closeBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.separator,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 20,
+    marginBottom: 6,
   },
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: height * 0.82,
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 8,
-    shadowColor: colors.shadowBlack,
-    shadowOffset: { width: 0, height: -12 },
-    shadowOpacity: 0.1,
-    shadowRadius: 28,
-    elevation: 12,
-  },
-  sheetHandle: {
-    width: 36,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.separator,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  sheetHeader: {
+  header: {
     paddingHorizontal: 22,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 14,
   },
-  sheetTitle: {
+  title: {
     fontFamily: 'Poppins_700Bold',
-    fontSize: 22,
+    fontSize: 24,
     color: colors.textPrimary,
     marginBottom: 4,
   },
-  sheetDesc: {
+  desc: {
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
     color: colors.textSecondary,

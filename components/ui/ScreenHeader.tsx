@@ -6,6 +6,7 @@ import { ThemeColors } from '../../constants/colors';
 import { Radii, Spacing } from '../../constants/layout';
 import { useTheme, useThemedStyles } from '../../context/ThemeContext';
 import { PressableScale } from './PressableScale';
+import { useTranslation } from 'react-i18next';
 
 interface ScreenHeaderProps {
   title?: string;
@@ -28,13 +29,14 @@ const BTN = 40;
 export function ScreenHeader({ title, onBack, right, align = 'center', style }: ScreenHeaderProps) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { t } = useTranslation();
   const showBack = onBack !== null;
   const handleBack = onBack ?? (() => router.back());
 
   return (
     <View style={[styles.header, style]}>
       {showBack ? (
-        <PressableScale haptic="light" style={styles.backBtn} onPress={handleBack} activeOpacity={0.7}>
+        <PressableScale haptic="light" style={styles.backBtn} onPress={handleBack} activeOpacity={0.7} accessibilityLabel={t('a11y.back')}>
           <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
         </PressableScale>
       ) : (

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+ import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,8 +24,6 @@ import { BottomSheet } from '../../components/ui/BottomSheet';
 import { Badge } from '../../components/ui/Badge';
 import { haptic } from '../../lib/haptics';
 import { useApp } from '../../context/AppContext';
-import { useAuth } from '../../context/AuthContext';
-import { useProfile } from '../../context/ProfileContext';
 import { usePlan } from '../../context/PlanContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { computeBMI } from '../../services/plan';
@@ -36,13 +34,14 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const LANG_FLAGS: Record<string, string> = { tr: '🇹🇷', en: '🇬🇧', fr: '🇫🇷' };
 
+const USER_ID = 'SkUS5altOAXXHbETjTRXmD6ju7D3';
+
 interface SettingItem { icon: IconName; labelKey: string; route?: string }
 
 const SETTINGS_TOP: SettingItem[] = [
   { icon: 'account',  labelKey: 'profile.settings.personalInfo', route: '/personal-info' },
-  { icon: 'target',   labelKey: 'profile.settings.goalUpdate',   route: '/(onboarding)/setup?edit=1' },
+  { icon: 'target',   labelKey: 'profile.settings.goalUpdate',   route: '/(onboarding)/setup' },
   { icon: 'history',  labelKey: 'profile.settings.weightHistory', route: '/weight-history' },
-  { icon: 'bell-outline', labelKey: 'profile.settings.notifications', route: '/notifications' },
   { icon: 'translate', labelKey: 'profile.settings.language' },
   { icon: 'theme-light-dark', labelKey: 'profile.settings.theme' },
 ];
@@ -116,9 +115,7 @@ export default function ProfileScreen() {
     { color: colors.orange, key: 'overweight' },
     { color: colors.bmiObese, key: 'obese' },
   ];
-  const { isPremium, isSubscriptionActive, isTrialActive, trialDaysLeft, setPremium, userName } = useApp();
-  const { signOut } = useAuth();
-  const { email, userId, displayName, updateName } = useProfile();
+  const { isPremium, setPremium, userName, setUserName } = useApp();
   const { t, i18n } = useTranslation();
   const { toast } = useFeedback();
   const [langOpen, setLangOpen] = useState(false);
@@ -136,7 +133,9 @@ export default function ProfileScreen() {
 
   // ── Edit mode ──────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
-  const [draftName, setDraftName] = useState(displayName || userName);
+  const [draftName, setDraftName] = useState(userName);
+  const [draftEmail, setDraftEmail] = useState('amirhisseinabakar@gmail.com');
+  const [savedEmail, setSavedEmail] = useState('amirhisseinabakar@gmail.com');
   const [copied, setCopied] = useState(false);
 
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -152,21 +151,20 @@ export default function ProfileScreen() {
 
   const startEdit = () => {
     haptic.select();
-    setDraftName(displayName || userName);
+    setDraftName(userName);
+    setDraftEmail(savedEmail);
     setIsEditing(true);
   };
 
-  const saveEdit = async () => {
-    if (draftName.trim().length < 2) { haptic.light(); shake(); return; }
+  const saveEdit = () => {
+    const nameOk = draftName.trim().length >= 2;
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draftEmail.trim());
+    if (!nameOk || !emailOk) { haptic.light(); shake(); return; }
     haptic.success();
+    setUserName(draftName.trim());
+    setSavedEmail(draftEmail.trim());
     setIsEditing(false);
     Keyboard.dismiss();
-    try {
-      await updateName(draftName.trim());
-      toast(t('profile.saved', { defaultValue: 'Profil mis à jour' }));
-    } catch {
-      toast(t('auth.errGeneric'), { variant: 'error' });
-    }
   };
 
   const cancelEdit = () => {
@@ -177,7 +175,7 @@ export default function ProfileScreen() {
 
   const copyId = async () => {
     haptic.success();
-    await Clipboard.setStringAsync(userId);
+    await Clipboard.setStringAsync(USER_ID);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -213,7 +211,7 @@ export default function ProfileScreen() {
                     autoFocus
                   />
                 ) : (
-                  <Text style={s.name}>{displayName || userName}</Text>
+                  <Text style={s.name}>{userName}</Text>
                 )}
                 {!isEditing && (
                   isPremium ? (
@@ -235,11 +233,17 @@ export default function ProfileScreen() {
 
             {isEditing ? (
               <>
-                {/* Email is managed by Supabase Auth — shown read-only here. */}
-                <View style={s.emailReadonly}>
-                  <MaterialCommunityIcons name="email-outline" size={15} color={colors.textMuted} />
-                  <Text style={s.emailReadonlyText} numberOfLines={1}>{email}</Text>
-                </View>
+                <TextInput
+                  style={s.emailInput}
+                  value={draftEmail}
+                  onChangeText={setDraftEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  returnKeyType="done"
+                  onSubmitEditing={saveEdit}
+                  placeholder={t('auth.emailPlaceholder')}
+                  placeholderTextColor={colors.textMuted}
+                />
                 <View style={s.editActions}>
                   <PressableScale haptic="light" style={s.cancelBtn} onPress={cancelEdit} activeOpacity={0.8}>
                     <Text style={s.cancelText}>{t('common.cancel')}</Text>
@@ -250,57 +254,34 @@ export default function ProfileScreen() {
                 </View>
               </>
             ) : (
-              <View style={s.idBlock}>
-                <View style={s.emailRow}>
-                  <MaterialCommunityIcons name="email-outline" size={15} color={colors.textSecondary} />
-                  <Text style={s.emailText} numberOfLines={1}>{email}</Text>
-                </View>
-                <PressableScale haptic="light" activeOpacity={0.7} onPress={copyId}>
-                  <Text style={s.idText} numberOfLines={1}>{t('profile.userId', { id: userId })}</Text>
-                  <Text style={s.copyHint}>{copied ? t('profile.copied') : t('profile.copyHint')}</Text>
-                </PressableScale>
-              </View>
+              <PressableScale haptic="light" style={s.idBlock} activeOpacity={0.7} onPress={copyId}>
+                <Text style={s.idText} numberOfLines={1}>{t('profile.userId', { id: USER_ID })}</Text>
+                <Text style={s.copyHint}>{copied ? t('profile.copied') : t('profile.copyHint')}</Text>
+              </PressableScale>
             )}
           </Animated.View>
         </FadeInItem>
 
         {/* Subscription card */}
         <FadeInItem index={1}>
-          {isSubscriptionActive || isTrialActive ? (
+          {isPremium ? (
             <View style={s.premiumActiveCard}>
               <View style={s.subRow}>
                 <View style={s.subIconWrap}>
                   <MaterialCommunityIcons name="crown" size={22} color={colors.goldDark} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.subTitle}>
-                    {isSubscriptionActive ? 'Fridos Premium' : t('profile.premium.trialTitle')}
-                  </Text>
-                  <Text style={s.subSub}>
-                    {isSubscriptionActive
-                      ? t('profile.premium.activeSub')
-                      : t('profile.premium.trialActive', { days: trialDaysLeft })}
-                  </Text>
+                  <Text style={s.subTitle}>Fridos Premium</Text>
+                  <Text style={s.subSub}>{t('profile.premium.activeSub')}</Text>
                 </View>
-                {isSubscriptionActive ? (
-                  <PressableScale
-                    style={s.manageBtn}
-                    scaleTo={0.95}
-                    haptic="light"
-                    onPress={() => { haptic.select(); setPremium(false); }}
-                  >
-                    <Text style={s.manageText}>{t('profile.premium.manage')}</Text>
-                  </PressableScale>
-                ) : (
-                  <PressableScale
-                    style={s.subscribeBtn}
-                    scaleTo={0.95}
-                    haptic="light"
-                    onPress={() => router.push('/(tabs)/pro')}
-                  >
-                    <Text style={s.subscribeBtnText}>{t('profile.premium.subscribeCta')}</Text>
-                  </PressableScale>
-                )}
+                <PressableScale
+                  style={s.manageBtn}
+                  scaleTo={0.95}
+                  haptic="light"
+                  onPress={() => { haptic.select(); setPremium(false); }}
+                >
+                  <Text style={s.manageText}>{t('profile.premium.manage')}</Text>
+                </PressableScale>
               </View>
             </View>
           ) : (
@@ -442,7 +423,7 @@ export default function ProfileScreen() {
 
         {/* Logout / Delete */}
         <FadeInItem index={6} style={s.dangerRow}>
-          <PressableScale style={s.logoutBtn} scaleTo={0.97} haptic="light" onPress={async () => { await signOut(); router.replace('/(auth)/login'); }}>
+          <PressableScale style={s.logoutBtn} scaleTo={0.97} haptic="light" onPress={() => router.replace('/(auth)/login')}>
             <MaterialCommunityIcons name="logout" size={18} color={colors.textPrimary} />
             <Text style={s.logoutText}>{t('profile.logout')}</Text>
           </PressableScale>
@@ -559,31 +540,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   idBlock: {
     marginTop: 14,
-    gap: 10,
-  },
-  emailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  emailText: {
-    flex: 1,
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  emailReadonly: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingVertical: 4,
-  },
-  emailReadonlyText: {
-    flex: 1,
-    fontFamily: 'Inter_500Medium',
-    fontSize: 14,
-    color: colors.textMuted,
   },
   idText: {
     fontFamily: 'Inter_500Medium',
@@ -744,19 +700,6 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  subscribeBtn: {
-    backgroundColor: colors.green,
-    paddingHorizontal: 16,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  subscribeBtnText: {
-    fontFamily: 'Inter_700Bold',
-    fontSize: 13,
-    color: colors.white,
   },
 
   // ── Quick actions ─────────────────────────────────────────────

@@ -21,6 +21,10 @@ import { FeedbackProvider } from '../context/FeedbackContext';
 import { NotificationsProvider } from '../context/NotificationsContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import '../lib/i18n';
+import { initSentry } from '../lib/sentry';
+
+// Initialise crash reporting as early as possible (no-op without a DSN).
+initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
