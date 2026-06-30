@@ -1,19 +1,20 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { darkColors, lightColors, ThemeColors } from '../constants/colors';
 
-export type ThemeMode = 'light' | 'dark' | 'system';
+export type ThemeMode = 'light' | 'dark';
+/** Resolved colour scheme — identical to {@link ThemeMode} now that there is no
+ * "system" option. Kept as a distinct alias for screens that style per scheme. */
 export type ResolvedScheme = 'light' | 'dark';
 
 const STORAGE_KEY = 'app.theme';
 
 interface ThemeContextType {
-  /** User preference: light · dark · follow system. */
+  /** User preference: light · dark. */
   mode: ThemeMode;
-  /** Actual scheme applied right now (system resolved). */
+  /** Active scheme applied right now (same as `mode`). */
   scheme: ResolvedScheme;
-  /** Active colour palette for the current scheme. */
+  /** Active colour palette for the current mode. */
   colors: ThemeColors;
   setMode: (mode: ThemeMode) => void;
 }
@@ -21,13 +22,12 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const system = useColorScheme(); // 'light' | 'dark' | null — updates on OS change
   const [mode, setModeState] = useState<ThemeMode>('dark');
 
-  // Restore the saved preference once on mount.
+  // Restore the saved preference once on mount (legacy 'system' falls back to default).
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then(saved => {
-      if (saved === 'light' || saved === 'dark' || saved === 'system') setModeState(saved);
+      if (saved === 'light' || saved === 'dark') setModeState(saved);
     });
   }, []);
 
@@ -36,12 +36,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
   };
 
-  const scheme: ResolvedScheme = mode === 'system' ? (system === 'light' ? 'light' : 'dark') : mode;
-  const colors = scheme === 'light' ? lightColors : darkColors;
+  const colors = mode === 'light' ? lightColors : darkColors;
 
   const value = useMemo<ThemeContextType>(
-    () => ({ mode, scheme, colors, setMode }),
-    [mode, scheme, colors],
+    () => ({ mode, scheme: mode, colors, setMode }),
+    [mode, colors],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

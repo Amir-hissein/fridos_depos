@@ -79,8 +79,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const isTrialActive = trialEndsAt != null && now < trialEndsAt;
   const trialDaysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt - now) / DAY_MS)) : 0;
 
+  // In production the source of truth is ALWAYS the subscription/trial — the dev
+  // override is ignored so it can never be a backdoor or break a real sub.
   const isPremium =
-    devOverride !== null ? devOverride : isSubscriptionActive || isTrialActive;
+    __DEV__ && devOverride !== null ? devOverride : isSubscriptionActive || isTrialActive;
 
   // Load the shopping list from Supabase on sign-in; clear on sign-out.
   useEffect(() => {
@@ -96,7 +98,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   // Dev/testing toggle — forces premium on/off regardless of subscription/trial.
-  const setPremium = (premium: boolean) => setDevOverride(premium);
+  // No-op in production builds (see isPremium above).
+  const setPremium = (premium: boolean) => {
+    if (__DEV__) setDevOverride(premium);
+  };
 
   const addShoppingItem = async (name: string, category: string) => {
     animateLayout();

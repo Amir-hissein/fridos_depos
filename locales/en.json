@@ -1106,8 +1106,7 @@
     "changed": "Theme: {{mode}}",
     "modes": {
       "light": "Light",
-      "dark": "Dark",
-      "system": "System"
+      "dark": "Dark"
     }
   },
   "feedback": {

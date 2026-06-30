@@ -27,6 +27,7 @@ import { haptic } from '../../lib/haptics';
 import { useAuth } from '../../context/AuthContext';
 import { deleteAccount, updateAccount } from '../../lib/api/auth';
 import { useApp } from '../../context/AppContext';
+import { useSubscription } from '../../context/SubscriptionContext';
 import { usePlan } from '../../context/PlanContext';
 import { useFeedback } from '../../context/FeedbackContext';
 import { computeBMI } from '../../services/plan';
@@ -123,6 +124,7 @@ export default function ProfileScreen() {
     { color: colors.bmiObese, key: 'obese' },
   ];
   const { isPremium, setPremium, userName, setUserName } = useApp();
+  const { manageSubscriptions } = useSubscription();
   const { session, signOut } = useAuth();
   const userId = session?.user?.id ?? '';
   const accountEmail = session?.user?.email ?? '';
@@ -353,7 +355,7 @@ export default function ProfileScreen() {
                   style={s.manageBtn}
                   scaleTo={0.95}
                   haptic="light"
-                  onPress={() => { haptic.select(); setPremium(false); }}
+                  onPress={() => { haptic.select(); manageSubscriptions(); setPremium(false); }}
                 >
                   <Text style={s.manageText}>{t('profile.premium.manage')}</Text>
                 </PressableScale>

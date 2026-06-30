@@ -41,6 +41,8 @@ interface SubscriptionContextType {
   purchasePlan: (plan: Plan) => Promise<boolean>;
   /** Restore prior purchases. Returns true if premium was restored. */
   restore: () => Promise<boolean>;
+  /** Open the OS-native subscription management sheet (App Store / Play). */
+  manageSubscriptions: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -163,8 +165,20 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return !!info.entitlements.active[ENTITLEMENT_ID];
   }, [applyInfo]);
 
+  const manageSubscriptions = useCallback(async (): Promise<void> => {
+    const Purchases = purchasesRef.current;
+    if (!Purchases?.showManageSubscriptions) return;
+    try {
+      await Purchases.showManageSubscriptions();
+    } catch (e) {
+      if (__DEV__) console.log('[subscription] manage failed:', e);
+    }
+  }, []);
+
   return (
-    <SubscriptionContext.Provider value={{ isConfigured, loading, prices, purchasePlan, restore }}>
+    <SubscriptionContext.Provider
+      value={{ isConfigured, loading, prices, purchasePlan, restore, manageSubscriptions }}
+    >
       {children}
     </SubscriptionContext.Provider>
   );

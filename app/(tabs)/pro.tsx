@@ -104,7 +104,7 @@ function PulseRing({ delay = 0 }: { delay?: number }) {
 }
 
 /* ── Active (Premium) screen ── */
-function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
+function ActiveScreen({ onManage }: { onManage: () => void }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -169,13 +169,13 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
           </Card>
         </FadeInItem>
 
-        {/* Manage / Downgrade (for testing) */}
+        {/* Manage subscription (native sheet in prod) */}
         <FadeInItem index={3}>
           <PressableScale
             style={styles.manageBtn}
             scaleTo={0.97}
             haptic="light"
-            onPress={onDowngrade}
+            onPress={onManage}
           >
             <Ionicons name="settings-outline" size={17} color={colors.textSecondary} />
             <Text style={styles.manageText}>{t('pro.active.manage')}</Text>
@@ -190,7 +190,7 @@ function ActiveScreen({ onDowngrade }: { onDowngrade: () => void }) {
 /* ── Main paywall screen ── */
 export default function ProScreen() {
   const { isPremium, isTrialActive, trialDaysLeft, setPremium } = useApp();
-  const { isConfigured, purchasePlan, restore } = useSubscription();
+  const { isConfigured, purchasePlan, restore, manageSubscriptions } = useSubscription();
   const { toast } = useFeedback();
   const [plan, setPlan] = useState<'monthly' | 'annual'>('annual');
   const [busy, setBusy] = useState(false);
@@ -244,7 +244,8 @@ export default function ProScreen() {
   // Subscribed (or dev override outside a trial) → "active" screen.
   // During the free trial we still show the paywall so the user can convert.
   if (isPremium && !isTrialActive) {
-    return <ActiveScreen onDowngrade={() => setPremium(false)} />;
+    // Prod: open the native subscription sheet. Dev: locally downgrade for testing.
+    return <ActiveScreen onManage={() => { manageSubscriptions(); setPremium(false); }} />;
   }
 
   const reviews = [

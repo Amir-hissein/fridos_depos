@@ -1106,8 +1106,7 @@
     "changed": "Tema: {{mode}}",
     "modes": {
       "light": "Açık",
-      "dark": "Koyu",
-      "system": "Sistem"
+      "dark": "Koyu"
     }
   },
   "feedback": {
