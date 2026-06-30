@@ -6,19 +6,9 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } f
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
-import { FridgeProvider } from '../context/FridgeContext';
-import { AppProvider } from '../context/AppContext';
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import { AuthProvider } from '../context/AuthContext';
-import { SubscriptionProvider } from '../context/SubscriptionContext';
-import { ProfileProvider } from '../context/ProfileContext';
+import { useTheme } from '../context/ThemeContext';
+import { AppProviders } from '../context/AppProviders';
 import { Durations } from '../constants/animations';
-import { AllergenProvider } from '../context/AllergenContext';
-import { PlanProvider } from '../context/PlanContext';
-import { FavoritesProvider } from '../context/FavoritesContext';
-import { CustomRecipesProvider } from '../context/CustomRecipesContext';
-import { FeedbackProvider } from '../context/FeedbackContext';
-import { NotificationsProvider } from '../context/NotificationsContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import '../lib/i18n';
 import { initSentry } from '../lib/sentry';
@@ -50,31 +40,9 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <ErrorBoundary>
-      <ThemeProvider>
-      <AuthProvider>
-      <AppProvider>
-        <SubscriptionProvider>
-        <ProfileProvider>
-        <FridgeProvider>
-          <AllergenProvider>
-           <PlanProvider>
-            <FavoritesProvider>
-            <CustomRecipesProvider>
-            <NotificationsProvider>
-            <FeedbackProvider>
-            <RootNav />
-            </FeedbackProvider>
-            </NotificationsProvider>
-            </CustomRecipesProvider>
-            </FavoritesProvider>
-           </PlanProvider>
-          </AllergenProvider>
-        </FridgeProvider>
-        </ProfileProvider>
-        </SubscriptionProvider>
-      </AppProvider>
-      </AuthProvider>
-      </ThemeProvider>
+        <AppProviders>
+          <RootNav />
+        </AppProviders>
       </ErrorBoundary>
     </GestureHandlerRootView>
   );
