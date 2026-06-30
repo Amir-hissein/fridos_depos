@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "fridos",
+    "name": "Fridos AI",
     "slug": "fridos",
     "scheme": "fridos",
     "version": "1.0.0",
@@ -15,9 +15,8 @@
     "android": {
       "package": "com.fridos.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0C1713",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
