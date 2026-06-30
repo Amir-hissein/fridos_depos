@@ -49,7 +49,7 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <Animated.View style={[styles.content, { opacity, transform: [{ scale }] }]}>
         <Image
-          source={require('../assets/fridos.png')}
+          source={require('../assets/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -62,7 +62,7 @@ export default function SplashScreen() {
 const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.green,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -71,9 +71,8 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 160,
-    height: 160,
-    borderRadius: 36,
+    width: 200,
+    height: 200,
   },
   appName: {
     fontFamily: 'Poppins_700Bold',

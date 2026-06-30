@@ -105,7 +105,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Marque */}
-          <Image source={require('../../assets/fridos.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.title}>{t('auth.login.title')}</Text>
           <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
 
@@ -196,7 +196,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
   },
-  logo: { width: 88, height: 88, alignSelf: 'center', marginBottom: 20, borderRadius: 20 },
+  logo: { width: 104, height: 104, alignSelf: 'center', marginBottom: 16 },
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
