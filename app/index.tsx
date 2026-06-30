@@ -73,7 +73,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   logo: {
     width: 160,
     height: 160,
-    tintColor: colors.white,
+    borderRadius: 36,
   },
   appName: {
     fontFamily: 'Poppins_700Bold',

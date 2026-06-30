@@ -29,10 +29,10 @@ export default function RootLayout() {
     Inter_700Bold,
   });
 
+  // Keep the native (dark) splash visible until fonts are ready, then reveal the
+  // app. A single splash — no custom overlay — like a standard production app.
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
+    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;

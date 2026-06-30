@@ -7,20 +7,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/fridos.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fridos.app",
-      "usesAppleSignIn": true,
-      "splash": {
-        "image": "./assets/fridos.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
-      }
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.fridos.app",
@@ -30,12 +20,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "splash": {
-        "image": "./assets/fridos.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#FFFFFF"
-      }
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,6 +29,15 @@
       "expo-apple-authentication",
       "expo-router",
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0C1713",
+          "image": "./assets/splash.png",
+          "imageWidth": 240,
+          "resizeMode": "contain"
+        }
+      ],
       [
         "expo-camera",
         {

@@ -196,7 +196,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 16,
   },
-  logo: { width: 72, height: 72, alignSelf: 'center', marginBottom: 20, tintColor: colors.white },
+  logo: { width: 88, height: 88, alignSelf: 'center', marginBottom: 20, borderRadius: 20 },
   title: {
     fontFamily: 'Poppins_700Bold',
     fontSize: 26,
