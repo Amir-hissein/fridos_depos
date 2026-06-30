@@ -16,6 +16,7 @@
     "continue": "Devam Et",
     "cancel": "Vazgeç",
     "save": "Kaydet",
+    "saving": "Kaydediliyor…",
     "done": "Bitti",
     "soon": "Yakında",
     "add": "Ekle",
@@ -451,6 +452,7 @@
     "userId": "Kullanıcı ID: {{id}}",
     "copyHint": "Kopyalamak için dokunun",
     "copied": "Kopyalandı ✓",
+    "emailConfirmSent": "Yeni e-postanı onaylamak için gelen kutunu kontrol et.",
     "logout": "Çıkış Yap",
     "deleteAccount": "Hesabı Sil",
     "deleteConfirm": {

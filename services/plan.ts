@@ -82,11 +82,50 @@ export function computeTargets(profile: UserProfile): PlanTargets {
 }
 
 
+/* ── Per-meal targets ──────────────────────────────────────────────
+ * Splits the daily plan across the four meal slots so each meal carries
+ * its share of the kcal + macro goals. Default split: breakfast 30 %,
+ * lunch 35 %, dinner 25 %, snack 10 % (sums to 100 %).
+ */
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+export interface MealTarget {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export const MEAL_SPLIT: Record<MealSlot, number> = {
+  breakfast: 0.3,
+  lunch: 0.35,
+  dinner: 0.25,
+  snack: 0.1,
+};
+
+export function computeMealTargets(targets: PlanTargets): Record<MealSlot, MealTarget> {
+  const slots = Object.keys(MEAL_SPLIT) as MealSlot[];
+  return slots.reduce((acc, slot) => {
+    const share = MEAL_SPLIT[slot];
+    acc[slot] = {
+      kcal: Math.round(targets.kcal * share),
+      protein: Math.round(targets.protein * share),
+      carbs: Math.round(targets.carbs * share),
+      fat: Math.round(targets.fat * share),
+    };
+    return acc;
+  }, {} as Record<MealSlot, MealTarget>);
+}
+
+/** Expected weekly weight change (kg) for a given pace. ~7700 kcal per kg. */
+export function weeklyRateKg(pace: GoalPace): number {
+  return (PACE_DEFICIT[pace] * 7) / 7700;
+}
+
 export function weeksToGoal(profile: UserProfile): number {
   const diff = Math.abs(profile.weight - profile.targetWeight);
   if (diff < 0.1) return 0;
-  const deficit = PACE_DEFICIT[profile.goalPace];
-  const weeklyLossKg = (deficit * 7) / 7700; // ~7700 kcal per kg
+  const weeklyLossKg = weeklyRateKg(profile.goalPace);
   return Math.max(1, Math.ceil(diff / weeklyLossKg));
 }
 

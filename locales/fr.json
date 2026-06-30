@@ -16,6 +16,7 @@
     "continue": "Continuer",
     "cancel": "Annuler",
     "save": "Enregistrer",
+    "saving": "Enregistrement…",
     "done": "Terminé",
     "soon": "Bientôt",
     "add": "Ajouter",
@@ -451,6 +452,7 @@
     "userId": "ID Utilisateur : {{id}}",
     "copyHint": "Appuie pour copier",
     "copied": "Copié ✓",
+    "emailConfirmSent": "Vérifie ta boîte mail pour confirmer ta nouvelle adresse.",
     "logout": "Se déconnecter",
     "deleteAccount": "Supprimer le compte",
     "deleteConfirm": {

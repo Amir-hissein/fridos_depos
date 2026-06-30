@@ -28,17 +28,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Read any persisted session once on mount.
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    let mounted = true;
+
+    (async () => {
+      // Read any persisted session once on mount.
+      const { data } = await supabase.auth.getSession();
+
+      // Validate it against the server: if the refresh token is gone/expired
+      // (refresh_token_not_found), scrub the stale session so we route to
+      // login cleanly instead of flashing a broken "signed-in" state.
+      if (data.session) {
+        const { error } = await supabase.auth.getUser();
+        if (error) {
+          await supabase.auth.signOut().catch(() => {});
+          if (mounted) {
+            setSession(null);
+            setLoading(false);
+          }
+          return;
+        }
+      }
+
+      if (mounted) {
+        setSession(data.session);
+        setLoading(false);
+      }
+    })();
 
     // Keep in sync with sign-in / sign-out / token refresh.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next);
+      if (mounted) setSession(next);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

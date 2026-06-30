@@ -62,7 +62,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // onboarding/userName stay local for now; shopping list is backed by Supabase.
   const [onboardingDone, setOnboardingDone] = usePersistentState('app.onboardingDone', false);
-  const [userName, setUserName] = usePersistentState('app.userName', 'Amir Hissein Abakar');
+  const [userName, setUserName] = usePersistentState('app.userName', '');
   const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([]);
 
   // ── Premium access = subscription OR free trial (with a dev override) ──

@@ -67,7 +67,7 @@ export default function MealDetailScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
 
-  const { intake, mealTargets, addCustomKcal, toggleMealRecipe, isRecipeLogged } = usePlan();
+  const { intake, mealTargets, mealMacrosFor, addCustomKcal, toggleMealRecipe, isRecipeLogged } = usePlan();
   const { toast } = useFeedback();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { userAllergens } = useAllergens();
@@ -116,10 +116,12 @@ export default function MealDetailScreen() {
   const targetFat = mt.fat;
   const targetCarbs = mt.carbs;
 
-  // Macros consumed (approximate based on intake calories)
-  const consumedProtein = Math.round((consumedKcal * 0.25) / 4);
-  const consumedFat = Math.round((consumedKcal * 0.25) / 9);
-  const consumedCarbs = Math.round((consumedKcal * 0.50) / 4);
+  // Macros consumed for this meal — real tracked macros + target-split estimate,
+  // straight from PlanContext (same model as the daily totals).
+  const consumedMealMacros = mealMacrosFor(mealSlot);
+  const consumedProtein = Math.round(consumedMealMacros.protein);
+  const consumedFat = Math.round(consumedMealMacros.fat);
+  const consumedCarbs = Math.round(consumedMealMacros.carbs);
 
   const remainingKcal = Math.max(0, targetKcal - consumedKcal);
   const macros = [

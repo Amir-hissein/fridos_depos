@@ -43,6 +43,8 @@ interface PlanContextType {
   intake: DailyIntake;
   consumedKcal: number;
   consumedMacros: MacroSet;
+  /** Consumed macros for one meal slot (real tracked + target-split estimate). */
+  mealMacrosFor: (slot: MealSlot) => MacroSet;
   onboardingComplete: boolean;
   selectedDayIndex: number;
   setSelectedDayIndex: (index: number) => void;
@@ -224,6 +226,22 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     });
   }, [mealMacros, selectedDayIndex, consumedKcal, targets]);
 
+  // Per-meal consumed macros — same model as the daily total: use the real
+  // measured macros for the slot (e.g. from a scan) and estimate the rest of the
+  // slot's kcal with the profile's macro split. Keeps every screen consistent.
+  const mealMacrosFor = (slot: MealSlot): MacroSet => {
+    const tracked = mealMacros[selectedDayIndex]?.[slot] ?? { ...EMPTY_MACROS };
+    const slotKcal = weeklyIntake[selectedDayIndex]?.[slot] ?? 0;
+    const untrackedKcal = Math.max(0, slotKcal - tracked.kcal);
+    const ratio = targets.kcal > 0 ? untrackedKcal / targets.kcal : 0;
+    return addMacros(tracked, {
+      kcal: untrackedKcal,
+      protein: targets.protein * ratio,
+      carbs: targets.carbs * ratio,
+      fat: targets.fat * ratio,
+    });
+  };
+
   /* ── Persist one meal slot as normalized entries ──────────────── */
   const persistSlot = (
     dayIndex: number,
@@ -374,6 +392,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         intake,
         consumedKcal,
         consumedMacros,
+        mealMacrosFor,
         onboardingComplete,
         selectedDayIndex,
         setSelectedDayIndex,

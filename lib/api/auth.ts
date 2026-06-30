@@ -31,6 +31,36 @@ function mapError(message?: string): string {
   return 'auth.errGeneric';
 }
 
+/**
+ * Update the signed-in user's display name and/or email.
+ *  - `fullName` is written to both the auth metadata and the `profiles` row.
+ *  - `email` change goes through Supabase Auth, which sends a confirmation
+ *    link; the new address only takes effect once the user confirms it.
+ * Returns `needsConfirm: true` when an email change was requested.
+ */
+export async function updateAccount(patch: {
+  fullName?: string;
+  email?: string;
+}): Promise<AuthResult> {
+  const attrs: { email?: string; data?: { full_name: string } } = {};
+  if (patch.fullName !== undefined) attrs.data = { full_name: patch.fullName };
+  if (patch.email !== undefined) attrs.email = patch.email;
+
+  const { error } = await supabase.auth.updateUser(attrs);
+  if (error) return { ok: false, errorKey: mapError(error.message) };
+
+  if (patch.fullName !== undefined) {
+    // Mirror the name into the profiles table (best-effort; RLS-scoped).
+    await supabase
+      .from('profiles')
+      .update({ full_name: patch.fullName })
+      .eq('id', (await supabase.auth.getUser()).data.user?.id ?? '')
+      .then(() => {}, () => {});
+  }
+
+  return { ok: true, needsConfirm: patch.email !== undefined };
+}
+
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   const { error } = await supabase.auth.signInWithPassword({
     email: email.trim(),

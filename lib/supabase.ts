@@ -36,7 +36,13 @@ const loggingFetch: typeof fetch = async (input, init) => {
           // ignore
         }
       }
-      console.log(`[supabase] ${method} ${path} → ${res.status} (${Date.now() - start}ms)${extra}`);
+      // A failed token refresh (expired/rotated/revoked refresh token) is an
+      // expected, self-healing case — Supabase clears the session and emits
+      // SIGNED_OUT. Log it as info, not as a scary error.
+      const benignRefresh =
+        path.includes('/auth/v1/token') && extra.includes('refresh_token_not_found');
+      const tag = benignRefresh ? '[supabase] (session expired)' : '[supabase]';
+      console.log(`${tag} ${method} ${path} → ${res.status} (${Date.now() - start}ms)${extra}`);
     }
     return res;
   } catch (e) {

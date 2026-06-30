@@ -1,4 +1,4 @@
- import React, { useState, useRef } from 'react';
+ import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,13 +16,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import { ThemeColors } from '../../constants/colors';
-import { useTheme, useThemedStyles } from '../../context/ThemeContext';
+import { useTheme, useThemedStyles, ThemeMode } from '../../context/ThemeContext';
 import { Radii } from '../../constants/layout';
 import { FadeInItem } from '../../components/ui/FadeInItem';
 import { PressableScale } from '../../components/ui/PressableScale';
 import { BottomSheet } from '../../components/ui/BottomSheet';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Badge } from '../../components/ui/Badge';
 import { haptic } from '../../lib/haptics';
+import { useAuth } from '../../context/AuthContext';
+import { deleteAccount, updateAccount } from '../../lib/api/auth';
 import { useApp } from '../../context/AppContext';
 import { usePlan } from '../../context/PlanContext';
 import { useFeedback } from '../../context/FeedbackContext';
@@ -34,7 +37,10 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const LANG_FLAGS: Record<string, string> = { tr: '🇹🇷', en: '🇬🇧', fr: '🇫🇷' };
 
-const USER_ID = 'SkUS5altOAXXHbETjTRXmD6ju7D3';
+const THEME_MODES: { value: ThemeMode; icon: IconName }[] = [
+  { value: 'light', icon: 'white-balance-sunny' },
+  { value: 'dark', icon: 'moon-waning-crescent' },
+];
 
 interface SettingItem { icon: IconName; labelKey: string; route?: string }
 
@@ -96,11 +102,12 @@ function SettingRow({
 export default function ProfileScreen() {
   const { colors, mode, setMode } = useTheme();
   const s = useThemedStyles(makeStyles);
-  const cycleTheme = () => {
-    const order = ['dark', 'light', 'system'] as const;
-    const next = order[(order.indexOf(mode) + 1) % order.length];
+  const [themeOpen, setThemeOpen] = useState(false);
+  const openThemePicker = () => { haptic.light(); setThemeOpen(true); };
+  const selectTheme = (next: ThemeMode) => {
     haptic.select();
     setMode(next);
+    setThemeOpen(false);
     toast(t('theme.changed', { mode: t(`theme.modes.${next}`) }));
   };
   const BMI_CATEGORY_COLOR: Record<string, string> = {
@@ -116,9 +123,35 @@ export default function ProfileScreen() {
     { color: colors.bmiObese, key: 'obese' },
   ];
   const { isPremium, setPremium, userName, setUserName } = useApp();
+  const { session, signOut } = useAuth();
+  const userId = session?.user?.id ?? '';
+  const accountEmail = session?.user?.email ?? '';
+  // Name to show: explicit name → email local-part → generic fallback.
+  const displayName = userName.trim() || accountEmail.split('@')[0] || 'Fridos';
   const { t, i18n } = useTranslation();
   const { toast } = useFeedback();
   const [langOpen, setLangOpen] = useState(false);
+
+  // ── Account actions ───────────────────────────────────────────
+  const handleLogout = async () => {
+    haptic.light();
+    await signOut().catch(() => {});
+    router.replace('/(auth)/login');
+  };
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    const res = await deleteAccount();
+    setDeleting(false);
+    if (res.ok) {
+      setDeleteOpen(false);
+      router.replace('/(auth)/login');
+    } else {
+      toast(t('profile.deleteConfirm.error'));
+    }
+  };
 
   const currentLang = (i18n.language || 'tr').slice(0, 2);
   const openLanguagePicker = () => { haptic.light(); setLangOpen(true); };
@@ -134,9 +167,24 @@ export default function ProfileScreen() {
   // ── Edit mode ──────────────────────────────────────────────────
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(userName);
-  const [draftEmail, setDraftEmail] = useState('amirhisseinabakar@gmail.com');
-  const [savedEmail, setSavedEmail] = useState('amirhisseinabakar@gmail.com');
+  const [draftEmail, setDraftEmail] = useState(accountEmail);
+  const [savedEmail, setSavedEmail] = useState(accountEmail);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Keep the displayed email in sync with the session (initial load, refresh,
+  // and after a confirmed email change). Don't clobber an in-progress edit.
+  useEffect(() => {
+    if (isEditing) return;
+    setSavedEmail(accountEmail);
+  }, [accountEmail, isEditing]);
+
+  // Hydrate the display name from the auth metadata once it's available.
+  useEffect(() => {
+    const metaName = (session?.user?.user_metadata?.full_name as string | undefined)?.trim();
+    if (metaName && metaName !== userName) setUserName(metaName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
 
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
@@ -156,13 +204,32 @@ export default function ProfileScreen() {
     setIsEditing(true);
   };
 
-  const saveEdit = () => {
-    const nameOk = draftName.trim().length >= 2;
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(draftEmail.trim());
+  const saveEdit = async () => {
+    if (savingEdit) return;
+    const name = draftName.trim();
+    const email = draftEmail.trim();
+    const nameOk = name.length >= 2;
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!nameOk || !emailOk) { haptic.light(); shake(); return; }
+
+    const nameChanged = name !== userName;
+    const emailChanged = email !== savedEmail;
+    if (!nameChanged && !emailChanged) { setIsEditing(false); Keyboard.dismiss(); return; }
+
+    setSavingEdit(true);
+    const res = await updateAccount({
+      fullName: nameChanged ? name : undefined,
+      email: emailChanged ? email : undefined,
+    });
+    setSavingEdit(false);
+
+    if (!res.ok) { haptic.light(); shake(); toast(t('auth.errGeneric')); return; }
+
     haptic.success();
-    setUserName(draftName.trim());
-    setSavedEmail(draftEmail.trim());
+    if (nameChanged) setUserName(name);
+    // Email only becomes active after the user confirms it via the link, so we
+    // keep showing the current address and tell them to check their inbox.
+    if (res.needsConfirm) toast(t('profile.emailConfirmSent'));
     setIsEditing(false);
     Keyboard.dismiss();
   };
@@ -175,7 +242,7 @@ export default function ProfileScreen() {
 
   const copyId = async () => {
     haptic.success();
-    await Clipboard.setStringAsync(USER_ID);
+    await Clipboard.setStringAsync(userId);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -211,7 +278,7 @@ export default function ProfileScreen() {
                     autoFocus
                   />
                 ) : (
-                  <Text style={s.name}>{userName}</Text>
+                  <Text style={s.name}>{displayName}</Text>
                 )}
                 {!isEditing && (
                   isPremium ? (
@@ -248,14 +315,22 @@ export default function ProfileScreen() {
                   <PressableScale haptic="light" style={s.cancelBtn} onPress={cancelEdit} activeOpacity={0.8}>
                     <Text style={s.cancelText}>{t('common.cancel')}</Text>
                   </PressableScale>
-                  <PressableScale haptic="light" style={s.saveBtn} onPress={saveEdit} activeOpacity={0.8}>
-                    <Text style={s.saveText}>{t('common.save')}</Text>
+                  <PressableScale
+                    haptic="light"
+                    style={[s.saveBtn, savingEdit && { opacity: 0.6 }]}
+                    onPress={saveEdit}
+                    activeOpacity={0.8}
+                    disabled={savingEdit}
+                  >
+                    <Text style={s.saveText}>
+                      {savingEdit ? t('common.saving') : t('common.save')}
+                    </Text>
                   </PressableScale>
                 </View>
               </>
             ) : (
               <PressableScale haptic="light" style={s.idBlock} activeOpacity={0.7} onPress={copyId}>
-                <Text style={s.idText} numberOfLines={1}>{t('profile.userId', { id: USER_ID })}</Text>
+                <Text style={s.idText} numberOfLines={1}>{t('profile.userId', { id: userId })}</Text>
                 <Text style={s.copyHint}>{copied ? t('profile.copied') : t('profile.copyHint')}</Text>
               </PressableScale>
             )}
@@ -354,7 +429,7 @@ export default function ProfileScreen() {
               last={i === SETTINGS_TOP.length - 1}
               onPress={
                 item.labelKey === 'profile.settings.language' ? openLanguagePicker
-                : item.labelKey === 'profile.settings.theme' ? cycleTheme
+                : item.labelKey === 'profile.settings.theme' ? openThemePicker
                 : undefined
               }
               t={t}
@@ -423,13 +498,18 @@ export default function ProfileScreen() {
 
         {/* Logout / Delete */}
         <FadeInItem index={6} style={s.dangerRow}>
-          <PressableScale style={s.logoutBtn} scaleTo={0.97} haptic="light" onPress={() => router.replace('/(auth)/login')}>
+          <PressableScale style={s.logoutBtn} scaleTo={0.97} haptic="light" onPress={handleLogout}>
             <MaterialCommunityIcons name="logout" size={18} color={colors.textPrimary} />
-            <Text style={s.logoutText}>{t('profile.logout')}</Text>
+            <Text style={s.logoutText} numberOfLines={1}>{t('profile.logout')}</Text>
           </PressableScale>
-          <PressableScale style={s.deleteBtn} scaleTo={0.97} haptic="light">
+          <PressableScale
+            style={s.deleteBtn}
+            scaleTo={0.97}
+            haptic="light"
+            onPress={() => { haptic.light(); setDeleteOpen(true); }}
+          >
             <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.red} />
-            <Text style={s.deleteText}>{t('profile.deleteAccount')}</Text>
+            <Text style={s.deleteText} numberOfLines={1}>{t('profile.deleteAccount')}</Text>
           </PressableScale>
         </FadeInItem>
       </ScrollView>
@@ -455,6 +535,48 @@ export default function ProfileScreen() {
           );
         })}
       </BottomSheet>
+
+      {/* Sélecteur de thème */}
+      <BottomSheet visible={themeOpen} onClose={() => setThemeOpen(false)}>
+        <Text style={s.langSheetTitle}>{t('theme.title')}</Text>
+        {THEME_MODES.map(m => {
+          const active = mode === m.value;
+          return (
+            <PressableScale
+              key={m.value}
+              haptic="light"
+              style={[s.langRow, active && s.langRowActive]}
+              onPress={() => selectTheme(m.value)}
+            >
+              <MaterialCommunityIcons
+                name={m.icon}
+                size={22}
+                color={active ? colors.green : colors.textSecondary}
+              />
+              <Text style={[s.langName, active && s.langNameActive]}>
+                {t(`theme.modes.${m.value}`)}
+              </Text>
+              {active
+                ? <MaterialCommunityIcons name="check-circle" size={22} color={colors.green} />
+                : <View style={s.langDot} />}
+            </PressableScale>
+          );
+        })}
+      </BottomSheet>
+
+      {/* Confirmation suppression de compte */}
+      <ConfirmDialog
+        visible={deleteOpen}
+        destructive
+        icon="trash-can-outline"
+        title={t('profile.deleteConfirm.title')}
+        message={t('profile.deleteConfirm.message')}
+        confirmLabel={deleting ? t('profile.deleteConfirm.deleting') : t('profile.deleteConfirm.confirm')}
+        cancelLabel={t('common.cancel')}
+        loading={deleting}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -714,18 +836,18 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: colors.surface,
     borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
   },
   quickIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.backgroundAlt,
@@ -878,14 +1000,14 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
 
   // ── Danger zone ───────────────────────────────────────────────
   dangerRow: {
-    flexDirection: 'row',
-    gap: 12,
+    flexDirection: 'column',
+    gap: 10,
     marginTop: 16,
     alignSelf: 'stretch',
     width: '100%',
   },
   logoutBtn: {
-    flex: 1,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -897,7 +1019,7 @@ const makeStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.border,
   },
   deleteBtn: {
-    flex: 1,
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

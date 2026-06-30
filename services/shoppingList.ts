@@ -6,19 +6,20 @@ export interface MissingItem {
   category: string;
 }
 
-export function normalizeIngredient(name: string): string {
+/** Singularise + lowercase so "Tomatoes" and "tomato" match. */
+function normalizeIngredient(name: string): string {
   const base = name.trim().toLowerCase();
   return base.endsWith('s') && base.length > 3 ? base.slice(0, -1) : base;
 }
 
-export function fridgeHas(name: string, fridge: string[]): boolean {
+/** True if the fridge contains an ingredient (fuzzy, substring-tolerant). */
+function fridgeHas(name: string, fridge: string[]): boolean {
   const target = normalizeIngredient(name);
   return fridge.some(f => {
     const n = normalizeIngredient(f);
     return n === target || n.includes(target) || target.includes(n);
   });
 }
-
 
 function categorize(name: string): string {
   const n = name.toLowerCase();
@@ -30,8 +31,8 @@ function categorize(name: string): string {
   return '📦 Other';
 }
 
-
-export function generateFromRecipe(recipe: Recipe, fridge: string[]): MissingItem[] {
+/** Ingredients of a recipe the fridge is missing, ready for the shopping list. */
+function generateFromRecipe(recipe: Recipe, fridge: string[]): MissingItem[] {
   return recipe.ingredients
     .filter(ing => !fridgeHas(ing.name, fridge))
     .map(ing => ({
@@ -41,7 +42,7 @@ export function generateFromRecipe(recipe: Recipe, fridge: string[]): MissingIte
     }));
 }
 
-
+/** Per-ingredient ownership + a complete/missing tag for a recipe. */
 export function recipeOwnership(recipe: Recipe, fridge: string[]) {
   const ingredients = recipe.ingredients.map(ing => ({
     ...ing,
@@ -55,17 +56,7 @@ export function recipeOwnership(recipe: Recipe, fridge: string[]) {
   };
 }
 
-
-export function countMissing(recipe: Recipe, fridge: string[]): number {
-  return generateFromRecipe(recipe, fridge).length;
-}
-
-
-export function deriveRecipeTag(recipe: Recipe, fridge: string[]): 'complete' | 'missing' {
-  return countMissing(recipe, fridge) === 0 ? 'complete' : 'missing';
-}
-
-
+/** Merge the missing ingredients of several recipes (deduplicated by name). */
 export function generateFromRecipes(recipes: Recipe[], fridge: string[]): MissingItem[] {
   const byKey = new Map<string, MissingItem>();
   for (const recipe of recipes) {
