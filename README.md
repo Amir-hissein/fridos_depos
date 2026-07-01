@@ -1,148 +1,173 @@
 <div align="center">
 
-# 🥗 Fridos
+<img src="docs/images/banner.png" alt="Fridos AI — Scan. Track. Eat Smart." width="100%">
 
-**Scanne ton frigo, découvre des recettes, et suis tes calories — le tout propulsé par l'IA.**
+<br/>
+<br/>
 
-Application mobile **iOS & Android** construite avec **React Native + Expo**, **Supabase** et **Claude vision**.
+[![Expo SDK](https://img.shields.io/badge/Expo-SDK%2054-000000?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
+[![Claude AI](https://img.shields.io/badge/Claude-Vision%20AI-CC785C?style=for-the-badge&logo=anthropic&logoColor=white)](https://anthropic.com)
 
-![Expo](https://img.shields.io/badge/Expo-SDK%2054-000?logo=expo) ![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?logo=react) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript) ![Tests](https://img.shields.io/badge/tests-jest-C21325?logo=jest)
+**Scannez votre frigo, calculez vos calories et mangez intelligemment — propulsé par l'IA.**
+
+[📱 Features](#-features) · [🧱 Tech Stack](#-tech-stack) · [🚀 Getting Started](#-getting-started) · [🔑 Environment](#-environment-variables) · [🧪 Tests](#-tests) · [📦 Builds](#-builds--eas-deployment)
 
 </div>
 
 ---
 
-## ✨ Fonctionnalités
+## ✨ Features
 
-- 📷 **Scan IA du frigo** — photographie tes ingrédients, l'IA les identifie (Claude vision).
-- 🍽️ **Scan de repas** — estime calories et macros d'une assiette à partir d'une photo.
-- 🍳 **Recettes intelligentes** — triées par taux de correspondance avec ce que tu possèdes.
-- 📊 **Suivi nutritionnel** — objectifs personnalisés (BMR/TDEE), macros, eau, pas, poids.
-- 💡 **Insights quotidiens** — conseils contextuels (hydratation, protéines, calories…).
-- 🛒 **Liste de courses** — générée automatiquement depuis les ingrédients manquants.
-- 👑 **Premium** — abonnement géré par RevenueCat (mensuel / annuel) + essai gratuit.
-- 🌍 **Multilingue** — Français, Anglais, Turc.
-- 🌗 **Thème clair / sombre.**
-
----
-
-## 🧱 Stack technique
-
-| Domaine | Choix |
-|---|---|
-| Framework | **Expo SDK 54** (managed workflow + CNG), **React Native 0.81**, **React 19** |
-| Langage | **TypeScript** (strict) |
-| Architecture native | **New Architecture** (Fabric + TurboModules) |
-| Navigation | **Expo Router** (file-based) |
-| État | **React Context API** (providers typés) |
-| Backend | **Supabase** (Postgres + Auth + Storage + Edge Functions) |
-| IA Vision | **Claude** (`claude-opus-4-8`) via Edge Functions |
-| Paiements | **RevenueCat** (`react-native-purchases`) |
-| Animations | **Reanimated 4**, **Gesture Handler** |
-| i18n | **i18next** / **expo-localization** |
-| Monitoring | **Sentry** |
-| Tests | **Jest** (`jest-expo`) |
+| | Feature | Description |
+|:---:|:---|:---|
+| 📷 | **AI Fridge Scanner** | Photographiez vos ingrédients — l'IA les identifie instantanément (Claude Vision) |
+| 🍽️ | **AI Meal Scanner** | Estimez calories & macros d'une assiette en 2 secondes depuis une photo |
+| 🍳 | **Smart Recipes** | Recettes triées par taux de correspondance avec vos ingrédients disponibles |
+| 📊 | **Nutrition Tracking** | Objectifs personnalisés (BMR/TDEE), macros, eau, pas, poids en temps réel |
+| 💡 | **Daily Insights** | Conseils contextuels intelligents (hydratation, protéines, calories…) |
+| 🛒 | **Shopping List** | Générée automatiquement depuis les ingrédients manquants de vos recettes |
+| 👑 | **Premium Subscription** | Abonnement mensuel/annuel via RevenueCat + essai gratuit |
+| 🌍 | **Multilingual** | Français 🇫🇷 · English 🇬🇧 · Türkçe 🇹🇷 |
+| 🌗 | **Dark / Light Theme** | Thème "Aqua Fresh" sombre par défaut |
 
 ---
 
-## 🗂️ Architecture
-
-Découpage en couches, logique métier isolée et testable :
+## 🧱 Tech Stack
 
 ```
-app/             # Écrans & navigation (Expo Router, file-based routing)
-  (auth)/        #   Connexion / inscription / mot de passe oublié
-  (onboarding)/  #   Onboarding & configuration du profil
-  (tabs)/        #   Plan · Recettes · Scan · Profil · Pro · Courses
-  scan/          #   Caméra & résultats de scan
-  recipe/[id]    #   Détail recette
-components/      # Composants UI réutilisables (Button, Card, Sheet…)
-context/         # État global (1 provider par domaine)
-  AppProviders.tsx  #   Composition root de tous les providers
-services/        # Logique métier PURE (calculs, filtres) — testée
-  plan.ts        #   BMR, TDEE, objectifs caloriques, macros, BMI
-  nutrition.ts   #   Agrégation / mise à l'échelle des macros
-  insights.ts    #   Génération des conseils quotidiens
-  summary.ts     #   Progression & tendance de poids
-  shoppingList.ts#   Correspondance frigo ↔ recettes
-  recipeFilters.ts#  Filtrage & recommandation de recettes
-  vision.ts      #   Pont vers les Edge Functions de vision IA
-lib/             # Infrastructure (supabase, api/, image, haptics, i18n)
-constants/       # Données & design tokens (couleurs, recettes)
-locales/         # Traductions (en / fr / tr)
-supabase/        # Schéma SQL, migrations & Edge Functions
-__tests__/       # Tests unitaires de la couche services
+┌─────────────────────────────────────────────────────────────────┐
+│                        FRIDOS AI STACK                          │
+├──────────────────┬──────────────────────────────────────────────┤
+│ Mobile           │ React Native 0.81 + Expo SDK 54              │
+│ Language         │ TypeScript (strict mode)                     │
+│ Navigation       │ Expo Router (file-based)                     │
+│ Architecture     │ New Architecture (Fabric + TurboModules)     │
+│ State            │ React Context API (typed providers)          │
+│ Animations       │ Reanimated 4 + Gesture Handler               │
+├──────────────────┼──────────────────────────────────────────────┤
+│ Backend          │ Supabase (Postgres + Auth + Storage + Funcs) │
+│ AI Vision        │ Anthropic Claude (claude-opus-4-8)           │
+│ Payments         │ RevenueCat (react-native-purchases)          │
+├──────────────────┼──────────────────────────────────────────────┤
+│ i18n             │ i18next + expo-localization                  │
+│ Monitoring       │ Sentry                                       │
+│ Testing          │ Jest (jest-expo)                             │
+│ Build / Deploy   │ EAS Build + EAS Submit                       │
+└──────────────────┴──────────────────────────────────────────────┘
 ```
-
-**Principe :** les composants restent présentationnels ; toute la logique de calcul vit dans `services/` (fonctions pures, sans dépendance native → entièrement testables).
 
 ---
 
-## 🚀 Démarrage
+## 🗂️ Project Architecture
 
-### Prérequis
+Découpage en couches — logique métier isolée et testable indépendamment de l'UI :
+
+```
+fridos_app/
+├── app/                    # Screens & navigation (Expo Router file-based)
+│   ├── (auth)/             #   Login · Register · Password reset
+│   ├── (onboarding)/       #   Profile setup & goal configuration
+│   ├── (tabs)/             #   Plan · Recipes · Scan · Profile · Pro · Cart
+│   ├── scan/               #   Camera & scan results
+│   └── recipe/[id]         #   Recipe detail page
+│
+├── components/             # Reusable UI components (Button, Card, Sheet…)
+├── context/                # Global state (1 typed provider per domain)
+│   └── AppProviders.tsx    #   Root composition of all providers
+│
+├── services/               # Pure business logic — fully tested
+│   ├── plan.ts             #   BMR, TDEE, caloric goals, macros, BMI
+│   ├── nutrition.ts        #   Macro aggregation & scaling
+│   ├── insights.ts         #   Daily smart advice generation
+│   ├── summary.ts          #   Progress & weight trend
+│   ├── shoppingList.ts     #   Fridge ↔ recipes matching
+│   ├── recipeFilters.ts    #   Recipe filtering & recommendation
+│   └── vision.ts           #   Bridge to AI Vision Edge Functions
+│
+├── lib/                    # Infrastructure (supabase, api, image, i18n…)
+├── constants/              # Design tokens & data (colors, recipes)
+├── locales/                # Translations — en / fr / tr
+├── supabase/               # SQL schema, migrations & Edge Functions
+└── __tests__/              # Unit tests for the services layer
+```
+
+> **Principle:** Components stay presentational. All calculation logic lives in `services/` (pure functions, no native deps → fully testable anywhere).
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
 - **Node.js** ≥ 18
 - **npm**
 - **Expo CLI** (via `npx`)
-- Un **dev build** (Expo Go ne suffit pas : l'app utilise des modules natifs comme RevenueCat). Voir [Builds](#-builds--déploiement-eas).
+- A **development build** — Expo Go alone is not sufficient (the app uses native modules: RevenueCat, Camera). See [Builds section](#-builds--eas-deployment).
 
-### 1. Installer les dépendances
+### 1 · Install dependencies
+
 ```bash
 npm install
 ```
 
-### 2. Configurer l'environnement
+### 2 · Configure environment
+
 ```bash
 cp .env.example .env
-# puis renseigner les valeurs réelles (voir ci-dessous)
+# Fill in your real values (see Environment Variables below)
 ```
 
-### 3. Lancer l'app
+### 3 · Run the app
+
 ```bash
-npm run ios       # build + lance sur simulateur / device iOS
-npm run android   # build + lance sur émulateur / device Android
-npm start         # serveur Metro (pour un dev build déjà installé)
+npm run ios       # Build + launch on iOS simulator / device
+npm run android   # Build + launch on Android emulator / device
+npm start         # Metro server only (for an already-installed dev build)
 ```
 
 ---
 
-## 🔑 Variables d'environnement
+## 🔑 Environment Variables
 
-Toutes les clés `EXPO_PUBLIC_*` sont **publiques par design** (protégées côté serveur par les RLS Supabase / le backend RevenueCat). Les **secrets** (clé Anthropic, service-role) ne vivent **que** dans les Edge Functions Supabase.
+All `EXPO_PUBLIC_*` keys are **public by design** (protected server-side by Supabase RLS / RevenueCat backend). **Secrets** (Anthropic API key, service-role key) live **only** in Supabase Edge Functions — never in the app bundle.
 
 | Variable | Description |
-|---|---|
-| `EXPO_PUBLIC_SUPABASE_URL` | URL du projet Supabase |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Clé anonyme Supabase (publique, RLS) |
-| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | Clé SDK RevenueCat iOS (`appl_…`) |
-| `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | Clé SDK RevenueCat Android (`goog_…`) |
-| `EXPO_PUBLIC_SENTRY_DSN` | DSN public Sentry (optionnel) |
+|:---|:---|
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key (public, RLS-protected) |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | RevenueCat iOS SDK key (`appl_…`) |
+| `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` | RevenueCat Android SDK key (`goog_…`) |
+| `EXPO_PUBLIC_SENTRY_DSN` | Sentry public DSN (optional) |
 
 ---
 
-## 🛠️ Backend (Supabase)
+## 🛠️ Backend · Supabase
 
-### Base de données
-- Schéma : `supabase/schema.sql`
-- Migrations : `supabase/migrations/`
-- **Sécurité** : RLS activée sur toutes les tables (un utilisateur n'accède qu'à ses propres données), avec contraintes `ON DELETE CASCADE` pour une suppression de compte intègre.
+### Database
+
+- Schema: `supabase/schema.sql`
+- Migrations: `supabase/migrations/`
+- **Security:** RLS enabled on all tables — users access only their own data. `ON DELETE CASCADE` constraints ensure clean account deletion.
 
 ### Edge Functions
-Le code IA et les opérations privilégiées tournent **côté serveur** pour ne jamais exposer de secret dans l'app.
 
-| Fonction | Rôle | Secret requis |
-|---|---|---|
-| `detect-ingredients` | Vision : ingrédients du frigo | `ANTHROPIC_API_KEY` |
-| `detect-meal` | Vision : nutrition d'un repas | `ANTHROPIC_API_KEY` |
-| `delete-account` | Suppression de compte (cascade) | *(auto : `SUPABASE_*`)* |
-| `revenuecat-webhook` | Sync des abonnements | *(config RevenueCat)* |
+AI and privileged operations run **server-side** to keep secrets out of the app.
 
-**Déploiement :**
+| Function | Role | Required Secret |
+|:---|:---|:---|
+| `detect-ingredients` | Vision: fridge ingredient detection | `ANTHROPIC_API_KEY` |
+| `detect-meal` | Vision: meal nutrition analysis | `ANTHROPIC_API_KEY` |
+| `delete-account` | Account deletion (cascade) | *(auto: `SUPABASE_*`)* |
+| `revenuecat-webhook` | Subscription sync | *(RevenueCat config)* |
+
+**Deploy:**
+
 ```bash
-# Secret partagé pour la vision (jamais dans l'app)
+# Set shared secret for AI vision (never goes into the app)
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-# (optionnel) reporting d'erreurs serveur
-supabase secrets set SENTRY_DSN=https://...
 
 supabase functions deploy detect-ingredients
 supabase functions deploy detect-meal
@@ -150,72 +175,76 @@ supabase functions deploy delete-account
 supabase functions deploy revenuecat-webhook
 ```
 
-> `supabase.functions.invoke` attache automatiquement le JWT de l'utilisateur connecté → la vérification d'auth par défaut passe sans configuration.
+> `supabase.functions.invoke` automatically attaches the signed-in user's JWT → auth verification passes with no extra config.
 
 ---
 
 ## 🧪 Tests
 
-Tests unitaires de la couche `services/` (logique de calcul pure) :
+Unit tests cover the entire `services/` layer (pure calculation logic):
 
 ```bash
-npm test            # lance toute la suite
-npm run test:watch  # mode watch
-npm run typecheck   # vérification TypeScript (tsc --noEmit)
+npm test              # Run full test suite
+npm run test:watch    # Watch mode
+npm run typecheck     # TypeScript check (tsc --noEmit)
 ```
 
-Couverture actuelle : `plan`, `nutrition`, `summary`, `insights`, `shoppingList`, `recipeFilters`.
+**Coverage:** `plan` · `nutrition` · `summary` · `insights` · `shoppingList` · `recipeFilters`
 
 ---
 
-## 📦 Builds & déploiement (EAS)
+## 📦 Builds · EAS Deployment
 
-Profils définis dans `eas.json` :
+Build profiles defined in `eas.json`:
 
 ```bash
-# Dev build (modules natifs, simulateur/device internes)
+# Development build (native modules, internal simulator/device)
 eas build --profile development --platform ios
 eas build --profile development --platform android
 
-# Aperçu interne
+# Internal preview
 eas build --profile preview --platform all
 
-# Production (auto-increment de version)
+# Production (auto-increment version)
 eas build --profile production --platform all
 eas submit --profile production --platform all
 ```
 
-> ⚠️ L'app n'a pour l'instant été lancée que sur iOS. **Tester un build Android** avant publication (clavier, safe-area / gestes, notifications, achats RevenueCat).
+> ⚠️ The app has only been tested on **iOS** so far. Please test a full **Android build** before publishing (keyboard, safe-area/gestures, notifications, RevenueCat in-app purchases).
 
 ---
 
-## 🧮 Logique de calcul (résumé)
+## 🧮 Nutrition Calculation Logic
 
-| Calcul | Méthode |
-|---|---|
-| Métabolisme de base (BMR) | **Mifflin-St Jeor** |
-| Dépense énergétique (TDEE) | BMR × facteur d'activité (1.2 / 1.45 / 1.7) |
-| Objectif calorique | TDEE − déficit (selon rythme), planché à BMR × 1.1 |
-| Macros | Répartition selon le régime (healthy / keto / vegan / …) |
-| Objectifs par repas | Split 30 % / 35 % / 25 % / 10 % (petit-déj / déj / dîner / collation) |
-| Hydratation | 35 ml/kg de poids corporel |
-| Rythme de perte | déficit × 7 / 7700 kcal par kg |
-| IMC (BMI) | poids / taille² + catégorisation |
+| Calculation | Method |
+|:---|:---|
+| Basal Metabolic Rate (BMR) | **Mifflin-St Jeor** equation |
+| Total Daily Energy (TDEE) | BMR × activity factor (1.2 / 1.45 / 1.7) |
+| Caloric goal | TDEE − deficit (per target pace), floored at BMR × 1.1 |
+| Macros | Split by diet type (healthy / keto / vegan / …) |
+| Per-meal goals | 30 % / 35 % / 25 % / 10 % (breakfast / lunch / dinner / snack) |
+| Hydration | 35 ml per kg of body weight |
+| Weight loss rate | deficit × 7 / 7700 kcal per kg |
+| BMI | weight / height² + WHO categorisation |
 
-> Ces calculs s'exécutent **côté client** (pas de secret, pas de privilège requis) → instantanés, gratuits et fonctionnels hors-ligne.
+> These calculations run **client-side** — no secrets needed, instantaneous, and fully offline.
 
 ---
 
-## 📐 Conventions
+## 📐 Code Conventions
 
-- **TypeScript strict**, types partagés.
-- **Aucune valeur en dur** : couleurs/espacements via les tokens du thème ; clés via `.env`.
-- **i18n systématique** : aucun texte en dur, tout passe par `locales/`.
-- **Logique pure dans `services/`**, présentation dans `components/`, état dans `context/`.
-- Code spécifique plateforme isolé via `Platform.OS` / `Platform.select`.
+- ✅ **TypeScript strict** — shared types, no `any`
+- ✅ **No hardcoded values** — colors/spacing via theme tokens; keys via `.env`
+- ✅ **Systematic i18n** — no raw strings in JSX, everything goes through `locales/`
+- ✅ **Pure logic in `services/`**, presentation in `components/`, state in `context/`
+- ✅ **Platform-specific code** isolated via `Platform.OS` / `Platform.select`
 
 ---
 
 <div align="center">
-Fait avec ❤️ et 🥑
+
+Built with ❤️ and 🥑 by **Amir Hissein**
+
+[![GitHub](https://img.shields.io/badge/GitHub-Amir__hissein-181717?style=flat-square&logo=github)](https://github.com/Amir-hissein)
+
 </div>
