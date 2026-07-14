@@ -1,0 +1,1218 @@
+{
+  "a11y": {
+    "back": "Geri",
+    "close": "Kapat",
+    "bookmark": "Favorilere ekle",
+    "capturePhoto": "Fotoğraf çek",
+    "toggleFlash": "Flaşı aç/kapat",
+    "share": "Paylaş",
+    "editName": "İsmi düzenle",
+    "copyId": "Kimliği kopyala",
+    "openFilters": "Filtreleri aç",
+    "search": "Ara",
+    "addMeal": "Öğüne ekle"
+  },
+  "common": {
+    "continue": "Devam Et",
+    "cancel": "Vazgeç",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "done": "Bitti",
+    "soon": "Yakında",
+    "add": "Ekle",
+    "unlockPremium": "Premium'u Aç",
+    "ofGoal": "hedeften",
+    "delete": "Sil",
+    "error": {
+      "title": "Bir hata oluştu",
+      "body": "Beklenmeyen bir hata oluştu. Devam etmek için tekrar dene.",
+      "retry": "Tekrar dene"
+    }
+  },
+  "tabs": {
+    "plan": "Plan",
+    "recipes": "Tarifler",
+    "profile": "Profil",
+    "pro": "Pro"
+  },
+  "auth": {
+    "errEmail": "Geçerli bir e-posta gir",
+    "errPassword": "Şifre en az 6 karakter olmalı",
+    "emailPlaceholder": "E-posta adresi",
+    "passwordPlaceholder": "Şifre",
+    "login": {
+      "title": "Tekrar Hoş Geldin",
+      "subtitle": "Hesabına giriş yap ve planına devam et.",
+      "forgot": "Şifremi unuttum?",
+      "button": "Giriş Yap",
+      "or": "veya",
+      "noAccount": "Hesabın yok mu? ",
+      "signupLink": "Kayıt Ol"
+    },
+    "signup": {
+      "title": "Hesap Oluştur",
+      "subtitle": "Birkaç saniyede başla, planın seni bekliyor.",
+      "namePlaceholder": "Ad Soyad",
+      "confirmPlaceholder": "Şifre (Tekrar)",
+      "button": "Kayıt Ol",
+      "terms": "Kayıt olarak Kullanım Koşulları ve Gizlilik Politikası'nı kabul etmiş olursun.",
+      "haveAccount": "Zaten hesabın var mı? ",
+      "loginLink": "Giriş Yap",
+      "errName": "Adını gir",
+      "errMismatch": "Şifreler eşleşmiyor",
+      "confirm": "Hesap oluşturuldu! Adresini doğrulamak için e-postanı kontrol et.",
+      "created": "Hesap oluşturuldu! Devam etmek için giriş yap."
+    },
+    "forgot": {
+      "title": "Şifreni mi Unuttun?",
+      "subtitle": "E-posta adresini gir, sana bir sıfırlama bağlantısı gönderelim.",
+      "button": "Bağlantı Gönder",
+      "sentTitle": "E-postanı Kontrol Et",
+      "sentSubtitle": "{{email}} adresine bir sıfırlama bağlantısı gönderdik.",
+      "backToLogin": "Girişe Dön"
+    },
+    "errInvalidCredentials": "E-posta veya şifre hatalı",
+    "errEmailTaken": "Bu e-posta zaten kullanımda",
+    "errGeneric": "Bir hata oluştu, tekrar dene"
+  },
+  "onboarding": {
+    "energy": "ENERJİ",
+    "protein": "PROTEİN",
+    "carbs": "KARB.",
+    "scanning": "TARANIYOR...",
+    "scanCompleted": "TARAMA TAMAMLANDI",
+    "salmon": "SOMON",
+    "quinoa": "KİNOA",
+    "title": "Yemeklerinizi Tarayın",
+    "subtitle": "Tabağınızı kameraya gösterin, makro ve kalori değerlerini saniyeler içinde öğrenin.",
+    "next": "İleri",
+    "fridge": {
+      "title": "Buzdolabınızı Tarayın",
+      "subtitle": "Malzemelerinizi saniyeler içinde tespit edin ve hangi tarifleri yapabileceğinizi görün.",
+      "produce": "Meyve & Sebze",
+      "dairy": "Süt Ürünleri",
+      "pantry": "Kiler",
+      "tomatoes": "DOMATES",
+      "eggs": "YUMURTA",
+      "cheese": "PEYNİR"
+    }
+  },
+  "language": {
+    "title": "Dil Tercihi",
+    "changed": "Dil değiştirildi"
+  },
+  "transfer": {
+    "title": "Artık Hiç Kimseye\nİhtiyacın Yok.",
+    "subtitle": "Fridos AI ile 5 dakikada tüm öğünlerin hazır!",
+    "preparing": "Öğünün hazırlanıyor..."
+  },
+  "setup": {
+    "finish": "Bitir",
+    "noAllergens": "Alerjenim Yok",
+    "cm": "cm",
+    "ageUnit": "Yaş",
+    "weeks": "~{{count}} hafta",
+    "loading": {
+      "title": "Yeni Hedeflerinize Göre Planınız Güncelleniyor!",
+      "subtitle": "Tercihlerinize uygun yeni öğün planınızı hazırlıyoruz…",
+      "check1": "Verdiğin cevaplar incelendi.",
+      "check2": "Hedefin belirlendi.",
+      "check3": "Makrolar hesaplandı.",
+      "check4": "Öğün planın oluşturuldu.",
+      "check5": "Veriler kaydedildi."
+    },
+    "activities": {
+      "sedentary": {
+        "label": "Masabaşı Çalışıyorum",
+        "desc": "Çoğu masabaşı çalışanın günlük 5.000 adımdan az aktivitesi bulunur."
+      },
+      "active": {
+        "label": "Düzenli Egzersiz Yapıyorum",
+        "desc": "Haftada en az 3 kez antrenman yapan kullanıcılar orta–yüksek aktiflik seviyesindedir."
+      },
+      "cardio": {
+        "label": "Düzenli Kardiyo Yapıyorum",
+        "desc": "Koşu, bisiklet veya yüksek tempo kardiyo yapanlar daha yüksek kalori harcar."
+      }
+    },
+    "diets": {
+      "healthy": "Sağlıklı Beslenme",
+      "keto": "Ketojenik",
+      "vegan": "Vegan",
+      "glutenfree": "Glutensiz",
+      "vegetarian": "Vejeteryan"
+    },
+    "paces": {
+      "easy": "Kolay",
+      "medium": "Orta",
+      "hard": "Zor"
+    },
+    "allergens": {
+      "tree_nuts": "Fındık",
+      "gluten": "Gluten",
+      "dairy": "Süt Ürünleri",
+      "soy": "Soya",
+      "peanut": "Yer Fıstığı",
+      "egg": "Yumurta",
+      "fish": "Balık",
+      "shellfish": "Kabuklu Deniz Ürünleri"
+    },
+    "step0": {
+      "title": "Temel Bilgilerin.",
+      "subtitle": "Güncel bilgilerini kontrol edelim.",
+      "male": "Erkek",
+      "female": "Kadın",
+      "height": "Boyun",
+      "age": "Yaşın"
+    },
+    "step1": {
+      "title": "Yeni Hedef Kilonu Seç.",
+      "subtitle": "Hedef kilona yönelik en doğru programı hazırlayalım…",
+      "current": "Mevcut Kilon",
+      "target": "Hedef Kilon"
+    },
+    "step2": {
+      "title": "Özel Bir Diyet Tercihiniz Var Mı?",
+      "subtitle": "Önerilerimizi diyet tercihinize göre yapacağız."
+    },
+    "step3": {
+      "title": "Hedefinize Nasıl Ulaşmak İstersiniz?",
+      "day": "GÜN",
+      "week": "HAFTA",
+      "note": "Mevcut kilonuz ve hedef kilonuz baz alınarak hesaplanmaktadır."
+    },
+    "step4": {
+      "title": "Aktivite Seviyesi",
+      "subtitle": "Günlük aktivite seviyenize göre hesaplamalarımızı yapacağız ve önerilerde bulunacağız."
+    },
+    "step5": {
+      "title": "Günlük Adım Sayınız",
+      "subtitle": "Makro hesaplamamıza dahil edeceğiz ve buna göre önerilerde bulunacağız."
+    },
+    "step6": {
+      "title": "Alerjenleriniz Var Mı?",
+      "subtitle": "Önerilerimizi yaparken bu malzemelerden uzak duracağız."
+    },
+    "result": {
+      "title": "Planın Hazır!",
+      "subtitle": "Tüm bu yönergelere uyarak hedefine bu tarihte ulaşabilirsin!",
+      "calorieGoal": "GÜNLÜK KALORİ HEDEFİN",
+      "macroTitle": "Makro Hesaplaması",
+      "protein": "Protein",
+      "carbs": "Karbonhidrat",
+      "fat": "Yağ",
+      "water": "Su",
+      "activity": "Aktiflik",
+      "diet": "Diyet",
+      "actLow": "Düşük",
+      "actMid": "Orta",
+      "actHigh": "Yüksek",
+      "dateLine": "{{date}} tarihinde {{kg}} kilo vereceksin.",
+      "macroSub": "Öğünlerini hazırlarken toplam bu değerlere ulaşacağız.",
+      "kcalLabel": "Kcal",
+      "deficitTitle": "Kalori Açığı Hesaplaması",
+      "deficitSub": "Senin için hedefine uygun günlük öğün açığı hazırlayacağız.",
+      "waterTitle": "Su Takibi",
+      "waterText": "Günlük {{ml}} ml su tüketmelisin.",
+      "stepsTitle": "Adım Takibi",
+      "stepsText": "Günlük {{steps}} adım yürüyüş yapmalısın.",
+      "start": "Başla",
+      "dateLineGain": "{{date}} tarihinde {{kg}} kilo alacaksın.",
+      "dateLineKeep": "Mevcut kilonu koruyacaksın."
+    }
+  },
+  "plan": {
+    "greeting": "Merhaba {{name}}",
+    "months": [
+      "Ocak",
+      "Şubat",
+      "Mart",
+      "Nisan",
+      "Mayıs",
+      "Haziran",
+      "Temmuz",
+      "Ağustos",
+      "Eylül",
+      "Ekim",
+      "Kasım",
+      "Aralık"
+    ],
+    "weekdays": [
+      "Pzt",
+      "Sal",
+      "Çar",
+      "Per",
+      "Cum",
+      "Cmt",
+      "Paz"
+    ],
+    "legendFull": "Dolu",
+    "legendPartial": "Kısmi",
+    "legendOver": "Fazla",
+    "today": "Bugüne dön",
+    "calorie": "Kalori",
+    "remaining": "Kalan: {{n}} kcal",
+    "carbs": "Karbonhidrat",
+    "protein": "Protein",
+    "fat": "Yağ",
+    "showDetails": "DETAYLARI GÖR",
+    "hideDetails": "DETAYLARI GİZLE",
+    "macroValues": "Makro Değerleri",
+    "myMeals": "Öğünlerim",
+    "forYou": "Sana Uygun Tarifler",
+    "min": "dk",
+    "meals": {
+      "breakfast": "Kahvaltı",
+      "lunch": "Öğle Yemeği",
+      "dinner": "Akşam Yemeği",
+      "snack": "Ara Öğün 1"
+    },
+    "trackers": {
+      "water": "Su Takibi",
+      "steps": "Adım takibi",
+      "weight": "Kilo takibi",
+      "waterDesc": "Metabolik süreçlerin kusursuz işlemesi için yeterince su tüketmelisin. Belirlenen günlük miktara ulaştığından emin ol.",
+      "stepsDesc": "Günlük hareket miktarını artırmak sağlığın için önemlidir. Hedeflenen adım sayısına ulaşmak için yürümeye devam et.",
+      "weightDesc": "Hedef kilonuza ulaşmak için kilonuzu düzenli olarak kaydedin. Değişimleri takip ederek motivasyonunuzu koruyun.",
+      "step": "adım",
+      "remainingGoal": "%{{percent}} · hedefe {{remaining}} {{unit}} kaldı",
+      "weightToGo": "Hedefinize {{kg}} kilo kaldı.",
+      "save": "Kaydet"
+    },
+    "gate": {
+      "title": "Haftalık Yemek Planları",
+      "subtitle": "Tüm haftanızı planlayın ve bir daha akşam yemeğinde\nne yiyeceğinizi düşünmeyin.",
+      "unlock": "Premium ile Kilidi Aç"
+    }
+  },
+  "recipes": {
+    "title": "Tarifler",
+    "searchPlaceholder": "Tarif ara...",
+    "cancel": "İptal",
+    "clear": "Temizle",
+    "foundCount": "{{count}} tarif bulundu",
+    "notFound": "Sonuç yok",
+    "emptyTitle": "Tarif bulunamadı",
+    "emptyText": "Aramanı ya da filtrelerini değiştirmeyi dene.",
+    "scanBanner": {
+      "subtitle": "Tabağını şimdi çek",
+      "title": "anında kalorisini gör!"
+    },
+    "myRecipes": "Kendi Tariflerin",
+    "calorieRangeSection": "Kalori aralığına göre tarifler",
+    "noRecipesInRange": "Bu kalori aralığında henüz tarif bulunmuyor.",
+    "featuredRecipe": "Günün Tarifi",
+    "suitableForGoal": "Hedefiniz için uygun",
+    "card": {
+      "allOwned": "Hepsi var",
+      "missingCount": "{{count}} eksik",
+      "allergen": "Alerjen",
+      "recipeFallback": "Tarif"
+    },
+    "details": {
+      "ingredients": "Malzemeler",
+      "preparation": "Hazırlanışı",
+      "premiumOnly": "Premium'a Özel!",
+      "premiumJoin": "Premium'a katıl tüm hizmetlerden yararlan!",
+      "addToMeal": "Öğünüme Ekle",
+      "shareRecipe": "Tarifi Paylaş",
+      "whichMeal": "Hangi öğüne eklensin?",
+      "portion": "Porsiyon",
+      "portionUnit": "porsiyon"
+    },
+    "categories": {
+      "sana-uygun": "Sana Uygun Tarifler",
+      "bes-yildizli": "5 Yıldızlı Tarifler",
+      "light-dinner": "Hafif Akşam Yemekleri",
+      "breakfast-goodies": "Kahvaltıda İyi Gider",
+      "high-protein": "Protein Dolu Tarifler",
+      "fit-desserts": "Fit Tatlılar",
+      "high-calorie": "Yüksek Kalorili Tarifler",
+      "chef-recommended": "Şefin Önerisi",
+      "low-calorie": "Düşük Kalorili Tarifler",
+      "practical": "Pratik Tarifler",
+      "breakfast-stars": "Kahvaltının Yıldızları",
+      "popular-bowls": "Sevilen Bowl'lar",
+      "fruits": "Meyveyle Renk Kat",
+      "keto": "Ketojenik Lezzetler",
+      "gut-friendly": "Bağırsak Dostu",
+      "vegan": "Renkli Vegan Dünyası",
+      "gluten-free": "Glutensiz Tatlar"
+    },
+    "filterModal": {
+      "title": "Filtrele",
+      "mealSelection": "Öğün Seçimi",
+      "calorieRange": "Kalori Aralığı",
+      "diet": "Diyet",
+      "showRecipes": "Tarifleri Göster",
+      "showRecipesCount": "{{count}} Tarifi Göster"
+    },
+    "meals": {
+      "all": "Tüm Tarifler",
+      "breakfast": "Kahvaltı",
+      "lunch": "Öğle Yemeği",
+      "dinner": "Akşam Yemeği",
+      "snack": "Ara Öğün",
+      "mainMeals": "Ana Yemekler"
+    },
+    "diets": {
+      "keto": "Ketojenik",
+      "vegan": "Vegan",
+      "vegetarian": "Vejetaryen",
+      "glutenfree": "Glutensiz"
+    },
+    "create": {
+      "cameraPermTitle": "Kamera izni gerekli",
+      "galleryPermTitle": "Galeri izni gerekli",
+      "cameraPermMsg": "Fotoğraf çekebilmek için kamera erişimine izin ver.",
+      "galleryPermMsg": "Fotoğraf seçebilmek için galeri erişimine izin ver.",
+      "openSettings": "Ayarları Aç",
+      "photoTitle": "Tarif Fotoğrafı",
+      "photoMsg": "Bir kaynak seç",
+      "takePhoto": "Fotoğraf Çek",
+      "chooseGallery": "Galeriden Seç",
+      "removePhoto": "Fotoğrafı Kaldır",
+      "missingInfoTitle": "Eksik bilgi",
+      "missingNameMsg": "Lütfen tarifin adını gir.",
+      "recipeSavedToast": "Tarif kaydedildi",
+      "title": "Yeni Tarif Oluştur",
+      "namePlaceholder": "Tarif adını gir.",
+      "addPhotoLabel": "Tarifinizin fotoğrafını ekleyin",
+      "optional": "İsteğe bağlı",
+      "changePhoto": "Değiştir",
+      "addPhotoBtn": "Fotoğraf Ekle",
+      "addPhotoSub": "Kamera veya galeriden seç",
+      "aspectRatioNote": "1:1 kesilecektir",
+      "kcalPlaceholder": "Toplam Kalori (kcal) - İsteğe Bağlı",
+      "ingredientsTab": "Malzemeler",
+      "stepsTab": "Hazırlanışı",
+      "ingNamePlaceholder": "Malzeme adı...",
+      "ingQtyPlaceholder": "Miktar",
+      "stepPlaceholder": "Adım açıklaması...",
+      "addStepBtn": "Adım Ekle",
+      "saveRecipeBtn": "Tarifi Kaydet"
+    },
+    "fridgeRecipes": {
+      "title": "Buzdolabından",
+      "subtitle": "Şimdi yapabileceğin {{count}} tarif",
+      "emptyTitle": "Henüz hazır değil",
+      "emptySub": "Yapabileceğin tarifleri açmak için buzdolabını tara veya birkaç malzeme ekle."
+    },
+    "delete": {
+      "title": "Bu tarif silinsin mi?",
+      "message": "Bu tarif kalıcı olarak kaldırılacak.",
+      "done": "Tarif silindi"
+    }
+  },
+  "shopping": {
+    "title": "Market Listesi",
+    "desc": "Almanız gereken ürünleri ve mevcut ürünlerinize görebilir malzemelerinizle sağlıklı tarifler hazırlamaya devam edebilirsiniz.",
+    "itemsStatus": "{{total}} ürün, {{done}} alındı",
+    "missingCount": "{{count}} eksik malzeme",
+    "clearConfirmTitle": "Alınanları temizle",
+    "clearConfirmMsg": "İşaretlenen ürünler listeden kaldırılacak.",
+    "clearConfirmDone": "Temizle",
+    "toastUpdated": "Liste güncellendi",
+    "toastAdded": "Listeye eklendi",
+    "shareEmpty": "Listen boş — paylaşacak bir şey yok.",
+    "tabs": {
+      "myItems": "Ürünlerim",
+      "toBuy": "Alınacaklar"
+    },
+    "progress": {
+      "allDone": "Tüm ürünler alındı! 🎉",
+      "remaining": "{{count}} ürün kaldı"
+    },
+    "addPlaceholder": "Ürün ekle...",
+    "addPlaceholderInput": "Ürün adı...",
+    "addBtn": "Ekle",
+    "emptyTobuyTitle": "Eksik malzeme yok",
+    "emptyTobuySub": "Planına tarif ekledikçe, dolabında olmayan malzemeler burada listelenir.",
+    "emptyMyitemsTitle": "Listeniz boş görünüyor",
+    "emptyMyitemsSub": "Ürün ekleyin veya öğün planınızdan otomatik oluşturun.",
+    "categories": {
+      "fruitsVeg": "Sebze & Meyve",
+      "dairy": "Süt Ürünleri",
+      "pantry": "Temel Gıda",
+      "other": "Diğer"
+    },
+    "gate": {
+      "title": "Otomatik alışveriş listeleri",
+      "description": "Öğün planınızı hazır alışveriş listesine dönüştürüyoruz, kategorilere göre düzenliyoruz.",
+      "features": [
+        "Plandan otomatik oluşturulur",
+        "Kategorilere göre sıralanır",
+        "Alışveriş sırasında işaret edin"
+      ]
+    }
+  },
+  "profile": {
+    "title": "Ayarlar",
+    "freeBadge": "Ücretsiz",
+    "userId": "Kullanıcı ID: {{id}}",
+    "copyHint": "Kopyalamak için dokunun",
+    "copied": "Kopyalandı ✓",
+    "emailConfirmSent": "Yeni e-postanı onaylamak için gelen kutunu kontrol et.",
+    "logout": "Çıkış Yap",
+    "deleteAccount": "Hesabı Sil",
+    "deleteConfirm": {
+      "title": "Hesap silinsin mi?",
+      "message": "Bu işlem kalıcıdır. Hesabın ve tüm verilerin (profil, takip, tarifler, favoriler) silinecek ve geri alınamayacak.",
+      "confirm": "Sil",
+      "deleting": "Siliniyor…",
+      "error": "Silme başarısız oldu. Lütfen tekrar dene."
+    },
+    "fridge": "Buzdolabım",
+    "settings": {
+      "personalInfo": "Kişisel Bilgiler",
+      "goalUpdate": "Hedef Yenileme",
+      "allergens": "Alerjenlerim",
+      "weightHistory": "Kilo Geçmişi",
+      "language": "Dil Tercihi",
+      "medical": "Medikal Kaynaklar",
+      "contact": "İletişim ve Destek",
+      "privacy": "Gizlilik Politikası",
+      "terms": "Şartlar ve Koşullar",
+      "theme": "Tema",
+      "notifications": "Bildirimler"
+    },
+    "premium": {
+      "activeSub": "Tüm özellikler açık",
+      "manage": "Yönet",
+      "upsellTitle": "Fridos Premium'a Katıl!",
+      "joinBtn": "Hemen Katıl",
+      "perks": [
+        "Yapay zeka özelliklerine sınırsız erişim",
+        "Sana özel beslenme planı",
+        "1000'den fazla tarife erişim",
+        "Reklamsız kullanım"
+      ],
+      "trialTitle": "Premium deneme",
+      "trialActive": "Ücretsiz deneme · {{days}} gün kaldı",
+      "subscribeCta": "Abone ol"
+    },
+    "bmi": {
+      "sub": "(Vücut Kitle İndeksi)",
+      "categories": {
+        "underweight": "Çok Zayıf",
+        "healthy": "Sağlıklı",
+        "overweight": "Hafif kilolu",
+        "obese": "Obez"
+      }
+    },
+    "allergensPage": {
+      "intro": "Seçtiğin malzemeleri içeren tarifleri senin için işaretleyeceğiz ya da gizleyeceğiz.",
+      "sectionTitle": "Riskli Tarifler",
+      "modes": {
+        "warn": {
+          "label": "Uyar",
+          "desc": "Riskli tarifleri rozetle göster"
+        },
+        "hide": {
+          "label": "Gizle",
+          "desc": "Riskli tarifleri tamamen gizle"
+        }
+      },
+      "noteEmpty": "Henüz alerjen seçilmedi.",
+      "noteCount": "{{count}} alerjen seçili."
+    },
+    "personalInfo": {
+      "gender": "Cinsiyet",
+      "age": "Yaş",
+      "height": "Boy",
+      "weight": "Ağırlık",
+      "goal": "Amaç",
+      "targetWeight": "Hedef Kilo",
+      "activity": "Aktivite Seviyesi",
+      "ageValue": "{{count}} yaş",
+      "heightValue": "{{count}} cm",
+      "weightValue": "{{count}} kg",
+      "male": "Erkek",
+      "female": "Kadın",
+      "goals": {
+        "lose": "Kilo Verme",
+        "maintain": "Kilo Koruma",
+        "gain": "Kilo Alma"
+      },
+      "activityOptions": {
+        "sedentary": {
+          "label": "Hareketsiz",
+          "desc": "0–1 gün/hafta"
+        },
+        "active": {
+          "label": "Aktif",
+          "desc": "3–5 gün/hafta"
+        },
+        "cardio": {
+          "label": "Çok Aktif",
+          "desc": "6–7 gün/hafta"
+        }
+      },
+      "targets": {
+        "title": "Günlük Hedefleriniz",
+        "sub": "Bilgilerinize göre hesaplandı",
+        "calorie": "Kalori",
+        "carbs": "Karbonhidrat",
+        "protein": "Protein",
+        "fat": "Yağ"
+      }
+    },
+    "weightHistoryPage": {
+      "progress": "İlerleme",
+      "current": "Şu an",
+      "target": "Hedef",
+      "remaining": "Kalan",
+      "currentWeight": "Mevcut Kilo",
+      "startWeight": "Başlangıç Kilosu",
+      "targetWeight": "Hedef Kilo",
+      "goal": "Hedef",
+      "rate": "Hız",
+      "rateValue": "{{pace}} (haftada {{rate}} kg)",
+      "duration": "Tahmini Süre",
+      "durationValue": "{{count}} ay"
+    },
+    "bmiPage": {
+      "header": "BMI",
+      "title": "BMI (Vücut kitle endeksi)",
+      "whatIsBmi": "BMI Nedir?",
+      "description": "Vücut Kitle İndeksi, boy ve kilonuzun oranına göre vücut ağırlığınızın sağlıklı bir aralıkta olup olmadığını gösteren bir ölçümdür. Genel sağlık durumunu değerlendirmek için yaygın olarak kullanılır.",
+      "rangesTitle": "Değer Aralıkları Nasıl Gruplanır?"
+    },
+    "fridgePage": {
+      "tabs": {
+        "fridge": "Buzdolabım",
+        "recent": "Son Eklenenler",
+        "history": "Geçmiş Tarifler"
+      },
+      "stats": {
+        "items": "Ürün",
+        "categories": "Kategori",
+        "recipes": "Tarif"
+      },
+      "addPlaceholder": "Ürün ekle...",
+      "addPlaceholderInput": "Ürün adı...",
+      "emptyFridgeTitle": "Buzdolabınız boş görünüyor",
+      "emptyFridgeSub": "Ürün ekleyin veya barkod tarayarak doldurun.",
+      "scanBtn": "Buzdolabı Tara",
+      "emptyRecentTitle": "Henüz ürün eklenmedi",
+      "emptyRecentSub": "Buzdolabınıza ürün ekledikçe burada görünecek.",
+      "dates": {
+        "today": "Bugün",
+        "yesterday": "Dün",
+        "daysAgo": "{{count}} gün önce"
+      },
+      "categories": {
+        "fruitsVeg": "Sebze & Meyve",
+        "meatFish": "Et & Balık",
+        "dairy": "Süt Ürünleri",
+        "grains": "Tahıllar",
+        "beverage": "İçecek",
+        "other": "Diğer"
+      },
+      "emptyHistoryTitle": "Henüz tarif yok",
+      "emptyHistorySub": "Öğün planına eklediğin tarifler burada görünecek."
+    },
+    "saved": "Profil güncellendi"
+  },
+  "pro": {
+    "active": {
+      "title": "Premium Üyesiniz ✨",
+      "subtitle": "Her şeyin kilidi açıldı.\nSınırsızca yemek yapın!",
+      "perks": "Ayrıcalıklarınız",
+      "plan": "Plan",
+      "yearlyBill": "Yıllık · $35.88/yıl",
+      "nextBilling": "Sonraki fatura",
+      "nextBillingDate": "21 Haziran 2027",
+      "manage": "Aboneliği yönet",
+      "manageTest": "Aboneliği sonlandırmayı simüle et (test)"
+    },
+    "paywall": {
+      "title": "Fridos Premium'a\nGeç",
+      "subtitle": "Sınırsızca yemek yapın, haftanızı planlayın, sıfır reklam.",
+      "restore": "Satın alımları geri yükle",
+      "restoreSuccess": "Satın alımlar başarıyla geri yüklendi",
+      "cta": "Ücretsiz denemeyi başlat",
+      "trialAnnual": "{{days}} gün ücretsiz, sonra $35.88/yıl. İstediğin zaman iptal et.",
+      "trialMonthly": "{{days}} gün ücretsiz, sonra $4.99/ay. İstediğin zaman iptal et.",
+      "perMonth": "aylık",
+      "perMonthYearly": "aylık · $35.88/yıl",
+      "purchaseError": "Satın alma başarısız. Tekrar dene.",
+      "unavailable": "Abonelikler şu anda kullanılamıyor.",
+      "restoreNone": "Geri yüklenecek satın alma yok."
+    },
+    "heroTitle": "Fridos Premium'a Geç",
+    "heroSub": "Sınırsızca yemek yapın, haftanızı planlayın,\nsıfır reklam — ücretsiz başlayın.",
+    "choosePlan": "Planını seç",
+    "monthly": "Aylık",
+    "yearly": "Yıllık",
+    "billedMonthly": "Aylık faturalandırılır",
+    "billedYearly": "Yıllık $35.88 faturalandırılır",
+    "save": "%40 Tasarruf Et",
+    "reviewsTitle": "Kullanıcı yorumları",
+    "startTrial": "{{days}} günlük ücretsiz denemeyi başlat",
+    "trialNote": "Sonra {{price}} · İstediğin zaman iptal et",
+    "trust": {
+      "secure": "Güvenli",
+      "noCharge": "Bugün ücret yok",
+      "cancel": "Kolay iptal"
+    },
+    "features": {
+      "scan": {
+        "label": "Sınırsız buzdolabı tarama",
+        "desc": "Buzdolabınızı ve öğünlerinizi istediğiniz kadar tarayın"
+      },
+      "plans": {
+        "label": "Haftalık yemek planları",
+        "desc": "Hedeflerinize ve buzdolabınıza göre otomatik oluşturulan planlar"
+      },
+      "lists": {
+        "label": "Akıllı alışveriş listeleri",
+        "desc": "Eksik malzemeler otomatik olarak alışveriş listesine eklenir"
+      },
+      "filters": {
+        "label": "Gelişmiş diyet filtreleri",
+        "desc": "Diyet ve alerjen filtreleri üzerinde tam kontrol"
+      },
+      "recipes": {
+        "label": "Sınırsız tarif, sıfır reklam",
+        "desc": "Her tarife sınırsız ve reklamsız erişim"
+      }
+    },
+    "reviews": [
+      {
+        "name": "Sarah M.",
+        "text": "\"Yiyecek israfını tamamen bıraktım. Harika bir şey!\""
+      },
+      {
+        "name": "James K.",
+        "text": "\"Yemek planlayıcı bana her hafta 2 saat kazandırıyor.\""
+      },
+      {
+        "name": "Amal R.",
+        "text": "\"Sonunda diyetime saygı duyan bir uygulama. Çok sevdim.\""
+      }
+    ],
+    "trialBanner": "Ücretsiz deneme — {{days}} gün kaldı",
+    "bestValue": "En iyi teklif",
+    "yearlyTotal": "$35.88",
+    "yearlyBilled": "Yıllık {{total}}",
+    "monthlyBilled": "Taahhütsüz",
+    "legal": {
+      "disclosure": "Otomatik yenilenen abonelik. Dönem bitiminden en az 24 saat önce iptal edilmezse yenilenir. Hesap ayarlarından yönet veya iptal et.",
+      "terms": "Koşullar",
+      "privacy": "Gizlilik"
+    }
+  },
+  "scan": {
+    "choose": {
+      "title": "Ne taramak istersiniz?",
+      "options": {
+        "meal": {
+          "title": "Öğün tara",
+          "desc": "Kalori ve makrolarını kaydetmek için tabağını çek"
+        },
+        "fridge": {
+          "title": "Buzdolabımı tara",
+          "desc": "Malzemeleri tespit et ve buzdolabına ekle"
+        }
+      }
+    },
+    "camera": {
+      "permission": {
+        "title": "Kamerayı etkinleştir",
+        "desc": "Fridos, yiyeceklerini tarayıp kaloriye, makrolara ve tarif fikirlerine dönüştürmek için kameranı kullanır.",
+        "features": {
+          "scan": "Buzdolabını veya yemeklerini saniyeler içinde tara",
+          "insights": "Anında kalori, makro ve tarif fikirleri",
+          "privacy": "Fotoğraflar gizlice analiz edilir, asla saklanmaz"
+        },
+        "allow": "Kamera erişimine izin ver",
+        "settings": "Ayarları aç",
+        "later": "Belki daha sonra",
+        "galleryDenied": "Fotoğraf erişimi reddedildi. Ayarlardan etkinleştir."
+      },
+      "galleryPermission": {
+        "title": "Fotoğraf erişimine izin ver",
+        "desc": "Fridos, yemeğini kaloriye, makrolara ve tarif fikirlerine dönüştürmek için galerinden bir fotoğraf okur.",
+        "pick": "Buzdolabının veya yemeğinin bir fotoğrafını seç",
+        "allow": "Fotoğraf erişimine izin ver"
+      },
+      "hints": {
+        "meal": "Tabağınızı vizörün içine yerleştirin",
+        "fridge": "Yiyecekleri vizörün içine yerleştirin"
+      },
+      "headers": {
+        "meal": "Öğün tara",
+        "fridge": "Buzdolabını tara"
+      },
+      "analyzing": {
+        "title": "Analiz ediliyor…",
+        "desc": {
+          "meal": "Kalori tahmin ediliyor",
+          "fridge": "Yiyecekleriniz tespit ediliyor"
+        }
+      }
+    },
+    "results": {
+      "loadingTitle": "Tespit ediliyor…",
+      "loadingDesc": "Fotoğrafınız okunuyor",
+      "loadingText": "Malzemeler analiz ediliyor…",
+      "emptyText": "Hiçbir malzeme tespit edilemedi. Başka bir fotoğraf deneyin.",
+      "title": "{{count}} ürün tespit edildi 🎉",
+      "desc": "Sahip olmadığınız ürünlerin işaretini kaldırın, ardından onaylayın.",
+      "addBtn_one": "{{count}} malzeme ekle",
+      "addBtn_other": "{{count}} malzeme ekle",
+      "addManually": "Elle ekle",
+      "items": {
+        "tomatoes": "Domates",
+        "eggs": "Yumurta",
+        "zucchini": "Kabak",
+        "mozzarella": "Mozzarella",
+        "garlic": "Sarımsak",
+        "olive_oil": "Zeytinyağı"
+      },
+      "mealIdeas": {
+        "title": "Yemek fikirleri",
+        "subtitle": "Buzdolabından · {{diet}} profili"
+      },
+      "errorText": "Analiz başarısız. Bağlantını kontrol edip tekrar dene.",
+      "retry": "Tekrar dene"
+    },
+    "mealResult": {
+      "loadingTitle": "Öğünün analiz ediliyor",
+      "loadingText": "Kalori tahmin ediliyor…",
+      "detected": "Tespit edildi",
+      "confidence": "%{{confidence}} emin",
+      "addTo": "Şuraya ekle",
+      "logBtn": "Bu öğünü kaydet",
+      "portion": "Porsiyon",
+      "macrosTitle": "Makrolar",
+      "fiber": "Lif",
+      "sugar": "Şeker",
+      "nutriScore": "Nutri-Skor",
+      "breakdown": "Tabağında neler var",
+      "items": {
+        "grilled_chicken": "Izgara tavuk",
+        "broccoli": "Brokoli",
+        "basmati_rice": "Basmati pirinci",
+        "olive_oil": "Zeytinyağı"
+      },
+      "meals": {
+        "grilled_chicken_&_veggies": "Izgara tavuk ve sebzeler"
+      },
+      "nutriTips": {
+        "A": "Dengeli ve besleyici — harika bir seçim.",
+        "B": "Sağlam, dengeli bir öğün.",
+        "C": "İdare eder — porsiyona dikkat et.",
+        "D": "Biraz ağır — bugün hafif bir şeyle dengele.",
+        "E": "Keyiflik — ara sıra tercih et."
+      },
+      "errorTitle": "Analiz başarısız",
+      "errorText": "Bu tabak analiz edilemedi. Tekrar dene.",
+      "retry": "Tekrar dene"
+    }
+  },
+  "mealDetail": {
+    "activeValues": "Aktif Değerler",
+    "remaining": "Kalan",
+    "protein": "Protein",
+    "fat": "Yağ",
+    "carbs": "Karb.",
+    "infoText": "Senin için, senin hedeflerine ve damak tadına en uygun tarifleri seçtik. Listeyi kaydırıp tümünü görebilirsin.",
+    "recommendedRecipesTitle": "Önerilen Tarifler",
+    "hideRecipes": "Tarifleri Gizle",
+    "showRecipes": "Tarifleri Göster",
+    "added": "Eklendi",
+    "addToMeal": "+ Öğünüme Ekle",
+    "tabs": {
+      "recommended": "Önerilen Tarifler",
+      "favorites": "Favorilerim",
+      "myRecipes": "Kendi Tariflerim"
+    },
+    "emptyFavorites": {
+      "title": "Henüz favori tarifin yok.",
+      "subtitle": "Bir tarifin 🔖 simgesine dokunarak favorilere ekle."
+    },
+    "emptyMyRecipes": {
+      "title": "Henüz kişisel tarifin yok.",
+      "subtitle": "Kendi tarifini oluşturmak için sağ alttaki + butonunu kullan."
+    },
+    "addOwnRecipe": "Kendi Tarifini Ekle",
+    "fab": {
+      "main": "Ekle",
+      "addRecipe": "Tarif Ekle",
+      "addFood": "Besin Ekle",
+      "scanPlate": "Tabağı Tara"
+    },
+    "addFoodModal": {
+      "title": "Besin Ekle",
+      "namePlaceholder": "Besin Adı (örn: Muz, Yumurta)",
+      "kcalPlaceholder": "Kalori (kcal)",
+      "quickAdd": "Hızlı Ekle",
+      "quickItems": {
+        "banana": "Muz",
+        "egg": "Yumurta",
+        "oatmeal": "Yulaf Ezmesi",
+        "milk": "Süt"
+      }
+    }
+  },
+  "recipeData": {
+    "1": {
+      "name": "Somonlu Avokado Tost"
+    },
+    "2": {
+      "name": "Ketojenik Peynirli Omlet"
+    },
+    "3": {
+      "name": "Yaban Mersinli Fit Pankek"
+    },
+    "4": {
+      "name": "Fıstık Ezmeli Yulaf Lapası"
+    },
+    "5": {
+      "name": "Glutensiz Kahvaltı Kasesi"
+    },
+    "6": {
+      "name": "Mantar Sote ve Çırpılmış Yumurta"
+    },
+    "7": {
+      "name": "Izgara Somon ve Kuşkonmaz"
+    },
+    "8": {
+      "name": "Tavuklu Sezar Salata"
+    },
+    "9": {
+      "name": "Fırında Baharatlı Tavuk Kanatları"
+    },
+    "10": {
+      "name": "Kinoalı Ton Balığı Salatası"
+    },
+    "11": {
+      "name": "Etli Mantar Sote"
+    },
+    "12": {
+      "name": "Renkli Buda Kasesi (Buddha Bowl)"
+    },
+    "13": {
+      "name": "Tropikal Smoothie Bowl"
+    },
+    "14": {
+      "name": "Yeşil Detoks Çorbası"
+    },
+    "15": {
+      "name": "Fırınlanmış Çıtır Nohut"
+    },
+    "16": {
+      "name": "Avokadolu Fit Kakaolu Puding"
+    },
+    "17": {
+      "name": "Şekersiz Elmalı Turta Yulafı"
+    },
+    "18": {
+      "name": "Çilekli Protein Bowl"
+    },
+    "19": {
+      "name": "Karpuz & Nane Ferahlığı"
+    },
+    "20": {
+      "name": "Ev Yapımı Gurme Burger"
+    },
+    "21": {
+      "name": "Kremalı Mantarlı Makarna"
+    },
+    "22": {
+      "name": "Köz Patlıcanlı Gurme Biftek"
+    },
+    "23": {
+      "name": "Limonlu Izgara Levrek"
+    },
+    "24": {
+      "name": "Köri Soslu Tavuk"
+    },
+    "25": {
+      "name": "Fırınlanmış Somon Şiş"
+    },
+    "26": {
+      "name": "Ispanaklı Keçi Peynirli Omlet"
+    },
+    "27": {
+      "name": "Akdeniz Buda Kasesi"
+    },
+    "28": {
+      "name": "Narlı Bebek Ispanak Salatası"
+    },
+    "29": {
+      "name": "Acılı Çıtır Tofu Küpleri"
+    },
+    "30": {
+      "name": "Avokadolu Kinoa Salatası"
+    },
+    "31": {
+      "name": "Yoğurtlu Orman Meyveli Parfe"
+    },
+    "32": {
+      "name": "Muzlu Yulaf Lapası"
+    },
+    "33": {
+      "name": "Yeşil Detoks Suyu"
+    },
+    "34": {
+      "name": "Tropikal Mango Smoothie"
+    },
+    "35": {
+      "name": "Ege Usulü Çılbır"
+    },
+    "premium_1": {
+      "name": "Şefin Izgara Somon Tabağı",
+      "ingNames": [
+        "Norveç Somon Fileto",
+        "Taze Kuşkonmaz",
+        "Çeri Domates",
+        "Sızma Zeytinyağı",
+        "Taze Kekik",
+        "Deniz Tuzu",
+        "Taze Çekilmiş Karabiber",
+        "Limon"
+      ],
+      "ingQty": [
+        "200g",
+        "100g",
+        "5-6 Adet",
+        "2 Yemek Kaşığı",
+        "2 Dal",
+        "1 Çay Kaşığı",
+        "1 Çay Kaşığı",
+        "Yarım"
+      ],
+      "steps": [
+        "Somon filetoyu zeytinyağı, taze kekik, deniz tuzu ve karabiber ile marine edin. Oda sıcaklığında 10 dakika dinlendirin.",
+        "Kuşkonmazların sert sap kısımlarını kesin. Çeri domateslerle birlikte fırın tepsisine dizin ve hafifçe yağlayın.",
+        "Önceden ısıtılmış döküm tavada somonun deri kısmı alta gelecek şekilde 4 dakika mühürleyin, ardından ters çevirip 3 dakika daha pişirin.",
+        "Sebzeleri 200 derece fırında 12 dakika közleyin. Somon ve sebzeleri geniş, şık bir tabakta birleştirip üzerine taze sıkılmış limon suyu gezdirin."
+      ]
+    },
+    "premium_2": {
+      "name": "Trüf Mantarlı Artisan Makarna",
+      "ingNames": [
+        "Taze Tagliatelle",
+        "Kestane Mantarı",
+        "Trüf Yağı",
+        "Taze Krema",
+        "Parmesan Peyniri",
+        "Sarımsak",
+        "Tereyağı",
+        "Taze Maydanoz"
+      ],
+      "ingQty": [
+        "250g",
+        "200g",
+        "1 Tatlı Kaşığı",
+        "1 Çay Bardağı",
+        "50g (Rendelenmiş)",
+        "2 Diş",
+        "1 Yemek Kaşığı",
+        "1 Tutam"
+      ],
+      "steps": [
+        "Taze tagliatelle makarnayı bol tuzlu kaynar suda 3-4 dakika haşlayın. Suyundan yarım çay bardağı ayırıp makarnayı süzün.",
+        "Geniş bir tavada tereyağını eritin. İnce dilimlenmiş sarımsak ve mantarları yüksek ateşte soteleyin.",
+        "Mantarlar suyunu çekince kremayı, trüf yağını ve ayırdığınız makarna suyunu ekleyin. Sos hafifçe koyulaşana kadar 2 dakika kaynatın.",
+        "Makarnaları sosa ekleyin, parmesan peyniriyle bağlayın. Üzerine taze maydanoz serpiştirerek sıcak servis yapın."
+      ]
+    },
+    "premium_3": {
+      "name": "Orman Meyveli Fit Cheesecake",
+      "ingNames": [
+        "Yulaf Unu",
+        "Çiğ Badem",
+        "Hurma",
+        "Labne Peyniri (Light)",
+        "Süzme Yoğurt",
+        "Yumurta",
+        "Bal",
+        "Taze Orman Meyveleri"
+      ],
+      "ingQty": [
+        "1 Su Bardağı",
+        "Yarım Su Bardağı",
+        "8 Adet",
+        "400g",
+        "2 Yemek Kaşığı",
+        "2 Adet",
+        "3 Yemek Kaşığı",
+        "1 Kase"
+      ],
+      "steps": [
+        "Taban için: Yulaf unu, badem ve çekirdeksiz hurmaları mutfak robotundan geçirin. Karışımı kelepçeli kalıbın tabanına bastırarak yayın.",
+        "İç dolgu için: Labne peyniri, süzme yoğurt ve balı pürüzsüz olana dek çırpın. Yumurtaları tek tek ekleyerek yavaşça karıştırın.",
+        "Dolgu karışımını tabanın üzerine dökün. Önceden ısıtılmış 160 derece fırında, fırının tabanına bir kap su koyarak 35-40 dakika pişirin.",
+        "Cheesecake soğuduktan sonra buzdolabında en az 4 saat dinlendirin. Servis etmeden önce üzerini taze orman meyveleriyle süsleyin."
+      ]
+    },
+    "premium_4": {
+      "name": "Yeşil Canlandırıcı Detox",
+      "ingNames": [
+        "Yeşil Elma",
+        "Salatalık",
+        "Kereviz Sapı",
+        "Bebek Ispanak",
+        "Taze Zencefil",
+        "Limon",
+        "Taze Nane",
+        "Buz"
+      ],
+      "ingQty": [
+        "1 Adet",
+        "1 Adet",
+        "2 Dal",
+        "1 Avuç",
+        "1 Başparmak Büyüklüğünde",
+        "Yarım (Suyu)",
+        "3-4 Yaprak",
+        "1 Su Bardağı"
+      ],
+      "steps": [
+        "Elma, salatalık ve kereviz saplarını bol suda yıkayıp iri parçalar halinde doğrayın.",
+        "Doğranmış sebzeleri, ıspanak, soyulmuş zencefil ve limon suyuyla birlikte katı meyve sıkacağından veya güçlü bir blenderdan geçirin.",
+        "Blender kullanıyorsanız karışımı ince bir süzgeç veya tülbent yardımıyla süzerek pürüzsüz bir su elde edin.",
+        "Hazırladığınız detoks suyunu buz dolu şık bir uzun bardağa alın. Taze nane yaprakları ve limon dilimi ile süsleyerek hemen tüketin."
+      ]
+    },
+    "gf_1": {
+      "name": "Bademli Güç Pankeki"
+    },
+    "gf_2": {
+      "name": "Dengeli Hurma Kasesi"
+    },
+    "gf_3": {
+      "name": "Kinoa & Avokadolu Kahvaltı Salatası"
+    },
+    "gf_4": {
+      "name": "Avokadolu Lor Peynirli Glutensiz Tost"
+    },
+    "gf_5": {
+      "name": "Yumuşak Tavuk & Patates Püresi"
+    },
+    "gf_6": {
+      "name": "Lezzetli Balık Menüsü"
+    },
+    "gf_7": {
+      "name": "Gurme Çipura Tabağı"
+    }
+  },
+  "theme": {
+    "title": "Tema",
+    "changed": "Tema: {{mode}}",
+    "modes": {
+      "light": "Açık",
+      "dark": "Koyu"
+    }
+  },
+  "feedback": {
+    "water": {
+      "added": "+{{ml}} ml · {{total}} / {{goal}} ml 💧",
+      "removed": "−{{ml}} ml · {{total}} / {{goal}} ml",
+      "goalReached": "Su hedefine ulaştın! 💧"
+    },
+    "steps": {
+      "saved": "{{steps}} adım kaydedildi",
+      "goalReached": "Adım hedefine ulaştın! 🎉"
+    },
+    "weight": {
+      "saved": "Kilo güncellendi · {{weight}} kg"
+    },
+    "meal": {
+      "added": "{{meal}} güncellendi · +{{kcal}} kcal",
+      "removed": "{{meal}} · kaldırıldı (−{{kcal}} kcal)",
+      "logged": "{{meal}} kaydedildi · {{kcal}} kcal"
+    }
+  },
+  "insights": {
+    "title": "Bugünün özeti",
+    "caloriesOver": {
+      "title": "Kalori hedefi aşıldı",
+      "message": "Bugün hedefini {{over}} kcal aştın."
+    },
+    "caloriesReached": {
+      "title": "Tam hedefte 🎯",
+      "message": "Harika — kalori hedefine ulaştın."
+    },
+    "hydrationBehind": {
+      "title": "Su tüketimi geride",
+      "message": "Hedefin için {{remaining}} ml daha içmelisin."
+    },
+    "hydrationReached": {
+      "title": "İyi su içtin 💧",
+      "message": "Su hedefine ulaştın, böyle devam!"
+    },
+    "hydrationTip": {
+      "title": "Su içme zamanı",
+      "message": "Hedefinin %{{percent}}’i · {{remaining}} ml kaldı."
+    },
+    "proteinLow": {
+      "title": "Proteini tamamla",
+      "message": "Bugün {{remaining}} g protein eksiğin var."
+    },
+    "stepsBehind": {
+      "title": "Az kaldı",
+      "message": "Hedefin için {{remaining}} adım kaldı."
+    },
+    "logLunch": {
+      "title": "Öğle yemeği eklenmedi",
+      "message": "Takibini güncel tutmak için öğle yemeğini ekle."
+    },
+    "logDinner": {
+      "title": "Akşam yemeği eklenmedi",
+      "message": "Takibini güncel tutmak için akşam yemeğini ekle."
+    },
+    "weightProgress": {
+      "title": "Harika ilerleme 📉",
+      "message": "Bu hafta −{{kg}} kg. Devam et!"
+    },
+    "startDay": {
+      "title": "Güne başla",
+      "message": "Kalorini takip etmek için ilk öğününü ekle."
+    }
+  },
+  "notifications": {
+    "title": "Bildirimler",
+    "subtitle": "Almak istediğin hatırlatmaları seç.",
+    "master": "Bildirimlere izin ver",
+    "enableHint": "Kişisel hatırlatmalar almak için bildirimleri aç.",
+    "permissionDenied": "Bildirimler kapalı. Telefon ayarlarından etkinleştir.",
+    "saved": "Tercihler kaydedildi",
+    "categories": {
+      "hydration": {
+        "title": "Su hatırlatmaları",
+        "desc": "Gün boyunca su içmen için hatırlatmalar."
+      },
+      "meals": {
+        "title": "Öğün hatırlatmaları",
+        "desc": "Bir öğünü kaydetmeyi unutursan hatırlatma."
+      },
+      "recap": {
+        "title": "Akşam özeti",
+        "desc": "Her akşam gününün bir özeti."
+      }
+    },
+    "push": {
+      "hydration": {
+        "title": "💧 Su molası",
+        "body": "Hedefinde kalmak için bir bardak su iç."
+      },
+      "lunch": {
+        "title": "🍽 Öğle yemeği?",
+        "body": "Fridos’a öğle yemeğini kaydetmeyi unutma."
+      },
+      "dinner": {
+        "title": "🍽 Akşam yemeği?",
+        "body": "Fridos’a akşam yemeğini kaydetmeyi unutma."
+      },
+      "recap": {
+        "title": "📊 Günlük özetin",
+        "body": "Özetini görmek ve yarını planlamak için Fridos’u aç."
+      }
+    }
+  }
+}

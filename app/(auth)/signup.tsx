@@ -1,0 +1,209 @@
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { ThemeColors } from '../../constants/colors';
+import { useTheme, useThemedStyles } from '../../context/ThemeContext';
+import { Spacing, elevation } from '../../constants/layout';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { PressableScale } from '../../components/ui/PressableScale';
+import { FadeInItem } from '../../components/ui/FadeInItem';
+import { useApp } from '../../context/AppContext';
+import { useFeedback } from '../../context/FeedbackContext';
+import { signUp, signOut } from '../../lib/api/auth';
+import { useTranslation } from 'react-i18next';
+import { haptic } from '../../lib/haptics';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export default function SignupScreen() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const { setUserName } = useApp();
+  const { toast } = useFeedback();
+  const { t } = useTranslation();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const submit = async () => {
+    if (name.trim().length < 2) {
+      haptic.medium();
+      return toast(t('auth.signup.errName'), { variant: 'error' });
+    }
+    if (!EMAIL_RE.test(email.trim())) {
+      haptic.medium();
+      return toast(t('auth.errEmail'), { variant: 'error' });
+    }
+    if (password.length < 6) {
+      haptic.medium();
+      return toast(t('auth.errPassword'), { variant: 'error' });
+    }
+    if (password !== confirm) {
+      haptic.medium();
+      return toast(t('auth.signup.errMismatch'), { variant: 'error' });
+    }
+    setLoading(true);
+    const res = await signUp(email, password, name);
+    setLoading(false);
+    if (!res.ok) {
+      haptic.medium();
+      return toast(t(res.errorKey ?? 'auth.errGeneric'), { variant: 'error' });
+    }
+    setUserName(name.trim());
+    haptic.success();
+    if (res.needsConfirm) {
+      // Email confirmation required — no session yet.
+      toast(t('auth.signup.confirm'), { variant: 'info', duration: 4000 });
+    } else {
+      // Supabase auto-signs-in on sign-up; sign out so the user logs in
+      // explicitly before entering the app.
+      await signOut();
+      toast(t('auth.signup.created'), { variant: 'success', duration: 3500 });
+    }
+    // Always go through the login screen after creating an account.
+    router.replace('/(auth)/login');
+  };
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* Header retour */}
+        <View style={styles.topBar}>
+          <PressableScale haptic="light" style={styles.backBtn} onPress={() => router.back()}>
+            <MaterialCommunityIcons name="arrow-left" size={22} color={colors.textPrimary} />
+          </PressableScale>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <FadeInItem index={0}>
+            <Text style={styles.title}>{t('auth.signup.title')}</Text>
+            <Text style={styles.subtitle}>{t('auth.signup.subtitle')}</Text>
+          </FadeInItem>
+
+          <FadeInItem index={1} style={styles.form}>
+            <Input
+              icon="person-outline"
+              placeholder={t('auth.signup.namePlaceholder')}
+              autoCapitalize="words"
+              value={name}
+              onChangeText={setName}
+            />
+            <Input
+              icon="mail-outline"
+              placeholder={t('auth.emailPlaceholder')}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <Input
+              icon="lock-closed-outline"
+              placeholder={t('auth.passwordPlaceholder')}
+              secureTextEntry={!showPw}
+              autoCapitalize="none"
+              value={password}
+              onChangeText={setPassword}
+              right={
+                <PressableScale haptic="light" hitSlop={8} onPress={() => setShowPw((s) => !s)}>
+                  <Ionicons
+                    name={showPw ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.textMuted}
+                  />
+                </PressableScale>
+              }
+            />
+            <Input
+              icon="lock-closed-outline"
+              placeholder={t('auth.signup.confirmPlaceholder')}
+              secureTextEntry={!showPw}
+              autoCapitalize="none"
+              value={confirm}
+              onChangeText={setConfirm}
+            />
+
+            <Button
+              label={t('auth.signup.button')}
+              loading={loading}
+              onPress={submit}
+              style={{ marginTop: Spacing.sm }}
+            />
+          </FadeInItem>
+
+          <FadeInItem index={2}>
+            <Text style={styles.terms}>{t('auth.signup.terms')}</Text>
+          </FadeInItem>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>{t('auth.signup.haveAccount')}</Text>
+          <PressableScale haptic="light" onPress={() => router.back()}>
+            <Text style={styles.footerLink}>{t('auth.signup.loginLink')}</Text>
+          </PressableScale>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.background },
+    flex: { flex: 1 },
+    topBar: { paddingHorizontal: 16, paddingTop: 4 },
+    backBtn: {
+      ...elevation(colors, 1),
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16 },
+    title: {
+      fontFamily: 'Poppins_700Bold',
+      fontSize: 26,
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 15,
+      color: colors.textSecondary,
+      marginBottom: 22,
+    },
+    form: { gap: 14 },
+    terms: {
+      fontFamily: 'Inter_400Regular',
+      fontSize: 12,
+      lineHeight: 18,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 22,
+      paddingHorizontal: 8,
+    },
+    termsLink: { color: colors.green, fontFamily: 'Inter_600SemiBold' },
+    footer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    footerText: { fontFamily: 'Inter_400Regular', fontSize: 14, color: colors.textSecondary },
+    footerLink: { fontFamily: 'Inter_700Bold', fontSize: 14, color: colors.green },
+  });

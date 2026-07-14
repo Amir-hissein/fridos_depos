@@ -1,0 +1,1218 @@
+{
+  "a11y": {
+    "back": "Retour",
+    "close": "Fermer",
+    "bookmark": "Ajouter aux favoris",
+    "capturePhoto": "Prendre la photo",
+    "toggleFlash": "Activer/désactiver le flash",
+    "share": "Partager",
+    "editName": "Modifier le nom",
+    "copyId": "Copier l'identifiant",
+    "openFilters": "Ouvrir les filtres",
+    "search": "Rechercher",
+    "addMeal": "Ajouter au repas"
+  },
+  "common": {
+    "continue": "Continuer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "done": "Terminé",
+    "soon": "Bientôt",
+    "add": "Ajouter",
+    "unlockPremium": "Débloquer Premium",
+    "ofGoal": "objectif",
+    "delete": "Supprimer",
+    "error": {
+      "title": "Une erreur est survenue",
+      "body": "Quelque chose s’est mal passé. Réessaie pour continuer.",
+      "retry": "Réessayer"
+    }
+  },
+  "tabs": {
+    "plan": "Plan",
+    "recipes": "Recettes",
+    "profile": "Profil",
+    "pro": "Pro"
+  },
+  "auth": {
+    "errEmail": "Saisis un e-mail valide",
+    "errPassword": "Le mot de passe doit faire au moins 6 caractères",
+    "emailPlaceholder": "Adresse e-mail",
+    "passwordPlaceholder": "Mot de passe",
+    "login": {
+      "title": "Bon retour",
+      "subtitle": "Connecte-toi et continue ton plan.",
+      "forgot": "Mot de passe oublié ?",
+      "button": "Se connecter",
+      "or": "ou",
+      "noAccount": "Pas de compte ? ",
+      "signupLink": "S'inscrire"
+    },
+    "signup": {
+      "title": "Créer un compte",
+      "subtitle": "Commence en quelques secondes, ton plan t'attend.",
+      "namePlaceholder": "Nom complet",
+      "confirmPlaceholder": "Confirmer le mot de passe",
+      "button": "S'inscrire",
+      "terms": "En t'inscrivant, tu acceptes les Conditions d'utilisation et la Politique de confidentialité.",
+      "haveAccount": "Tu as déjà un compte ? ",
+      "loginLink": "Se connecter",
+      "errName": "Saisis ton nom",
+      "errMismatch": "Les mots de passe ne correspondent pas",
+      "confirm": "Compte créé ! Vérifie tes e-mails pour confirmer ton adresse.",
+      "created": "Compte créé ! Connecte-toi pour continuer."
+    },
+    "forgot": {
+      "title": "Mot de passe oublié ?",
+      "subtitle": "Saisis ton e-mail, on t'envoie un lien de réinitialisation.",
+      "button": "Envoyer le lien",
+      "sentTitle": "Vérifie tes e-mails",
+      "sentSubtitle": "Nous avons envoyé un lien de réinitialisation à {{email}}.",
+      "backToLogin": "Retour à la connexion"
+    },
+    "errInvalidCredentials": "E-mail ou mot de passe incorrect",
+    "errEmailTaken": "Cet e-mail est déjà utilisé",
+    "errGeneric": "Une erreur est survenue, réessaie"
+  },
+  "onboarding": {
+    "energy": "ÉNERGIE",
+    "protein": "PROTÉINES",
+    "carbs": "GLUCIDES",
+    "scanning": "ANALYSE...",
+    "scanCompleted": "ANALYSE TERMINÉE",
+    "salmon": "SAUMON",
+    "quinoa": "QUINOA",
+    "title": "Scannez vos repas",
+    "subtitle": "Présentez votre assiette à la caméra, découvrez les valeurs macro et calories en quelques secondes.",
+    "next": "Suivant",
+    "fridge": {
+      "title": "Scannez votre frigo",
+      "subtitle": "Détectez vos ingrédients en quelques secondes et découvrez les recettes réalisables.",
+      "produce": "Légumes",
+      "dairy": "Prod. Laitiers",
+      "pantry": "Épicerie",
+      "tomatoes": "TOMATES",
+      "eggs": "ŒUFS",
+      "cheese": "FROMAGE"
+    }
+  },
+  "language": {
+    "title": "Langue",
+    "changed": "Langue modifiée"
+  },
+  "transfer": {
+    "title": "Tu n'as plus besoin\nde personne.",
+    "subtitle": "Avec Fridos AI, tous tes repas prêts en 5 minutes !",
+    "preparing": "Préparation de ton repas..."
+  },
+  "setup": {
+    "finish": "Terminer",
+    "noAllergens": "Aucune allergie",
+    "cm": "cm",
+    "ageUnit": "ans",
+    "weeks": "~{{count}} semaines",
+    "loading": {
+      "title": "Mise à jour de ton plan selon tes nouveaux objectifs !",
+      "subtitle": "On prépare un nouveau plan de repas adapté à tes préférences…",
+      "check1": "Tes réponses ont été analysées.",
+      "check2": "Ton objectif est défini.",
+      "check3": "Macros calculées.",
+      "check4": "Ton plan de repas est créé.",
+      "check5": "Données enregistrées."
+    },
+    "activities": {
+      "sedentary": {
+        "label": "Je travaille au bureau",
+        "desc": "La plupart des employés de bureau font moins de 5 000 pas par jour."
+      },
+      "active": {
+        "label": "Je fais de l'exercice régulièrement",
+        "desc": "S'entraîner au moins 3 fois par semaine correspond à un niveau moyen–élevé."
+      },
+      "cardio": {
+        "label": "Je fais du cardio régulièrement",
+        "desc": "La course, le vélo ou le cardio intense brûlent plus de calories."
+      }
+    },
+    "diets": {
+      "healthy": "Alimentation saine",
+      "keto": "Cétogène",
+      "vegan": "Végan",
+      "glutenfree": "Sans gluten",
+      "vegetarian": "Végétarien"
+    },
+    "paces": {
+      "easy": "Facile",
+      "medium": "Moyen",
+      "hard": "Difficile"
+    },
+    "allergens": {
+      "tree_nuts": "Fruits à coque",
+      "gluten": "Gluten",
+      "dairy": "Produits laitiers",
+      "soy": "Soja",
+      "peanut": "Arachides",
+      "egg": "Œuf",
+      "fish": "Poisson",
+      "shellfish": "Fruits de mer"
+    },
+    "step0": {
+      "title": "Tes informations.",
+      "subtitle": "Vérifions tes infos actuelles.",
+      "male": "Homme",
+      "female": "Femme",
+      "height": "Ta taille",
+      "age": "Ton âge"
+    },
+    "step1": {
+      "title": "Choisis ton nouvel objectif de poids.",
+      "subtitle": "Construisons le programme le plus précis pour ton objectif…",
+      "current": "Poids actuel",
+      "target": "Poids cible"
+    },
+    "step2": {
+      "title": "Une préférence alimentaire ?",
+      "subtitle": "On adaptera nos suggestions à ton régime."
+    },
+    "step3": {
+      "title": "Comment veux-tu atteindre ton objectif ?",
+      "day": "JOUR",
+      "week": "SEMAINE",
+      "note": "Calculé selon ton poids actuel et ton poids cible."
+    },
+    "step4": {
+      "title": "Niveau d'activité",
+      "subtitle": "On basera nos calculs et suggestions sur ton niveau d'activité quotidien."
+    },
+    "step5": {
+      "title": "Tes pas quotidiens",
+      "subtitle": "On l'inclura dans le calcul des macros et on adaptera nos suggestions."
+    },
+    "step6": {
+      "title": "As-tu des allergies ?",
+      "subtitle": "On tiendra ces ingrédients à l'écart de nos suggestions."
+    },
+    "result": {
+      "title": "Ton plan est prêt !",
+      "subtitle": "En suivant toutes ces consignes, tu peux atteindre ton objectif à cette date !",
+      "calorieGoal": "TON OBJECTIF CALORIQUE QUOTIDIEN",
+      "macroTitle": "Calcul des macros",
+      "protein": "Protéines",
+      "carbs": "Glucides",
+      "fat": "Lipides",
+      "water": "Eau",
+      "activity": "Activité",
+      "diet": "Régime",
+      "actLow": "Faible",
+      "actMid": "Moyen",
+      "actHigh": "Élevé",
+      "dateLine": "Le {{date}}, tu auras perdu {{kg}} kg.",
+      "macroSub": "En préparant tes repas, on atteindra ces valeurs totales.",
+      "kcalLabel": "Kcal",
+      "deficitTitle": "Calcul du déficit calorique",
+      "deficitSub": "On fixera un déficit quotidien adapté à ton objectif.",
+      "waterTitle": "Suivi de l'eau",
+      "waterText": "Tu dois boire {{ml}} ml d'eau par jour.",
+      "stepsTitle": "Suivi des pas",
+      "stepsText": "Tu dois marcher {{steps}} pas par jour.",
+      "start": "Commencer",
+      "dateLineGain": "Le {{date}}, tu auras pris {{kg}} kg.",
+      "dateLineKeep": "Tu maintiendras ton poids actuel."
+    }
+  },
+  "plan": {
+    "greeting": "Bonjour {{name}}",
+    "months": [
+      "Janvier",
+      "Février",
+      "Mars",
+      "Avril",
+      "Mai",
+      "Juin",
+      "Juillet",
+      "Août",
+      "Septembre",
+      "Octobre",
+      "Novembre",
+      "Décembre"
+    ],
+    "weekdays": [
+      "Lun",
+      "Mar",
+      "Mer",
+      "Jeu",
+      "Ven",
+      "Sam",
+      "Dim"
+    ],
+    "legendFull": "Atteint",
+    "legendPartial": "Partiel",
+    "legendOver": "Dépassé",
+    "today": "Revenir à aujourd'hui",
+    "calorie": "Calories",
+    "remaining": "Restant : {{n}} kcal",
+    "carbs": "Glucides",
+    "protein": "Protéines",
+    "fat": "Lipides",
+    "showDetails": "VOIR DÉTAILS",
+    "hideDetails": "MASQUER DÉTAILS",
+    "macroValues": "Macros",
+    "myMeals": "Mes repas",
+    "forYou": "Recettes pour toi",
+    "min": "min",
+    "meals": {
+      "breakfast": "Petit-déj",
+      "lunch": "Déjeuner",
+      "dinner": "Dîner",
+      "snack": "Collation 1"
+    },
+    "trackers": {
+      "water": "Suivi de l'eau",
+      "steps": "Suivi des pas",
+      "weight": "Suivi du poids",
+      "waterDesc": "Tu dois boire assez d'eau pour que ton métabolisme fonctionne parfaitement. Assure-toi d'atteindre ton objectif quotidien.",
+      "stepsDesc": "Augmenter ton activité quotidienne est important pour ta santé. Continue de marcher pour atteindre ton objectif de pas.",
+      "weightDesc": "Enregistre ton poids régulièrement pour atteindre ton objectif. Reste motivé en suivant ta progression.",
+      "step": "pas",
+      "remainingGoal": "{{percent}}% · encore {{remaining}} {{unit}}",
+      "weightToGo": "Encore {{kg}} kg avant ton objectif.",
+      "save": "Enregistrer"
+    },
+    "gate": {
+      "title": "Plans de repas hebdo",
+      "subtitle": "Planifie toute ta semaine et ne te demande\nplus quoi cuisiner ce soir.",
+      "unlock": "Débloquer avec Premium"
+    }
+  },
+  "recipes": {
+    "title": "Recettes",
+    "searchPlaceholder": "Chercher une recette...",
+    "cancel": "Annuler",
+    "clear": "Effacer",
+    "foundCount": "{{count}} recettes trouvées",
+    "notFound": "Aucun résultat",
+    "emptyTitle": "Aucune recette trouvée",
+    "emptyText": "Essaie de modifier ta recherche ou tes filtres.",
+    "scanBanner": {
+      "subtitle": "Prends ton assiette en photo",
+      "title": "vois les calories instantanément !"
+    },
+    "myRecipes": "Mes Recettes",
+    "calorieRangeSection": "Recettes par apport calorique",
+    "noRecipesInRange": "Aucune recette trouvée dans cette plage calorique pour le moment.",
+    "featuredRecipe": "Recette du jour",
+    "suitableForGoal": "Adapté à ton objectif",
+    "card": {
+      "allOwned": "Tout en stock",
+      "missingCount": "{{count}} manquant(s)",
+      "allergen": "Allergène",
+      "recipeFallback": "Recette"
+    },
+    "details": {
+      "ingredients": "Ingrédients",
+      "preparation": "Préparation",
+      "premiumOnly": "Exclusif Premium !",
+      "premiumJoin": "Abonne-toi à Premium pour débloquer toutes les fonctionnalités !",
+      "addToMeal": "Ajouter à mon repas",
+      "shareRecipe": "Partager la recette",
+      "whichMeal": "À quel repas l'ajouter ?",
+      "portion": "Portion",
+      "portionUnit": "portion"
+    },
+    "categories": {
+      "sana-uygun": "Recettes pour toi",
+      "bes-yildizli": "Recettes 5 étoiles",
+      "light-dinner": "Dîners légers",
+      "breakfast-goodies": "Idéal au petit-déjeuner",
+      "high-protein": "Recettes riches en protéines",
+      "fit-desserts": "Desserts fit",
+      "high-calorie": "Recettes riches en calories",
+      "chef-recommended": "Le choix du chef",
+      "low-calorie": "Recettes hypocaloriques",
+      "practical": "Recettes rapides",
+      "breakfast-stars": "Les stars du petit-déj",
+      "popular-bowls": "Bowls populaires",
+      "fruits": "Ajoute de la couleur avec des fruits",
+      "keto": "Saveurs cétogènes",
+      "gut-friendly": "Bon pour l'intestin",
+      "vegan": "Un monde vegan coloré",
+      "gluten-free": "Délices sans gluten"
+    },
+    "filterModal": {
+      "title": "Filtrer",
+      "mealSelection": "Type de repas",
+      "calorieRange": "Plage calorique",
+      "diet": "Régime",
+      "showRecipes": "Afficher les recettes",
+      "showRecipesCount": "Afficher les {{count}} recettes"
+    },
+    "meals": {
+      "all": "Toutes les recettes",
+      "breakfast": "Petit-déjeuner",
+      "lunch": "Déjeuner",
+      "dinner": "Dîner",
+      "snack": "Collation",
+      "mainMeals": "Plats principaux"
+    },
+    "diets": {
+      "keto": "Céto",
+      "vegan": "Végane",
+      "vegetarian": "Végétarien",
+      "glutenfree": "Sans gluten"
+    },
+    "create": {
+      "cameraPermTitle": "Accès caméra requis",
+      "galleryPermTitle": "Accès galerie requis",
+      "cameraPermMsg": "Autorise l'accès à la caméra pour prendre une photo.",
+      "galleryPermMsg": "Autorise l'accès à la galerie pour choisir une photo.",
+      "openSettings": "Ouvrir les réglages",
+      "photoTitle": "Photo de la recette",
+      "photoMsg": "Choisis une source",
+      "takePhoto": "Prendre une photo",
+      "chooseGallery": "Choisir depuis la galerie",
+      "removePhoto": "Supprimer la photo",
+      "missingInfoTitle": "Infos manquantes",
+      "missingNameMsg": "Veuillez entrer un nom pour la recette.",
+      "recipeSavedToast": "Recette enregistrée",
+      "title": "Créer une recette",
+      "namePlaceholder": "Nom de la recette.",
+      "addPhotoLabel": "Ajoute une photo de ta recette",
+      "optional": "Optionnel",
+      "changePhoto": "Modifier",
+      "addPhotoBtn": "Ajouter une photo",
+      "addPhotoSub": "Sélectionne depuis la caméra ou la galerie",
+      "aspectRatioNote": "Sera recadrée en 1:1",
+      "kcalPlaceholder": "Calories totales (kcal) - Optionnel",
+      "ingredientsTab": "Ingrédients",
+      "stepsTab": "Préparation",
+      "ingNamePlaceholder": "Nom de l'ingrédient...",
+      "ingQtyPlaceholder": "Qté",
+      "stepPlaceholder": "Description de l'étape...",
+      "addStepBtn": "Ajouter une étape",
+      "saveRecipeBtn": "Enregistrer la recette"
+    },
+    "fridgeRecipes": {
+      "title": "Depuis ton frigo",
+      "subtitle": "{{count}} recettes réalisables maintenant",
+      "emptyTitle": "Rien de prêt pour l'instant",
+      "emptySub": "Scanne ton frigo ou ajoute quelques ingrédients pour débloquer des recettes réalisables."
+    },
+    "delete": {
+      "title": "Supprimer cette recette ?",
+      "message": "Cette recette sera définitivement retirée.",
+      "done": "Recette supprimée"
+    }
+  },
+  "shopping": {
+    "title": "Liste de courses",
+    "desc": "Suis les ingrédients manquants et ceux que tu possèdes pour continuer à préparer des recettes saines.",
+    "itemsStatus": "{{total}} articles, {{done}} pris",
+    "missingCount": "{{count}} ingrédients manquants",
+    "clearConfirmTitle": "Vider les articles cochés",
+    "clearConfirmMsg": "Les articles cochés seront retirés de la liste.",
+    "clearConfirmDone": "Vider",
+    "toastUpdated": "Liste mise à jour",
+    "toastAdded": "Ajouté à la liste",
+    "shareEmpty": "Ta liste est vide — rien à partager.",
+    "tabs": {
+      "myItems": "Mes articles",
+      "toBuy": "À acheter"
+    },
+    "progress": {
+      "allDone": "Tous les articles sont pris ! 🎉",
+      "remaining": "{{count}} article(s) restant(s)"
+    },
+    "addPlaceholder": "Ajouter un article...",
+    "addPlaceholderInput": "Nom de l'article...",
+    "addBtn": "Ajouter",
+    "emptyTobuyTitle": "Aucun ingrédient manquant",
+    "emptyTobuySub": "Au fur et à mesure que tu ajoutes des recettes à ton plan, les ingrédients que tu n'as pas dans ton frigo s'afficheront ici.",
+    "emptyMyitemsTitle": "Ta liste semble vide",
+    "emptyMyitemsSub": "Ajoute des articles manuellement ou génère-les automatiquement à partir de ton plan de repas.",
+    "categories": {
+      "fruitsVeg": "Fruits & Légumes",
+      "dairy": "Produits laitiers",
+      "pantry": "Épicerie",
+      "other": "Autre"
+    },
+    "gate": {
+      "title": "Listes de courses automatiques",
+      "description": "Nous convertissons ton plan de repas en une liste de courses prête à l'emploi, organisée par catégories.",
+      "features": [
+        "Générée automatiquement depuis le plan",
+        "Triée par catégorie",
+        "Coche les articles pendant tes courses"
+      ]
+    }
+  },
+  "profile": {
+    "title": "Paramètres",
+    "freeBadge": "Gratuit",
+    "userId": "ID Utilisateur : {{id}}",
+    "copyHint": "Appuie pour copier",
+    "copied": "Copié ✓",
+    "emailConfirmSent": "Vérifie ta boîte mail pour confirmer ta nouvelle adresse.",
+    "logout": "Se déconnecter",
+    "deleteAccount": "Supprimer le compte",
+    "deleteConfirm": {
+      "title": "Supprimer le compte ?",
+      "message": "Cette action est définitive. Ton compte et toutes tes données (profil, suivi, recettes, favoris) seront supprimés et ne pourront pas être récupérés.",
+      "confirm": "Supprimer",
+      "deleting": "Suppression…",
+      "error": "La suppression a échoué. Réessaie."
+    },
+    "fridge": "Mon Frigo",
+    "settings": {
+      "personalInfo": "Informations personnelles",
+      "goalUpdate": "Mise à jour de l'objectif",
+      "allergens": "Mes Allergènes",
+      "weightHistory": "Historique de poids",
+      "language": "Langue de l'application",
+      "medical": "Ressources médicales",
+      "contact": "Contact & Support",
+      "privacy": "Politique de confidentialité",
+      "terms": "Conditions d'utilisation",
+      "theme": "Thème",
+      "notifications": "Notifications"
+    },
+    "premium": {
+      "activeSub": "Toutes les fonctionnalités débloquées",
+      "manage": "Gérer",
+      "upsellTitle": "Rejoins Fridos Premium !",
+      "joinBtn": "S'abonner",
+      "perks": [
+        "Accès illimité aux fonctions IA",
+        "Ton plan de nutrition personnalisé",
+        "Accès à plus de 1000 recettes",
+        "Expérience sans publicité"
+      ],
+      "trialTitle": "Essai Premium",
+      "trialActive": "Essai gratuit · {{days}} j restants",
+      "subscribeCta": "S’abonner"
+    },
+    "bmi": {
+      "sub": "(Indice de Masse Corporelle)",
+      "categories": {
+        "underweight": "Insuffisance pondérale",
+        "healthy": "Normal",
+        "overweight": "Surpoids",
+        "obese": "Obèse"
+      }
+    },
+    "allergensPage": {
+      "intro": "Nous signalerons ou masquerons les recettes contenant les ingrédients sélectionnés.",
+      "sectionTitle": "Recettes à Risque",
+      "modes": {
+        "warn": {
+          "label": "Signaler",
+          "desc": "Afficher un badge sur les recettes à risque"
+        },
+        "hide": {
+          "label": "Masquer",
+          "desc": "Masquer complètement les recettes à risque"
+        }
+      },
+      "noteEmpty": "Aucun allergène sélectionné pour le moment.",
+      "noteCount": "{{count}} allergènes sélectionnés."
+    },
+    "personalInfo": {
+      "gender": "Genre",
+      "age": "Âge",
+      "height": "Taille",
+      "weight": "Poids",
+      "goal": "Objectif",
+      "targetWeight": "Poids Cible",
+      "activity": "Niveau d'Activité",
+      "ageValue": "{{count}} ans",
+      "heightValue": "{{count}} cm",
+      "weightValue": "{{count}} kg",
+      "male": "Homme",
+      "female": "Femme",
+      "goals": {
+        "lose": "Perte de Poids",
+        "maintain": "Maintien de Poids",
+        "gain": "Prise de Poids"
+      },
+      "activityOptions": {
+        "sedentary": {
+          "label": "Sédentaire",
+          "desc": "0–1 jours/semaine"
+        },
+        "active": {
+          "label": "Actif",
+          "desc": "3–5 jours/semaine"
+        },
+        "cardio": {
+          "label": "Très Actif",
+          "desc": "6–7 jours/semaine"
+        }
+      },
+      "targets": {
+        "title": "Vos Objectifs Quotidiens",
+        "sub": "Calculés selon vos informations",
+        "calorie": "Calories",
+        "carbs": "Glucides",
+        "protein": "Protéines",
+        "fat": "Lipides"
+      }
+    },
+    "weightHistoryPage": {
+      "progress": "Progrès",
+      "current": "Actuel",
+      "target": "Cible",
+      "remaining": "Restant",
+      "currentWeight": "Poids Actuel",
+      "startWeight": "Poids de Départ",
+      "targetWeight": "Poids Cible",
+      "goal": "Objectif",
+      "rate": "Rythme",
+      "rateValue": "{{pace}} ({{rate}} kg/semaine)",
+      "duration": "Durée Estimée",
+      "durationValue": "{{count}} mois"
+    },
+    "bmiPage": {
+      "header": "IMC",
+      "title": "IMC (Indice de masse corporelle)",
+      "whatIsBmi": "Qu'est-ce que l'IMC ?",
+      "description": "L'indice de masse corporelle est une mesure qui indique si votre poids corporel est dans une fourchette saine par rapport à votre taille et votre poids. Il est largement utilisé pour évaluer l'état de santé général.",
+      "rangesTitle": "Comment sont Groupées les Catégories ?"
+    },
+    "fridgePage": {
+      "tabs": {
+        "fridge": "Mon Frigo",
+        "recent": "Récemment Ajoutés",
+        "history": "Recettes Passées"
+      },
+      "stats": {
+        "items": "Articles",
+        "categories": "Catégories",
+        "recipes": "Recettes"
+      },
+      "addPlaceholder": "Ajouter un article...",
+      "addPlaceholderInput": "Nom de l'article...",
+      "emptyFridgeTitle": "Votre Frigo Semble Vide",
+      "emptyFridgeSub": "Ajoutez des articles manuellement ou scannez un code-barres pour le remplir.",
+      "scanBtn": "Scanner le Frigo",
+      "emptyRecentTitle": "Aucun article ajouté",
+      "emptyRecentSub": "Au fur et à mesure que vous ajoutez des articles à votre frigo, ils s'afficheront ici.",
+      "dates": {
+        "today": "Aujourd'hui",
+        "yesterday": "Hier",
+        "daysAgo": "Il y a {{count}} jours"
+      },
+      "categories": {
+        "fruitsVeg": "Fruits & Légumes",
+        "meatFish": "Viande & Poisson",
+        "dairy": "Produits Laitiers",
+        "grains": "Céréales",
+        "beverage": "Boissons",
+        "other": "Autre"
+      },
+      "emptyHistoryTitle": "Aucune recette pour l'instant",
+      "emptyHistorySub": "Les recettes ajoutées à ton plan de repas apparaîtront ici."
+    },
+    "saved": "Profil mis à jour"
+  },
+  "pro": {
+    "active": {
+      "title": "Vous êtes Premium ✨",
+      "subtitle": "Tout est débloqué.\nCuisinez sans limites !",
+      "perks": "Vos avantages",
+      "plan": "Plan",
+      "yearlyBill": "Annuel · 35,88 $/an",
+      "nextBilling": "Prochaine facturation",
+      "nextBillingDate": "21 juin 2027",
+      "manage": "Gérer l'abonnement",
+      "manageTest": "Simuler un déclassement (test)"
+    },
+    "paywall": {
+      "title": "Passez à Fridos\nPremium",
+      "subtitle": "Cuisinez sans limites, planifiez votre semaine, zéro publicité.",
+      "restore": "Restaurer les achats",
+      "restoreSuccess": "Achats restaurés avec succès",
+      "cta": "Démarrer l'essai gratuit",
+      "trialAnnual": "{{days}} jours gratuits, puis 35,88 $/an. Annulez à tout moment.",
+      "trialMonthly": "{{days}} jours gratuits, puis 4,99 $/mois. Annulez à tout moment.",
+      "perMonth": "par mois",
+      "perMonthYearly": "par mois · 35,88 $/an",
+      "purchaseError": "Achat impossible. Réessaie.",
+      "unavailable": "Abonnements indisponibles pour le moment.",
+      "restoreNone": "Aucun achat à restaurer."
+    },
+    "heroTitle": "Passez à Fridos Premium",
+    "heroSub": "Cuisinez sans limites, planifiez votre semaine,\nzéro publicité — essai gratuit.",
+    "choosePlan": "Choisissez votre plan",
+    "monthly": "Mensuel",
+    "yearly": "Annuel",
+    "billedMonthly": "Facturé mensuellement",
+    "billedYearly": "35,88 $ facturés annuellement",
+    "save": "Économisez 40 %",
+    "reviewsTitle": "Ce que les utilisateurs disent",
+    "startTrial": "Démarrer l’essai gratuit de {{days}} jours",
+    "trialNote": "Puis {{price}} · Annulez à tout moment",
+    "trust": {
+      "secure": "Sécurisé",
+      "noCharge": "Rien à payer aujourd'hui",
+      "cancel": "Annulation facile"
+    },
+    "features": {
+      "scan": {
+        "label": "Scan de frigo illimité",
+        "desc": "Scannez votre frigo et vos repas autant de fois que vous le souhaitez"
+      },
+      "plans": {
+        "label": "Plans de repas hebdomadaires",
+        "desc": "Plans générés automatiquement selon vos objectifs et votre frigo"
+      },
+      "lists": {
+        "label": "Listes de courses intelligentes",
+        "desc": "Les ingrédients manquants sont ajoutés automatiquement"
+      },
+      "filters": {
+        "label": "Filtres alimentaires avancés",
+        "desc": "Contrôle total sur les filtres de régime et d'allergènes"
+      },
+      "recipes": {
+        "label": "Toutes les recettes, sans pub",
+        "desc": "Accès illimité à toutes les recettes, sans aucune publicité"
+      }
+    },
+    "reviews": [
+      {
+        "name": "Sarah M.",
+        "text": "\"J'ai complètement arrêté de gaspiller de la nourriture. Un vrai changement !\""
+      },
+      {
+        "name": "James K.",
+        "text": "\"Le planificateur de repas me fait gagner 2 heures chaque semaine.\""
+      },
+      {
+        "name": "Amal R.",
+        "text": "\"Enfin une application qui respecte mon régime. J'adore.\""
+      }
+    ],
+    "trialBanner": "Essai gratuit — {{days}} j restants",
+    "bestValue": "Meilleure offre",
+    "yearlyTotal": "35,88 $",
+    "yearlyBilled": "Facturé {{total}}/an",
+    "monthlyBilled": "Sans engagement",
+    "legal": {
+      "disclosure": "Abonnement à renouvellement automatique. Reconduit sauf annulation au moins 24 h avant la fin de la période. Gère ou résilie dans les réglages de ton compte.",
+      "terms": "Conditions",
+      "privacy": "Confidentialité"
+    }
+  },
+  "scan": {
+    "choose": {
+      "title": "Que souhaitez-vous scanner ?",
+      "options": {
+        "meal": {
+          "title": "Scanner un repas",
+          "desc": "Prenez votre assiette en photo pour enregistrer ses calories & macros"
+        },
+        "fridge": {
+          "title": "Scanner mon frigo",
+          "desc": "Détectez les ingrédients et ajoutez-les à votre frigo"
+        }
+      }
+    },
+    "camera": {
+      "permission": {
+        "title": "Activer la caméra",
+        "desc": "Fridos utilise votre caméra pour scanner vos aliments et les transformer en calories, macros et idées de recettes.",
+        "features": {
+          "scan": "Scannez votre frigo ou vos repas en quelques secondes",
+          "insights": "Calories, macros et idées de recettes instantanées",
+          "privacy": "Les photos sont analysées en privé, jamais stockées"
+        },
+        "allow": "Autoriser l'accès à la caméra",
+        "settings": "Ouvrir les réglages",
+        "later": "Plus tard",
+        "galleryDenied": "Accès aux photos refusé. Active-le dans les réglages."
+      },
+      "galleryPermission": {
+        "title": "Autoriser l'accès aux photos",
+        "desc": "Fridos lit une photo de votre galerie pour transformer votre repas en calories, macros et idées de recettes.",
+        "pick": "Choisissez une photo de votre frigo ou de votre repas",
+        "allow": "Autoriser l'accès aux photos"
+      },
+      "hints": {
+        "meal": "Cadrez votre assiette dans le viseur",
+        "fridge": "Cadrez les aliments dans le viseur"
+      },
+      "headers": {
+        "meal": "Scanner un repas",
+        "fridge": "Scanner votre frigo"
+      },
+      "analyzing": {
+        "title": "Analyse en cours…",
+        "desc": {
+          "meal": "Estimation des calories",
+          "fridge": "Détection de vos aliments"
+        }
+      }
+    },
+    "results": {
+      "loadingTitle": "Détection…",
+      "loadingDesc": "Lecture de la photo",
+      "loadingText": "Analyse des ingrédients…",
+      "emptyText": "Aucun ingrédient détecté. Essayez une autre photo.",
+      "title": "{{count}} articles détectés 🎉",
+      "desc": "Décochez ce que vous n'avez pas, puis confirmez.",
+      "addBtn_one": "Ajouter {{count}} ingrédient",
+      "addBtn_other": "Ajouter {{count}} ingrédients",
+      "addManually": "Ajouter manuellement",
+      "items": {
+        "tomatoes": "Tomates",
+        "eggs": "Œufs",
+        "zucchini": "Courgette",
+        "mozzarella": "Mozzarella",
+        "garlic": "Ail",
+        "olive_oil": "Huile d'olive"
+      },
+      "mealIdeas": {
+        "title": "Idées de repas",
+        "subtitle": "À partir de ton frigo · profil {{diet}}"
+      },
+      "errorText": "L’analyse a échoué. Vérifie ta connexion et réessaie.",
+      "retry": "Réessayer"
+    },
+    "mealResult": {
+      "loadingTitle": "Analyse de ton repas",
+      "loadingText": "Estimation des calories…",
+      "detected": "Détecté",
+      "confidence": "sûr à {{confidence}}%",
+      "addTo": "Ajouter à",
+      "logBtn": "Enregistrer ce repas",
+      "portion": "Portion",
+      "macrosTitle": "Macros",
+      "fiber": "Fibres",
+      "sugar": "Sucre",
+      "nutriScore": "Nutri-Score",
+      "breakdown": "Dans ton assiette",
+      "items": {
+        "grilled_chicken": "Poulet grillé",
+        "broccoli": "Brocoli",
+        "basmati_rice": "Riz basmati",
+        "olive_oil": "Huile d'olive"
+      },
+      "meals": {
+        "grilled_chicken_&_veggies": "Poulet grillé & légumes"
+      },
+      "nutriTips": {
+        "A": "Bien équilibré et riche en nutriments — excellent choix.",
+        "B": "Un repas équilibré et solide.",
+        "C": "Correct — surveille la taille de la portion.",
+        "D": "Un peu lourd — associe-le à plus léger aujourd'hui.",
+        "E": "Plaisir — à garder occasionnel."
+      },
+      "errorTitle": "Analyse impossible",
+      "errorText": "Impossible d’analyser ce plat. Réessaie.",
+      "retry": "Réessayer"
+    }
+  },
+  "mealDetail": {
+    "activeValues": "Valeurs Actives",
+    "remaining": "Restant",
+    "protein": "Protéines",
+    "fat": "Lipides",
+    "carbs": "Glucides",
+    "infoText": "Nous avons sélectionné les recettes qui correspondent le mieux à vos objectifs et à vos goûts. Faites défiler vers le bas pour toutes les voir.",
+    "recommendedRecipesTitle": "Recettes Recommandées",
+    "hideRecipes": "Masquer les Recettes",
+    "showRecipes": "Afficher les Recettes",
+    "added": "Ajouté",
+    "addToMeal": "+ Ajouter à mon repas",
+    "tabs": {
+      "recommended": "Recettes Recommandées",
+      "favorites": "Mes Favoris",
+      "myRecipes": "Mes Recettes"
+    },
+    "emptyFavorites": {
+      "title": "Aucune recette favorite pour le moment.",
+      "subtitle": "Appuyez sur l'icône 🔖 de n'importe quelle recette pour l'ajouter ici."
+    },
+    "emptyMyRecipes": {
+      "title": "Aucune recette personnelle pour le moment.",
+      "subtitle": "Utilisez le bouton + en bas à droite pour créer votre propre recette."
+    },
+    "addOwnRecipe": "Ajouter votre propre recette",
+    "fab": {
+      "main": "Ajouter",
+      "addRecipe": "Ajouter Recette",
+      "addFood": "Ajouter Aliment",
+      "scanPlate": "Scanner Assiette"
+    },
+    "addFoodModal": {
+      "title": "Ajouter un Aliment",
+      "namePlaceholder": "Nom de l'aliment (ex: Banane, Œuf)",
+      "kcalPlaceholder": "Calories (kcal)",
+      "quickAdd": "Ajout Rapide",
+      "quickItems": {
+        "banana": "Banane",
+        "egg": "Œuf",
+        "oatmeal": "Flocons d'avoine",
+        "milk": "Lait"
+      }
+    }
+  },
+  "recipeData": {
+    "1": {
+      "name": "Toast saumon avocat"
+    },
+    "2": {
+      "name": "Omelette cétogène au fromage"
+    },
+    "3": {
+      "name": "Pancake fit aux myrtilles"
+    },
+    "4": {
+      "name": "Porridge au beurre de cacahuète"
+    },
+    "5": {
+      "name": "Bol petit-déj sans gluten"
+    },
+    "6": {
+      "name": "Champignons sautés & œufs brouillés"
+    },
+    "7": {
+      "name": "Saumon grillé & asperges"
+    },
+    "8": {
+      "name": "Salade César au poulet"
+    },
+    "9": {
+      "name": "Ailes de poulet épicées au four"
+    },
+    "10": {
+      "name": "Salade de thon au quinoa"
+    },
+    "11": {
+      "name": "Sauté de viande aux champignons"
+    },
+    "12": {
+      "name": "Buddha bowl coloré"
+    },
+    "13": {
+      "name": "Smoothie bowl tropical"
+    },
+    "14": {
+      "name": "Soupe détox verte"
+    },
+    "15": {
+      "name": "Pois chiches croustillants au four"
+    },
+    "16": {
+      "name": "Pudding fit cacao & avocat"
+    },
+    "17": {
+      "name": "Porridge tarte aux pommes sans sucre"
+    },
+    "18": {
+      "name": "Bol protéiné aux fraises"
+    },
+    "19": {
+      "name": "Fraîcheur pastèque & menthe"
+    },
+    "20": {
+      "name": "Burger gourmet maison"
+    },
+    "21": {
+      "name": "Pâtes crémeuses aux champignons"
+    },
+    "22": {
+      "name": "Steak gourmet à l'aubergine grillée"
+    },
+    "23": {
+      "name": "Bar grillé au citron"
+    },
+    "24": {
+      "name": "Poulet sauce curry"
+    },
+    "25": {
+      "name": "Brochettes de saumon au four"
+    },
+    "26": {
+      "name": "Omelette épinards & chèvre"
+    },
+    "27": {
+      "name": "Buddha bowl méditerranéen"
+    },
+    "28": {
+      "name": "Salade de jeunes épinards à la grenade"
+    },
+    "29": {
+      "name": "Cubes de tofu croustillants épicés"
+    },
+    "30": {
+      "name": "Salade de quinoa à l'avocat"
+    },
+    "31": {
+      "name": "Parfait yaourt & fruits rouges"
+    },
+    "32": {
+      "name": "Porridge à la banane"
+    },
+    "33": {
+      "name": "Jus détox vert"
+    },
+    "34": {
+      "name": "Smoothie mangue tropical"
+    },
+    "35": {
+      "name": "Œufs pochés au yaourt à l'égéenne"
+    },
+    "premium_1": {
+      "name": "Assiette de saumon grillé du chef",
+      "ingNames": [
+        "Filet de saumon norvégien",
+        "Asperges fraîches",
+        "Tomates cerises",
+        "Huile d'olive vierge extra",
+        "Thym frais",
+        "Sel de mer",
+        "Poivre noir fraîchement moulu",
+        "Citron"
+      ],
+      "ingQty": [
+        "200g",
+        "100g",
+        "5-6 pièces",
+        "2 c. à soupe",
+        "2 brins",
+        "1 c. à café",
+        "1 c. à café",
+        "Moitié"
+      ],
+      "steps": [
+        "Faites mariner le filet de saumon avec l'huile d'olive, le thym frais, le sel de mer et le poivre. Laissez reposer 10 minutes à température ambiante.",
+        "Coupez les extrémités dures des asperges. Disposez-les sur une plaque avec les tomates cerises et huilez légèrement.",
+        "Dans une poêle en fonte préchauffée, saisissez le saumon côté peau 4 minutes, puis retournez et cuisez encore 3 minutes.",
+        "Faites rôtir les légumes à 200°C pendant 12 minutes. Réunissez le saumon et les légumes dans une grande assiette élégante et arrosez de jus de citron fraîchement pressé."
+      ]
+    },
+    "premium_2": {
+      "name": "Pâtes artisanales champignons & truffe",
+      "ingNames": [
+        "Tagliatelles fraîches",
+        "Champignons de Paris",
+        "Huile de truffe",
+        "Crème fraîche",
+        "Parmesan",
+        "Ail",
+        "Beurre",
+        "Persil frais"
+      ],
+      "ingQty": [
+        "250g",
+        "200g",
+        "1 c. à dessert",
+        "1 petit verre",
+        "50g (râpé)",
+        "2 gousses",
+        "1 c. à soupe",
+        "1 pincée"
+      ],
+      "steps": [
+        "Faites cuire les tagliatelles fraîches dans une grande quantité d'eau bouillante salée 3-4 minutes. Réservez un demi-petit verre d'eau de cuisson et égouttez les pâtes.",
+        "Faites fondre le beurre dans une grande poêle. Faites revenir l'ail finement émincé et les champignons à feu vif.",
+        "Quand les champignons rendent leur eau, ajoutez la crème, l'huile de truffe et l'eau de cuisson réservée. Laissez mijoter 2 minutes jusqu'à ce que la sauce épaississe légèrement.",
+        "Ajoutez les pâtes à la sauce, liez avec le parmesan. Parsemez de persil frais et servez chaud."
+      ]
+    },
+    "premium_3": {
+      "name": "Cheesecake fit aux fruits rouges",
+      "ingNames": [
+        "Farine d'avoine",
+        "Amandes crues",
+        "Dattes",
+        "Labné (allégé)",
+        "Yaourt égoutté",
+        "Œuf",
+        "Miel",
+        "Fruits rouges frais"
+      ],
+      "ingQty": [
+        "1 verre",
+        "Demi-verre",
+        "8 pièces",
+        "400g",
+        "2 c. à soupe",
+        "2 pièces",
+        "3 c. à soupe",
+        "1 bol"
+      ],
+      "steps": [
+        "Pour la base : Mixez la farine d'avoine, les amandes et les dattes dénoyautées au robot. Pressez le mélange au fond d'un moule à charnière.",
+        "Pour la garniture : Fouettez le labné, le yaourt égoutté et le miel jusqu'à obtenir un mélange lisse. Ajoutez les œufs un à un en mélangeant doucement.",
+        "Versez la garniture sur la base. Faites cuire au four préchauffé à 160°C pendant 35-40 minutes, en plaçant un récipient d'eau au fond du four.",
+        "Une fois le cheesecake refroidi, laissez-le reposer au réfrigérateur au moins 4 heures. Avant de servir, décorez le dessus de fruits rouges frais."
+      ]
+    },
+    "premium_4": {
+      "name": "Détox vert revitalisant",
+      "ingNames": [
+        "Pomme verte",
+        "Concombre",
+        "Branche de céleri",
+        "Jeunes épinards",
+        "Gingembre frais",
+        "Citron",
+        "Menthe fraîche",
+        "Glace"
+      ],
+      "ingQty": [
+        "1 pièce",
+        "1 pièce",
+        "2 brins",
+        "1 poignée",
+        "Taille d'un pouce",
+        "Moitié (jus)",
+        "3-4 feuilles",
+        "1 verre"
+      ],
+      "steps": [
+        "Lavez la pomme, le concombre et les branches de céleri à grande eau et coupez-les en gros morceaux.",
+        "Passez les légumes coupés, avec les épinards, le gingembre pelé et le jus de citron, dans une centrifugeuse ou un blender puissant.",
+        "Si vous utilisez un blender, filtrez le mélange avec une passoire fine ou une étamine pour obtenir un jus lisse.",
+        "Versez votre jus détox dans un grand verre élégant rempli de glace. Garnissez de feuilles de menthe fraîche et d'une tranche de citron et buvez aussitôt."
+      ]
+    },
+    "gf_1": {
+      "name": "Pancake protéiné aux amandes"
+    },
+    "gf_2": {
+      "name": "Bol de dattes équilibré"
+    },
+    "gf_3": {
+      "name": "Salade petit-déj quinoa & avocat"
+    },
+    "gf_4": {
+      "name": "Toast sans gluten avocat & fromage frais"
+    },
+    "gf_5": {
+      "name": "Poulet tendre & purée de pommes de terre"
+    },
+    "gf_6": {
+      "name": "Menu poisson savoureux"
+    },
+    "gf_7": {
+      "name": "Assiette de dorade gourmande"
+    }
+  },
+  "theme": {
+    "title": "Thème",
+    "changed": "Thème : {{mode}}",
+    "modes": {
+      "light": "Clair",
+      "dark": "Sombre"
+    }
+  },
+  "feedback": {
+    "water": {
+      "added": "+{{ml}} ml · {{total}} / {{goal}} ml 💧",
+      "removed": "−{{ml}} ml · {{total}} / {{goal}} ml",
+      "goalReached": "Objectif d'hydratation atteint ! 💧"
+    },
+    "steps": {
+      "saved": "{{steps}} pas enregistrés",
+      "goalReached": "Objectif de pas atteint ! 🎉"
+    },
+    "weight": {
+      "saved": "Poids mis à jour · {{weight}} kg"
+    },
+    "meal": {
+      "added": "{{meal}} mis à jour · +{{kcal}} kcal",
+      "removed": "{{meal}} · retiré (−{{kcal}} kcal)",
+      "logged": "{{meal}} enregistré · {{kcal}} kcal"
+    }
+  },
+  "insights": {
+    "title": "Aperçu du jour",
+    "caloriesOver": {
+      "title": "Objectif calorique dépassé",
+      "message": "Tu as dépassé ta cible de {{over}} kcal aujourd’hui."
+    },
+    "caloriesReached": {
+      "title": "Pile dans ta cible 🎯",
+      "message": "Bravo, tu es pile dans ton objectif calorique."
+    },
+    "hydrationBehind": {
+      "title": "Hydratation en retard",
+      "message": "Encore {{remaining}} ml à boire pour ton objectif."
+    },
+    "hydrationReached": {
+      "title": "Bien hydraté 💧",
+      "message": "Objectif d’eau atteint, continue comme ça !"
+    },
+    "hydrationTip": {
+      "title": "Pense à t’hydrater",
+      "message": "{{percent}} % de ton objectif · encore {{remaining}} ml."
+    },
+    "proteinLow": {
+      "title": "Protéines à compléter",
+      "message": "Il te manque {{remaining}} g de protéines aujourd’hui."
+    },
+    "stepsBehind": {
+      "title": "Encore un effort",
+      "message": "Plus que {{remaining}} pas pour atteindre ta cible."
+    },
+    "logLunch": {
+      "title": "Déjeuner non enregistré",
+      "message": "Ajoute ton déjeuner pour garder ton suivi à jour."
+    },
+    "logDinner": {
+      "title": "Dîner non enregistré",
+      "message": "Ajoute ton dîner pour garder ton suivi à jour."
+    },
+    "weightProgress": {
+      "title": "Belle progression 📉",
+      "message": "−{{kg}} kg cette semaine. Continue !"
+    },
+    "startDay": {
+      "title": "Commence ta journée",
+      "message": "Ajoute ton premier repas pour suivre tes calories."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Choisis les rappels que tu veux recevoir.",
+    "master": "Autoriser les notifications",
+    "enableHint": "Active les notifications pour recevoir des rappels personnalisés.",
+    "permissionDenied": "Les notifications sont désactivées. Active-les dans les réglages de ton téléphone.",
+    "saved": "Préférences enregistrées",
+    "categories": {
+      "hydration": {
+        "title": "Rappels d’hydratation",
+        "desc": "Des rappels pour boire de l’eau pendant la journée."
+      },
+      "meals": {
+        "title": "Rappels de repas",
+        "desc": "Un rappel si tu oublies d’enregistrer un repas."
+      },
+      "recap": {
+        "title": "Bilan du soir",
+        "desc": "Un résumé de ta journée chaque soir."
+      }
+    },
+    "push": {
+      "hydration": {
+        "title": "💧 Pause hydratation",
+        "body": "Bois un verre d’eau pour rester sur ton objectif."
+      },
+      "lunch": {
+        "title": "🍽 Et ton déjeuner ?",
+        "body": "N’oublie pas d’enregistrer ton déjeuner dans Fridos."
+      },
+      "dinner": {
+        "title": "🍽 Et ton dîner ?",
+        "body": "N’oublie pas d’enregistrer ton dîner dans Fridos."
+      },
+      "recap": {
+        "title": "📊 Ton bilan du jour",
+        "body": "Ouvre Fridos pour voir ton récap et préparer demain."
+      }
+    }
+  }
+}
